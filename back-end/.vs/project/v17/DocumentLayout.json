@@ -1,0 +1,143 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\controllers\\tblcategoriescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:controllers\\tblcategoriescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\models\\dbplantshopthuancuongcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:models\\dbplantshopthuancuongcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\models\\tblorder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:models\\tblorder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\models\\tblbanner.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:models\\tblbanner.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\models\\tblcart.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:models\\tblcart.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "launchSettings.json",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Properties\\launchSettings.json",
+              "RelativeDocumentMoniker": "Properties\\launchSettings.json",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Properties\\launchSettings.json",
+              "RelativeToolTip": "Properties\\launchSettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-12-15T09:11:39.145Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "TblCategoriesController.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\TblCategoriesController.cs",
+              "RelativeDocumentMoniker": "Controllers\\TblCategoriesController.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\TblCategoriesController.cs",
+              "RelativeToolTip": "Controllers\\TblCategoriesController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAuwA0AAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-15T09:02:51.251Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-15T08:50:59.476Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "TblOrder.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\TblOrder.cs",
+              "RelativeDocumentMoniker": "Models\\TblOrder.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\TblOrder.cs",
+              "RelativeToolTip": "Models\\TblOrder.cs",
+              "ViewState": "AgIAABgAAAAAAAAAAAAIwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-15T08:50:40.387Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "TblBanner.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\TblBanner.cs",
+              "RelativeDocumentMoniker": "Models\\TblBanner.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\TblBanner.cs",
+              "RelativeToolTip": "Models\\TblBanner.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-15T08:50:37.515Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "TblCart.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\TblCart.cs",
+              "RelativeDocumentMoniker": "Models\\TblCart.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\TblCart.cs",
+              "RelativeToolTip": "Models\\TblCart.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-15T08:50:33.859Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "DbplantShopThuanCuongContext.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\DbplantShopThuanCuongContext.cs",
+              "RelativeDocumentMoniker": "Models\\DbplantShopThuanCuongContext.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\DbplantShopThuanCuongContext.cs",
+              "RelativeToolTip": "Models\\DbplantShopThuanCuongContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEAAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-15T08:50:08.213Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
