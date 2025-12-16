@@ -1,16 +1,26 @@
-import './App.css'
-// 1. Import cái file bạn vừa tạo
-import Categories from './components/Categories'; 
-
+import { Routes, Route, Navigate } from 'react-router-dom';
+import MainLayout from './components/MainLayout';
+import Products from './components/Products';
+import Categories from './components/Categories';
+import Login from './components/Login';
+import Users from './components/Users';
 function App() {
   return (
-    <>
-      <h1>Chào mừng đến với Shop Cây Cảnh</h1>
-      
-      {/* 2. Hiển thị nó ra ở đây */}
-      <Categories /> 
-    </>
-  )
+    <Routes>
+
+      {/* <Route path="/login" element={<Login />} /> */}
+      <Route path="/" element={<MainLayout />}>
+        
+        {/* Mặc định vào trang chủ thì chuyển hướng sang trang Products */}
+        <Route index element={<Navigate to="/products" />} />
+        <Route path="login" element={<Login />} />
+
+        <Route path="products" element={<Products />} />
+        <Route path="categories" element={<Categories />} />
+        <Route path="users" element={<Users />} />
+      </Route>
+    </Routes>
+  );
 }
 
-export default App
+export default App;

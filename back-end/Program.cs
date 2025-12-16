@@ -3,24 +3,29 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. THÊM DÒNG NÀY (Để hệ thống nhận diện các Controller trong thư mục Controllers) ---
+// 1. Đăng ký dịch vụ Controllers
 builder.Services.AddControllers();
-// ----------------------------------------------------------------------------------------
 
 builder.Services.AddOpenApi();
+
+// Cấu hình Database
 builder.Services.AddDbContext<DbplantShopThuanCuongContext>(options =>
     options.UseSqlServer("Server=LAPTOP-BPFVN8L7\\SQLEXPRESS02;Database=DBPlantShopThuanCuong;Trusted_Connection=True;TrustServerCertificate=True;"));
 
+// Cấu hình CORS (Cho phép React truy cập)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
-        builder => builder.WithOrigins("http://localhost:3000", "http://localhost:5173")
+        builder => builder.WithOrigins("http://localhost:3000", "http://localhost:5173") // Port React của bạn
                           .AllowAnyMethod()
                           .AllowAnyHeader());
 });
-
+builder.Services.AddAuthentication().AddJwtBearer();
 var app = builder.Build();
 
+// --- BẮT ĐẦU PIPELINE ---
+
+// 2. Kích hoạt CORS đầu tiên
 app.UseCors("AllowReactApp");
 
 if (app.Environment.IsDevelopment())
@@ -30,11 +35,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization(); // (Có thể thêm dòng này cho đầy đủ quy trình, dù chưa dùng login)
+// 3. Kích hoạt File tĩnh (QUAN TRỌNG: Đặt ở đây)
+// Nó giúp hiển thị ảnh từ thư mục wwwroot ra trình duyệt
+app.UseStaticFiles();
 
-// --- 2. THÊM DÒNG NÀY (Để hệ thống định tuyến các API trong Controller) ---
+app.UseAuthorization();
+
+// 4. Định tuyến Controller (Thường đặt cuối cùng)
 app.MapControllers();
 
-
 app.Run();
-

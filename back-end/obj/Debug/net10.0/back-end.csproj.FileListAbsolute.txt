@@ -324,3 +324,7 @@ D:\Study\Y4HK1\Thực tập chuyên ngành\Project\back-end\bin\Debug\net10.0\ru
 D:\Study\Y4HK1\Thực tập chuyên ngành\Project\back-end\bin\Debug\net10.0\tr\Microsoft.CodeAnalysis.Scripting.resources.dll
 D:\Study\Y4HK1\Thực tập chuyên ngành\Project\back-end\bin\Debug\net10.0\zh-Hans\Microsoft.CodeAnalysis.Scripting.resources.dll
 D:\Study\Y4HK1\Thực tập chuyên ngành\Project\back-end\bin\Debug\net10.0\zh-Hant\Microsoft.CodeAnalysis.Scripting.resources.dll
+D:\Study\Y4HK1\Thực tập chuyên ngành\Project\back-end\obj\Debug\net10.0\back-end.sourcelink.json
+D:\Study\Y4HK1\Thực tập chuyên ngành\Project\back-end\bin\Debug\net10.0\back-end.staticwebassets.runtime.json
+D:\Study\Y4HK1\Thực tập chuyên ngành\Project\back-end\bin\Debug\net10.0\BCrypt.Net-Next.dll
+D:\Study\Y4HK1\Thực tập chuyên ngành\Project\back-end\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll

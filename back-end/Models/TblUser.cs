@@ -30,8 +30,8 @@ public partial class TblUser
     public DateTime? UpdatedAt { get; set; }
 
     public DateTime? LastLogin { get; set; }
-
-    public virtual TblRole Role { get; set; } = null!;
+    [System.Text.Json.Serialization.JsonIgnore]
+    public virtual TblRole? Role { get; set; } 
 
     public virtual TblCart? TblCart { get; set; }
 

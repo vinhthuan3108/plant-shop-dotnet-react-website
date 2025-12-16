@@ -3,16 +3,52 @@
   "WorkspaceRootPath": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\controllers\\tbluserscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:controllers\\tbluserscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\controllers\\tblcategoriescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:controllers\\tblcategoriescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\dtos\\logindto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:dtos\\logindto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\dtos\\registerdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:dtos\\registerdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\models\\tblproductimage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:models\\tblproductimage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\models\\tblproduct.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:models\\tblproduct.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\controllers\\tblproductscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:controllers\\tblproductscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\controllers\\uploadcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:controllers\\uploadcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|solutionrelative:properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{8CD9EE64-0CB0-59BD-FDB1-86779C21DC9E}|back-end.csproj|d:\\study\\y4hk1\\th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\project\\back-end\\models\\dbplantshopthuancuongcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -38,11 +74,154 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "TblUsersController.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\TblUsersController.cs",
+              "RelativeDocumentMoniker": "Controllers\\TblUsersController.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\TblUsersController.cs",
+              "RelativeToolTip": "Controllers\\TblUsersController.cs",
+              "ViewState": "AgIAACcAAAAAAAAAAAAYwGMAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-16T15:06:10.543Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\appsettings.json",
+              "RelativeDocumentMoniker": "appsettings.json",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\appsettings.json",
+              "RelativeToolTip": "appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-12-16T11:57:14.767Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "AuthController.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\AuthController.cs",
+              "RelativeDocumentMoniker": "Controllers\\AuthController.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\AuthController.cs",
+              "RelativeToolTip": "Controllers\\AuthController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAG4AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-16T14:20:31.477Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "LoginDto.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\DTOs\\LoginDto.cs",
+              "RelativeDocumentMoniker": "DTOs\\LoginDto.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\DTOs\\LoginDto.cs",
+              "RelativeToolTip": "DTOs\\LoginDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-16T14:19:53.602Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "RegisterDto.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\DTOs\\RegisterDto.cs",
+              "RelativeDocumentMoniker": "DTOs\\RegisterDto.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\DTOs\\RegisterDto.cs",
+              "RelativeToolTip": "DTOs\\RegisterDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-16T14:19:17.406Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 1,
+              "Title": "TblCategoriesController.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\TblCategoriesController.cs",
+              "RelativeDocumentMoniker": "Controllers\\TblCategoriesController.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\TblCategoriesController.cs",
+              "RelativeToolTip": "Controllers\\TblCategoriesController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAGgAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-15T09:02:51.251Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "TblProductImage.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\TblProductImage.cs",
+              "RelativeDocumentMoniker": "Models\\TblProductImage.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\TblProductImage.cs",
+              "RelativeToolTip": "Models\\TblProductImage.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-16T12:00:22.925Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Program.cs",
+              "RelativeDocumentMoniker": "Program.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Program.cs",
+              "RelativeToolTip": "Program.cs",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAAABYAAAA0AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-15T08:50:59.476Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "UploadController.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\UploadController.cs",
+              "RelativeDocumentMoniker": "Controllers\\UploadController.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\UploadController.cs",
+              "RelativeToolTip": "Controllers\\UploadController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADUAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-16T11:48:33.817Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "TblProduct.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\TblProduct.cs",
+              "RelativeDocumentMoniker": "Models\\TblProduct.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\TblProduct.cs",
+              "RelativeToolTip": "Models\\TblProduct.cs",
+              "ViewState": "AgIAAB4AAAAAAAAAAAAiwC8AAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-16T09:28:26.581Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "TblProductsController.cs",
+              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\TblProductsController.cs",
+              "RelativeDocumentMoniker": "Controllers\\TblProductsController.cs",
+              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\TblProductsController.cs",
+              "RelativeToolTip": "Controllers\\TblProductsController.cs",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAAACAAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-16T08:13:59.437Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
               "Title": "launchSettings.json",
               "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Properties\\launchSettings.json",
               "RelativeDocumentMoniker": "Properties\\launchSettings.json",
@@ -50,38 +229,15 @@
               "RelativeToolTip": "Properties\\launchSettings.json",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABcAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-12-15T09:11:39.145Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-15T09:11:39.145Z"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "TblCategoriesController.cs",
-              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\TblCategoriesController.cs",
-              "RelativeDocumentMoniker": "Controllers\\TblCategoriesController.cs",
-              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Controllers\\TblCategoriesController.cs",
-              "RelativeToolTip": "Controllers\\TblCategoriesController.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAuwA0AAAARAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-15T09:02:51.251Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "Program.cs",
-              "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Program.cs",
-              "RelativeDocumentMoniker": "Program.cs",
-              "ToolTip": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Program.cs",
-              "RelativeToolTip": "Program.cs",
-              "ViewState": "AgIAAB4AAAAAAAAAAAAAACQAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-15T08:50:59.476Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 13,
               "Title": "TblOrder.cs",
               "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\TblOrder.cs",
               "RelativeDocumentMoniker": "Models\\TblOrder.cs",
@@ -89,12 +245,11 @@
               "RelativeToolTip": "Models\\TblOrder.cs",
               "ViewState": "AgIAABgAAAAAAAAAAAAIwAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-15T08:50:40.387Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-15T08:50:40.387Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 14,
               "Title": "TblBanner.cs",
               "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\TblBanner.cs",
               "RelativeDocumentMoniker": "Models\\TblBanner.cs",
@@ -102,12 +257,11 @@
               "RelativeToolTip": "Models\\TblBanner.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-15T08:50:37.515Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-15T08:50:37.515Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 15,
               "Title": "TblCart.cs",
               "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\TblCart.cs",
               "RelativeDocumentMoniker": "Models\\TblCart.cs",
@@ -115,12 +269,11 @@
               "RelativeToolTip": "Models\\TblCart.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-15T08:50:33.859Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-12-15T08:50:33.859Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 12,
               "Title": "DbplantShopThuanCuongContext.cs",
               "DocumentMoniker": "D:\\Study\\Y4HK1\\Th\u1EF1c t\u1EADp chuy\u00EAn ng\u00E0nh\\Project\\back-end\\Models\\DbplantShopThuanCuongContext.cs",
               "RelativeDocumentMoniker": "Models\\DbplantShopThuanCuongContext.cs",
@@ -128,12 +281,7 @@
               "RelativeToolTip": "Models\\DbplantShopThuanCuongContext.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAEAAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-12-15T08:50:08.213Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+              "WhenOpened": "2025-12-15T08:50:08.213Z"
             }
           ]
         }

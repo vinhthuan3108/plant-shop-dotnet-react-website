@@ -15,5 +15,6 @@ public partial class TblProductImage
 
     public int? DisplayOrder { get; set; }
 
-    public virtual TblProduct Product { get; set; } = null!;
+    [System.Text.Json.Serialization.JsonIgnore]
+    public virtual TblProduct? Product { get; set; }
 }
