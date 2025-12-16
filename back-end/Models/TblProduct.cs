@@ -45,7 +45,8 @@ public partial class TblProduct
 
     public DateTime? UpdatedAt { get; set; }
 
-    public virtual TblCategory Category { get; set; } = null!;
+    [System.Text.Json.Serialization.JsonIgnore] 
+    public virtual TblCategory? Category { get; set; }
 
     public virtual ICollection<TblCartItem> TblCartItems { get; set; } = new List<TblCartItem>();
 
