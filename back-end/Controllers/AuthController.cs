@@ -1,7 +1,10 @@
 ﻿using back_end.DTO;
+using back_end.DTOs;
 using back_end.Models;
+using back_end.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -14,35 +17,44 @@ namespace back_end.Controllers
     public class AuthController : ControllerBase
     {
         private readonly DbplantShopThuanCuongContext _context;
-        private readonly IConfiguration _configuration;
+        private readonly IConfiguration _configuration; //?
 
-        public AuthController(DbplantShopThuanCuongContext context, IConfiguration configuration)
+        // 1. Thêm EmailService vào Constructor
+        private readonly EmailService _emailService;
+        private readonly IMemoryCache _cache;
+        public AuthController(DbplantShopThuanCuongContext context, IConfiguration configuration, EmailService emailService, IMemoryCache cache)
         {
             _context = context;
             _configuration = configuration;
+            _emailService = emailService;
+            _cache = cache;
         }
 
-  
+        // 2. Sửa hàm Register
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto request)
         {
-            // 1. Kiểm tra email đã tồn tại chưa
             if (await _context.TblUsers.AnyAsync(u => u.Email == request.Email))
             {
                 return BadRequest("Email đã tồn tại.");
             }
 
+            // --- TẠO MÃ OTP ---
+            string otp = new Random().Next(100000, 999999).ToString();
 
-            string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            // --- LƯU OTP VÀO RAM (Thay vì Database) ---
+            // Key là Email, Value là OTP. Tự động hủy sau 10 phút.
+            _cache.Set(request.Email, otp, TimeSpan.FromMinutes(10));
 
+            // --- TẠO USER (Lưu ý: Không cần cột VerificationToken nữa) ---
             var user = new TblUser
             {
                 Email = request.Email,
-                PasswordHash = passwordHash,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 FullName = request.FullName,
                 PhoneNumber = request.PhoneNumber,
-                IsActive = true, // Tạm thời cho active để test
-                RoleId = 2, //1 là Admin, 2 là Customer 
+                RoleId = 2,
+                IsActive = false, // Vẫn cần cái này để biết chưa kích hoạt
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };
@@ -50,7 +62,10 @@ namespace back_end.Controllers
             _context.TblUsers.Add(user);
             await _context.SaveChangesAsync();
 
-            return Ok("Đăng ký thành công!");
+            // --- GỬI EMAIL ---
+            await _emailService.SendEmailAsync(request.Email, "Mã xác thực", $"Mã OTP: {otp}");
+
+            return Ok("Đăng ký thành công! Kiểm tra email.");
         }
 
 
@@ -102,6 +117,32 @@ namespace back_end.Controllers
 
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
             return jwt;
+        }
+        [HttpPost("verify-otp")]
+        public async Task<IActionResult> VerifyOtp(VerifyDto request)
+        {
+            // 1. Kiểm tra OTP trong RAM trước (Nhanh hơn gọi DB)
+            if (!_cache.TryGetValue(request.Email, out string savedOtp))
+            {
+                return BadRequest("Mã xác thực đã hết hạn hoặc không tồn tại.");
+            }
+
+            if (savedOtp != request.OtpCode)
+            {
+                return BadRequest("Mã xác thực không đúng.");
+            }
+
+            // 2. Nếu OTP đúng, mới gọi DB để kích hoạt tài khoản
+            var user = await _context.TblUsers.FirstOrDefaultAsync(u => u.Email == request.Email);
+            if (user == null) return BadRequest("Tài khoản lỗi.");
+
+            user.IsActive = true;
+            await _context.SaveChangesAsync();
+
+            // 3. Xóa OTP khỏi RAM sau khi dùng xong (để không dùng lại được)
+            _cache.Remove(request.Email);
+
+            return Ok("Kích hoạt thành công!");
         }
     }
 }

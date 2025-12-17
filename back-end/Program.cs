@@ -16,14 +16,16 @@ builder.Services.AddDbContext<DbplantShopThuanCuongContext>(options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
-        builder => builder.WithOrigins("http://localhost:3000", "http://localhost:5173") // Port React của bạn
+        builder => builder.WithOrigins("http://localhost:3000", "http://localhost:5173") // Port React 
                           .AllowAnyMethod()
                           .AllowAnyHeader());
 });
 builder.Services.AddAuthentication().AddJwtBearer();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<back_end.Services.EmailService>();
 var app = builder.Build();
 
-// --- BẮT ĐẦU PIPELINE ---
+
 
 // 2. Kích hoạt CORS đầu tiên
 app.UseCors("AllowReactApp");
@@ -33,7 +35,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 // 3. Kích hoạt File tĩnh (QUAN TRỌNG: Đặt ở đây)
 // Nó giúp hiển thị ảnh từ thư mục wwwroot ra trình duyệt

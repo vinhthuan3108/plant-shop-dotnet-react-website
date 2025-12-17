@@ -140,7 +140,7 @@ function Products() {
                     ))}
                 </tbody>
             </table>
-
+                        
             <ProductModal 
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
