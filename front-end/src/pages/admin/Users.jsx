@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import UserModal from './UserModal';
+import UserModal from "../../components/admin/UserModal";
 
 function Users() {
     const [users, setUsers] = useState([]);
