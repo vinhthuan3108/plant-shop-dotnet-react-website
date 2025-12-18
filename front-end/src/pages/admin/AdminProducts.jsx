@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import ProductModal from './ProductModal';
+import ProductModal from '../../components/admin/ProductModal';
 
 function Products() {
     const [products, setProducts] = useState([]);

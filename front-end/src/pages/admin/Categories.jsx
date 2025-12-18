@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import CategoryModal from './CategoryModal';
+import CategoryModal from "../../components/admin/CategoryModal"
 
 function Categories() {
     const [categories, setCategories] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
 
-    const API_URL = 'https://localhost:7928/api/TblCategories'; 
+    const API_URL = 'https://localhost:7298/api/TblCategories'; 
 
     const fetchCategories = () => {
         fetch(API_URL)
