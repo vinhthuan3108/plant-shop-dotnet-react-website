@@ -18,27 +18,25 @@ import VerifyOtp from './pages/auth/VerifyOtp';
 import AdminProducts from './pages/admin/AdminProducts';
 import Categories from './pages/admin/Categories';
 import Users from './pages/admin/Users';
+import AdminPosts from './pages/admin/AdminPost';
 
 function App() {
   return (
     <Routes>
-      {/* --- KHU VỰC KHÁCH HÀNG (CLIENT) --- */}
+      {/* Route cha có Layout */}
       <Route path="/" element={<MainLayout />}>
         <Route index element={<HomePage />} />
         <Route path="shop" element={<ProductList />} />
-        
-        {/* Các trang Login/Register nếu muốn có Header/Footer thì để ở đây */}
-        {/* Nếu muốn trang Login trắng trơn thì đưa ra ngoài Route này */}
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route path="verify-otp" element={<VerifyOtp />} />
-      </Route>
-
-      {/* --- KHU VỰC QUẢN TRỊ (ADMIN) --- */}
-      <Route path="/admin">
-        <Route path="products" element={<AdminProducts />} />
-        <Route path="categories" element={<Categories />} />
-        <Route path="users" element={<Users />} />
+        {/* Đưa Admin vào đây để thừa hưởng MainLayout */}
+        <Route path="admin">
+          <Route path="products" element={<AdminProducts />} />
+          <Route path="categories" element={<Categories />} />
+          <Route path="posts" element={<AdminPosts/>} />
+          <Route path="users" element={<Users />} />
+        </Route>
       </Route>
     </Routes>
   );
