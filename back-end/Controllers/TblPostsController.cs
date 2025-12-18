@@ -35,7 +35,7 @@ namespace back_end.Controllers
                 query = query.Where(p => p.Status == status);
 
             var posts = await query
-                .OrderByDescending(p => p.CreatedAt) // Sắp xếp bài mới nhất lên đầu
+                .OrderByDescending(p => p.CreatedAt)
                 .Select(p => new PostDto
                 {
                     PostId = p.PostId,
@@ -45,9 +45,11 @@ namespace back_end.Controllers
                     ThumbnailUrl = p.ThumbnailUrl,
                     Status = p.Status,
                     PostCategoryId = p.PostCategoryId,
-                    CategoryName = p.PostCategory.CategoryName,
+                    CategoryName = p.PostCategory.CategoryName, 
+                    AuthorName = p.Author.FullName,             
                     PublishedAt = p.PublishedAt,
-                    IsDeleted = p.IsDeleted ?? false 
+                    CreatedAt = p.CreatedAt,
+                    IsDeleted = p.IsDeleted ?? false
                 }).ToListAsync();
 
             return Ok(posts);

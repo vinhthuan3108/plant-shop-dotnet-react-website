@@ -12,7 +12,9 @@ const AdminPosts = () => {
         try {
             const res = await axios.get(`${API_BASE}/api/TblPosts`);
             setPosts(res.data);
-        } catch (error) { console.error("Lỗi tải bài viết:", error); }
+        } catch (error) { 
+            console.error("Lỗi tải bài viết:", error); 
+        }
     };
 
     const handleHardDelete = async (id) => {
@@ -41,8 +43,11 @@ const AdminPosts = () => {
             <table border="1" style={{ width: '100%', borderCollapse: 'collapse', borderColor: '#ddd' }}>
                 <thead>
                     <tr style={{ backgroundColor: '#f8f9fa' }}>
-                        <th style={{ padding: '12px' }}>Ảnh</th>
+                        <th style={{ padding: '12px' }}>Hình ảnh</th>
                         <th style={{ padding: '12px' }}>Tiêu đề</th>
+                        <th style={{ padding: '12px' }}>Tác giả</th>
+                        <th style={{ padding: '12px' }}>Danh mục</th>
+                        <th style={{ padding: '12px' }}>Ngày đăng</th>
                         <th style={{ padding: '12px' }}>Trạng thái</th>
                         <th style={{ padding: '12px' }}>Thao tác</th>
                     </tr>
@@ -51,30 +56,40 @@ const AdminPosts = () => {
                     {posts.map(post => (
                         <tr key={post.postId}>
                             <td style={{ textAlign: 'center', padding: '10px' }}>
-                                <img src={`${API_BASE}${post.thumbnailUrl}`} width="60" height="40" style={{ objectFit: 'cover' }} alt="" />
+                                <img src={`${API_BASE}${post.thumbnailUrl}`} width="60" height="40" style={{ objectFit: 'cover', borderRadius: '4px' }} alt="" />
                             </td>
-                            <td style={{ padding: '10px' }}><strong>{post.title}</strong></td>
+                            <td style={{ padding: '10px' }}>
+                                <div style={{ fontWeight: 'bold', maxWidth: '250px' }}>{post.title}</div>
+                            </td>
+                            {/* THÊM TÁC GIẢ */}
+                            <td style={{ padding: '10px', textAlign: 'center' }}>{post.authorName}</td>
+                            {/* THÊM DANH MỤC */}
+                            <td style={{ padding: '10px', textAlign: 'center' }}>
+                                <span style={{ backgroundColor: '#eee', padding: '2px 8px', borderRadius: '4px', fontSize: '13px' }}>
+                                    {post.categoryName}
+                                </span>
+                            </td>
+                            {/* THÊM NGÀY ĐĂNG */}
+                            <td style={{ padding: '10px', textAlign: 'center' }}>
+                                {post.createdAt ? new Date(post.createdAt).toLocaleDateString('vi-VN') : '---'}
+                            </td>
                             <td style={{ textAlign: 'center', padding: '10px' }}>
                                 {(post.isDeleted || post.IsDeleted) ? (
-                                    <span style={{ backgroundColor: '#f8d7da', color: '#721c24', padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
-                                        Ngừng hoạt động
-                                    </span>
+                                    <span style={{ color: '#dc3545', fontWeight: 'bold' }}>Ngừng hoạt động</span>
                                 ) : (
-                                    <span style={{ backgroundColor: '#d4edda', color: '#155724', padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
-                                        Đang hoạt động
-                                    </span>
+                                    <span style={{ color: '#28a745', fontWeight: 'bold' }}>Đang hoạt động</span>
                                 )}
                             </td>
                             <td style={{ padding: '10px', textAlign: 'center' }}>
                                 <button 
                                     onClick={() => { setSelectedPost(post); setIsModalOpen(true); }}
-                                    style={{ marginRight: '8px', padding: '5px 15px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                                    style={{ marginRight: '8px', padding: '5px 12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                                 >
                                     Sửa
                                 </button>
                                 <button 
                                     onClick={() => handleHardDelete(post.postId)}
-                                    style={{ padding: '5px 15px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                                    style={{ padding: '5px 12px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                                 >
                                     Xóa
                                 </button>

@@ -7,7 +7,9 @@ function Header() {
       <nav>
         <Link to="/admin/products" style={{ color: 'white', textDecoration: 'none', marginRight: '20px' }}>Quản lý Sản phẩm</Link>
         <Link to="/admin/categories" style={{ color: 'white', textDecoration: 'none', marginRight: '20px' }}>Quản lý Danh mục</Link>
-        <Link to="/admin/posts" style={{ color: 'white', textDecoration: 'none', marginRight: '20px' }}>Quản lý bài đăng</Link>
+        {/* <Link to="/admin/posts" style={{ color: 'white', textDecoration: 'none', marginRight: '20px' }}>Quản lý bài đăng</Link> */}
+        <Link to="/admin/suppliers" style={{ color: 'white', textDecoration: 'none', marginRight: '20px' }}>Quản lý nhà cung cấp</Link>
+        <Link to="/admin/imports" style={{ color: 'white', textDecoration: 'none', marginRight: '20px' }}>Quản lý phiếu nhập</Link>
         <Link to="/admin/users" style={{ color: 'white', textDecoration: 'none', marginRight: '20px' }}>Quản lý tài khoản</Link>
         <Link to="/login" style={{ color: 'white', textDecoration: 'none' }}>Đăng nhập</Link>
       </nav>
