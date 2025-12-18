@@ -17,17 +17,18 @@ namespace back_end.Controllers
             _environment = environment;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Upload(IFormFile file)
+        [HttpPost("{type?}")] // Thêm tham số type (optional)
+        public async Task<IActionResult> Upload(IFormFile file, string type = "images")
         {
             if (file == null || file.Length == 0)
                 return BadRequest("Vui lòng chọn file");
 
-  
             var fileExtension = Path.GetExtension(file.FileName);
             var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
 
-            var uploadFolder = Path.Combine(_environment.WebRootPath, "images");
+            // Nếu type là "posts" thì vào wwwroot/posts, ngược lại mặc định vào wwwroot/images
+            var subFolder = type == "posts" ? "posts" : "images";
+            var uploadFolder = Path.Combine(_environment.WebRootPath, subFolder);
 
             if (!Directory.Exists(uploadFolder))
             {
@@ -36,14 +37,13 @@ namespace back_end.Controllers
 
             var filePath = Path.Combine(uploadFolder, uniqueFileName);
 
-
             using (var stream = new FileStream(filePath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);
             }
 
-
-            var url = $"/images/{uniqueFileName}";
+            // Trả về URL đúng thư mục
+            var url = $"/{subFolder}/{uniqueFileName}";
 
             return Ok(new { url = url });
         }

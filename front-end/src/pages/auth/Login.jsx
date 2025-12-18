@@ -29,7 +29,7 @@ function Login() {
                 // Nếu là Admin (RoleId = 1) -> Vào trang quản trị
                 // Nếu là Khách -> Về trang chủ
                 if (data.role === 1 || data.role === 3 || data.role === 4  ) {
-                    navigate('/products'); // Trang Admin
+                    navigate('/admin/products'); // Trang Admin
                 } else {
                     alert("Bạn là khách hàng, trang chủ chưa làm");
                 }

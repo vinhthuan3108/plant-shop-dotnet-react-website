@@ -10,7 +10,7 @@ builder.Services.AddOpenApi();
 
 // Cấu hình Database
 builder.Services.AddDbContext<DbplantShopThuanCuongContext>(options =>
-    options.UseSqlServer("Server=DELL;Database=DBPlantShopThuanCuong;Trusted_Connection=True;TrustServerCertificate=True;"));
+    options.UseSqlServer("Server=LAPTOP-BPFVN8L7\\SQLEXPRESS02;Database=DBPlantShopThuanCuong;Trusted_Connection=True;TrustServerCertificate=True;"));
 
 // Cấu hình CORS (Cho phép React truy cập)
 builder.Services.AddCors(options =>
