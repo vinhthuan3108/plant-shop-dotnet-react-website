@@ -11,6 +11,8 @@ import Cart from './pages/client/Cart';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import VerifyOtp from './pages/auth/VerifyOtp';
+//
+import IntroPage from './pages/client/IntroPage';
 
 // Admin Pages
 import AdminProducts from './pages/admin/AdminProducts';
@@ -49,6 +51,7 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         
         {/* Các trang khác của khách hàng... */}
+        <Route path="/intro" element={<IntroPage />} />
       </Route>
 
       {/* --- NHÓM 2: DÀNH CHO ADMIN (Dùng AdminLayout) --- */}

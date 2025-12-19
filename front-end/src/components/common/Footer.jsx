@@ -10,19 +10,19 @@ const Footer = () => {
       <div className="footer-container">
         {/* Cột 1 */}
         <div className="footer-col">
-          <h3>Vườn Cây Việt</h3>
+          <h3>PLANT SHOP</h3>
           <ul className="footer-links contact-list">
             <li>
               <FaMapMarkerAlt className="contact-icon" />
-              <span>20/4 Kỳ Đồng, P.9, Q.3, TP.HCM</span>
+              <span>201 Nguyễn Đình Chiểu - Tp.Nha Trang</span>
             </li>
             <li>
               <FaPhoneAlt className="contact-icon" />
-              <span>0985 507 150</span>
+              <span>0369369963</span>
             </li>
             <li>
               <FaEnvelope className="contact-icon" />
-              <span>lienhe@vuoncayviet.com</span>
+              <span>lienhe@plantshop.com</span>
             </li>
           </ul>
         </div>
@@ -56,6 +56,10 @@ const Footer = () => {
              {/* --- SỬA LẠI TÊN THẺ TẠI ĐÂY --- */}
              <a href="#" style={{ fontSize: '24px', color: '#1877f2' }}><FaFacebook /></a>
              <a href="#" style={{ fontSize: '24px', color: '#ff0000' }}><FaYoutube /></a>
+             <a href="#" style={{ fontSize: '24px', color: '#ff0000' }}>< FaMapMarkerAlt/></a>
+             <a href="#" style={{ fontSize: '24px', color: '#ff0000' }}><FaPhoneAlt /></a>
+             <a href="#" style={{ fontSize: '24px', color: '#ff0000' }}><FaEnvelope /></a>
+             
           </div>
 
           <h3>Đăng ký nhận tin</h3>

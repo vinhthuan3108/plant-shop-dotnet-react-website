@@ -10,7 +10,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<DbplantShopThuanCuongContext>(options =>
-    options.UseSqlServer("Server=LAPTOP-BPFVN8L7\\SQLEXPRESS02;Database=DBPlantShopThuanCuong;Trusted_Connection=True;TrustServerCertificate=True;"));
+    options.UseSqlServer("Server=DELL;Database=DBPlantShopThuanCuong;Trusted_Connection=True;TrustServerCertificate=True;"));
 
 builder.Services.AddCors(options =>
 {
