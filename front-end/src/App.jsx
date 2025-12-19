@@ -30,7 +30,10 @@ function App() {
       {/* Route cha có Layout */}
       <Route path="/" element={<AdminLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="shop" element={<ProductList />} />
+        <Route path="products" element={<ProductList />} />
+        
+        {/* Các trang Login/Register nếu muốn có Header/Footer thì để ở đây */}
+        {/* Nếu muốn trang Login trắng trơn thì đưa ra ngoài Route này */}
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route path="verify-otp" element={<VerifyOtp />} />
