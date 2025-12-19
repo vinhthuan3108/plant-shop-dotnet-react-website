@@ -42,7 +42,6 @@ namespace back_end.Controllers
         }
 
         // PUT: api/TblCategories/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTblCategory(int id, TblCategory tblCategory)
         {
@@ -77,7 +76,6 @@ namespace back_end.Controllers
         public async Task<ActionResult<TblCategory>> PostTblCategory(TblCategory tblCategory)
         {
 
-            // Tìm xem trong database đã có tên này chưa (không phân biệt hoa thường)
             bool isDuplicate = await _context.TblCategories
                 .AnyAsync(c => c.CategoryName.ToLower() == tblCategory.CategoryName.ToLower());
 
@@ -87,14 +85,10 @@ namespace back_end.Controllers
                 return Conflict(new { message = "Tên danh mục đã tồn tại! Vui lòng chọn tên khác." });
             }
 
-
-            // Nếu trạng thái null thì mặc định là true (Active)
             if (tblCategory.IsActive == null) tblCategory.IsActive = true;
 
-            // Nếu thứ tự hiển thị null thì mặc định là 0
             if (tblCategory.DisplayOrder == null) tblCategory.DisplayOrder = 0;
 
-            // Mặc định chưa xóa
             tblCategory.IsDeleted = false;
 
 

@@ -16,21 +16,17 @@ namespace back_end.Controllers
             _context = context;
         }
 
-        // 1. Lấy danh sách bài viết (Hiển thị tất cả, bao gồm cả bài ngừng hoạt động)
         [HttpGet]
         public async Task<ActionResult> GetPosts(string? search, int? categoryId, string? status)
         {
             var query = _context.TblPosts.AsQueryable();
 
-            // Lọc theo từ khóa tìm kiếm
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(p => p.Title.Contains(search));
 
-            // Lọc theo danh mục
             if (categoryId.HasValue)
                 query = query.Where(p => p.PostCategoryId == categoryId);
 
-            // Lọc theo trạng thái Published/Draft
             if (!string.IsNullOrEmpty(status))
                 query = query.Where(p => p.Status == status);
 
@@ -55,7 +51,6 @@ namespace back_end.Controllers
             return Ok(posts);
         }
 
-        // 2. Tạo bài viết mới
         [HttpPost]
         public async Task<ActionResult> CreatePost(PostDto postDto)
         {
@@ -69,11 +64,10 @@ namespace back_end.Controllers
                 Tags = postDto.Tags,
                 Status = postDto.Status ?? "Draft",
                 CreatedAt = DateTime.Now,
-                AuthorId = 6, // ID tác giả (Admin/Nhân viên)
-                IsDeleted = postDto.IsDeleted // Nhận trạng thái từ Checkbox Modal
+                AuthorId = 6, 
+                IsDeleted = postDto.IsDeleted 
             };
 
-            // Nếu đặt trạng thái là công khai ngay khi tạo
             if (post.Status == "Published") post.PublishedAt = DateTime.Now;
 
             _context.TblPosts.Add(post);
@@ -81,7 +75,6 @@ namespace back_end.Controllers
             return Ok(new { message = "Tạo bài viết thành công!" });
         }
 
-        // 3. Cập nhật bài viết (Cho phép cập nhật cả bài đang IsDeleted = true)
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePost(int id, PostDto postDto)
         {
@@ -90,7 +83,6 @@ namespace back_end.Controllers
             var post = await _context.TblPosts.FindAsync(id);
             if (post == null) return NotFound("Không tìm thấy bài viết");
 
-            // Cập nhật các thông tin cơ bản
             post.Title = postDto.Title;
             post.ShortDescription = postDto.ShortDescription;
             post.Content = postDto.Content;
@@ -98,10 +90,8 @@ namespace back_end.Controllers
             post.PostCategoryId = postDto.PostCategoryId;
             post.Tags = postDto.Tags;
 
-            // Cập nhật trạng thái Hoạt động/Ngừng hoạt động (IsDeleted)
             post.IsDeleted = postDto.IsDeleted;
 
-            // Xử lý logic ngày xuất bản khi đổi trạng thái từ Nháp -> Công khai
             if (post.Status == "Draft" && postDto.Status == "Published")
             {
                 post.PublishedAt = DateTime.Now;
@@ -121,7 +111,6 @@ namespace back_end.Controllers
             return Ok(new { message = "Cập nhật bài viết thành công!" });
         }
 
-        // 4. Xóa mềm (Có thể dùng làm nút đổi trạng thái nhanh nếu cần)
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePost(int id)
         {
@@ -133,7 +122,6 @@ namespace back_end.Controllers
             return Ok(new { message = "Đã ngừng hoạt động bài viết thành công" });
         }
 
-        // 5. Xóa cứng (Xóa vĩnh viễn khỏi Database)
         [HttpDelete("hard/{id}")]
         public async Task<IActionResult> HardDeletePost(int id)
         {

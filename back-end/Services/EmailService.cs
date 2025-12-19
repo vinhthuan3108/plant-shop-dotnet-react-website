@@ -8,8 +8,8 @@ namespace back_end.Services
         public async Task SendEmailAsync(string toEmail, string subject, string message)
         {
             // Thông tin cấu hình Gmail
-            var fromEmail = "vinhthuan9@gmail.com"; // <-- Thay email của bạn
-            var appPassword = "gxmp burt maca knab"; // <-- Thay mật khẩu ứng dụng 16 ký tự
+            var fromEmail = "vinhthuan9@gmail.com"; 
+            var appPassword = "gxmp burt maca knab"; 
 
             var smtpClient = new SmtpClient("smtp.gmail.com")
             {
@@ -23,7 +23,7 @@ namespace back_end.Services
                 From = new MailAddress(fromEmail),
                 Subject = subject,
                 Body = message,
-                IsBodyHtml = true, // Cho phép gửi HTML đẹp
+                IsBodyHtml = true, 
             };
             mailMessage.To.Add(toEmail);
 

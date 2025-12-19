@@ -16,7 +16,6 @@ public class TblPostCategoriesController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TblPostCategory>>> GetCategories()
     {
-        // Vì không có IsDeleted, ta lấy toàn bộ danh sách
         return await _context.TblPostCategories.ToListAsync();
     }
 
@@ -43,7 +42,6 @@ public class TblPostCategoriesController : ControllerBase
         var category = await _context.TblPostCategories.FindAsync(id);
         if (category == null) return NotFound();
 
-        // Xóa cứng (xóa hẳn khỏi DB) vì không có cột IsDeleted
         _context.TblPostCategories.Remove(category);
         await _context.SaveChangesAsync();
         return NoContent();

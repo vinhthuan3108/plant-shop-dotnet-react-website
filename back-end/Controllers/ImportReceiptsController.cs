@@ -21,11 +21,10 @@ public class ImportReceiptsController : ControllerBase
             .Include(r => r.Creator)
             .AsQueryable();
 
-        // Lọc theo ngày nếu có
+
         if (fromDate.HasValue) query = query.Where(r => r.ImportDate >= fromDate);
         if (toDate.HasValue) query = query.Where(r => r.ImportDate <= toDate);
 
-        // Lọc theo nhà cung cấp
         if (supplierId.HasValue) query = query.Where(r => r.SupplierId == supplierId);
 
         var result = await query.OrderByDescending(r => r.ImportDate).Select(r => new {
@@ -33,7 +32,7 @@ public class ImportReceiptsController : ControllerBase
             SupplierName = r.Supplier.SupplierName,
             r.TotalAmount,
             r.ImportDate,
-            CreatorName = r.Creator.FullName, // Giả sử TblUsers có cột FullName
+            CreatorName = r.Creator.FullName, 
             r.Note
         }).ToListAsync();
 
@@ -66,24 +65,23 @@ public class ImportReceiptsController : ControllerBase
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // 1. Tạo Header cho Phiếu nhập
             var receipt = new TblImportReceipt
             {
                 SupplierId = dto.SupplierId,
                 ImportDate = dto.ImportDate,
                 Note = dto.Note,
-                CreatorId = dto.CreatorId, // ID người dùng thực hiện (Admin/Thủ kho)
-                // Tính tổng tiền từ danh sách chi tiết
+                CreatorId = dto.CreatorId, 
+
                 TotalAmount = dto.Details.Sum(d => d.Quantity * d.ImportPrice)
             };
 
             _context.TblImportReceipts.Add(receipt);
             await _context.SaveChangesAsync();
 
-            // 2. Xử lý từng dòng chi tiết
+
             foreach (var item in dto.Details)
             {
-                // Thêm chi tiết phiếu nhập
+
                 var detail = new TblImportReceiptDetail
                 {
                     ReceiptId = receipt.ReceiptId,
@@ -93,13 +91,11 @@ public class ImportReceiptsController : ControllerBase
                 };
                 _context.TblImportReceiptDetails.Add(detail);
 
-                // CẬP NHẬT TỒN KHO TRONG TblProducts
                 var product = await _context.TblProducts.FindAsync(item.ProductId);
                 if (product != null)
                 {
-                    // Cộng dồn vào cột StockQuantity theo database của bạn
                     product.StockQuantity = (product.StockQuantity ?? 0) + item.Quantity;
-                    product.UpdatedAt = DateTime.Now; // Cập nhật thời gian thay đổi
+                    product.UpdatedAt = DateTime.Now; 
                 }
             }
 

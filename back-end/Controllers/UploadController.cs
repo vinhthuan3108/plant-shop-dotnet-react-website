@@ -17,7 +17,7 @@ namespace back_end.Controllers
             _environment = environment;
         }
 
-        [HttpPost("{type?}")] // Thêm tham số type (optional)
+        [HttpPost("{type?}")] 
         public async Task<IActionResult> Upload(IFormFile file, string type = "images")
         {
             if (file == null || file.Length == 0)
@@ -42,7 +42,6 @@ namespace back_end.Controllers
                 await file.CopyToAsync(stream);
             }
 
-            // Trả về URL đúng thư mục
             var url = $"/{subFolder}/{uniqueFileName}";
 
             return Ok(new { url = url });
