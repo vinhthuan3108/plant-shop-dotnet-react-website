@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useContext } from 'react'; // Import useContext
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaSearch, FaShoppingCart, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
-import { CartContext } from '../../context/CartContext'; // Import Context
+import { CartContext } from '../../context/CartContext';
 import './Header.css';
+import logo from '../../assets/images/logo.png'; // Đảm bảo đường dẫn đúng
 
 const Header = () => {
     const [userFullName, setUserFullName] = useState(null);
@@ -19,15 +20,12 @@ const Header = () => {
     
     const handleLogout = () => {
         if (window.confirm("Bạn muốn đăng xuất?")) {
-            // 1. Xóa thông tin User
             localStorage.removeItem('token');
             localStorage.removeItem('userRole');
             localStorage.removeItem('userName');
-            localStorage.removeItem('userId'); // Quan trọng
+            localStorage.removeItem('userId');
 
             setUserFullName(null);
-
-            // 2. Gọi hàm làm mới giỏ hàng ngay lập tức
             refreshCart(); 
 
             alert("Đã đăng xuất!");
@@ -38,10 +36,16 @@ const Header = () => {
     return (
         <header className="header-wrapper">
             <div className="header-top">
-                {/* 1. Logo */}
+                {/* --- 1. SỬA PHẦN LOGO: ẢNH + CHỮ --- */}
                 <Link to="/" className="logo-link">
-                    <span style={{ fontSize: '30px', textTransform: 'uppercase' }}>Vườn Cây Việt</span>
-                    <span className="logo-slogan">Không Chỉ Là Cây Cảnh</span>
+                    {/* Ảnh Logo bên trái */}
+                    <img src={logo} alt="Logo" className="logo-img" />
+                    
+                    {/* Khối chữ bên phải */}
+                    <div className="logo-text-group">
+                        <span className="logo-title">Plant Shop</span>
+                        <span className="logo-slogan">Thoả đam mê cây cảnh</span>
+                    </div>
                 </Link>
 
                 {/* 2. Thanh tìm kiếm */}
@@ -59,11 +63,8 @@ const Header = () => {
 
                 {/* 3. Khu vực Đăng nhập & Giỏ hàng */}
                 <div className="header-actions">
-                    
-                    {/* --- LOGIC ĐĂNG NHẬP THAY THẾ Ở ĐÂY --- */}
                     <div className="auth-links">
                         {userFullName ? (
-                            // Giao diện khi đã đăng nhập
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <span style={{ color: '#2e7d32', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                     <FaUserCircle /> {userFullName.toUpperCase()}
@@ -76,7 +77,6 @@ const Header = () => {
                                 </button>
                             </div>
                         ) : (
-                            // Giao diện khi chưa đăng nhập
                             <>
                                 <Link to="/login">ĐĂNG NHẬP</Link> 
                                 <span style={{ color: '#ccc', margin: '0 5px' }}>/</span>
@@ -85,16 +85,14 @@ const Header = () => {
                         )}
                     </div>
 
-                    {/* Giỏ hàng */}
                     <Link to="/cart" className="cart-box" style={{ position: 'relative' }}>
                         <div className="cart-icon-wrap">
                             <FaShoppingCart className="cart-icon" />
-                            {/* Hiển thị số lượng nếu > 0 */}
                             {cartCount > 0 && (
                                 <span style={{
                                     position: 'absolute',
                                     top: '-8px',
-                                    right: '40px', // Căn chỉnh tùy theo CSS của bạn
+                                    right: '-8px',
                                     backgroundColor: 'red',
                                     color: 'white',
                                     borderRadius: '50%',
@@ -120,8 +118,6 @@ const Header = () => {
                         <li><Link to="/">TRANG CHỦ</Link></li>
                         <li><Link to="/intro">GIỚI THIỆU</Link></li>
                         <li><Link to="/shop">CÂY CẢNH</Link></li>
-                        <li><Link to="/pots">CHẬU CẢNH</Link></li>
-                        <li><Link to="/accessories">PHỤ KIỆN CÂY CẢNH</Link></li>
                         <li><Link to="/service">DỊCH VỤ</Link></li>
                         <li><Link to="/blog">BLOG</Link></li>
                         <li><Link to="/contact">LIÊN HỆ</Link></li>
