@@ -62,19 +62,13 @@ function Sidebar() {
            <span>📦 Quản lý Sản phẩm</span>
         </NavLink>
         
-        <NavLink to="/admin/categories" style={activeStyle}>
-           <span>📁 Quản lý Danh mục sản phẩm</span>
-        </NavLink>
 
         <NavLink to="/admin/posts" style={activeStyle}>
            <span>📝 Quản lý Bài đăng</span>
         </NavLink>
-        <NavLink to="/admin/post-categories" style={activeStyle}>
-           <span>📝 Quản lý DM Bài đăng</span>
-        </NavLink>
-        <NavLink to="/admin/suppliers" style={activeStyle}>
+        {/* <NavLink to="/admin/suppliers" style={activeStyle}>
            <span>🏢 Quản lý Nhà cung cấp</span>
-        </NavLink>
+        </NavLink> */}
 
         {/* MỤC QUẢN LÝ KHO (CHA) */}
         <div 
@@ -88,10 +82,10 @@ function Sidebar() {
         {/* DANH SÁCH MENU CON */}
         {isInventoryOpen && (
           <div style={{ marginBottom: '10px' }}>
-            <NavLink to="/admin/imports/create" style={activeSubStyle}>➕ Tạo Phiếu nhập</NavLink>
-            <NavLink to="/admin/imports" style={activeSubStyle}>📋 Danh sách phiếu nhập</NavLink>
-            <NavLink to="/admin/import-history" style={activeSubStyle}>📜 Lịch sử nhập kho</NavLink>
+            <NavLink to="/admin/imports" style={activeSubStyle}>➕ Tạo Phiếu nhập</NavLink>
+            <NavLink to="/admin/import-history" style={activeSubStyle}>📋 Lịch sử nhập kho</NavLink>
             <NavLink to="/admin/inventory-adjustment" style={activeSubStyle}>⚙️ Điều chỉnh tồn kho</NavLink>
+            <NavLink to="/admin/suppliers" style={activeSubStyle}>⚙️ Quản lý nhà cung cấp</NavLink>
           </div>
         )}
 
