@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 
 // --- SỬA DÒNG NÀY ---
 // File MainLayout hiện đang nằm trong thư mục 'src/layouts'
-import MainLayout from './layouts/MainLayout'; 
+import AdminLayout from './layouts/AdminLayout'; 
 
 // CÁC FILE KHÁC (Đã đúng theo cấu trúc thư mục trong ảnh)
 // Client Pages
@@ -28,7 +28,7 @@ function App() {
   return (
     <Routes>
       {/* Route cha có Layout */}
-      <Route path="/" element={<MainLayout />}>
+      <Route path="/" element={<AdminLayout />}>
         <Route index element={<HomePage />} />
         <Route path="shop" element={<ProductList />} />
         <Route path="login" element={<Login />} />

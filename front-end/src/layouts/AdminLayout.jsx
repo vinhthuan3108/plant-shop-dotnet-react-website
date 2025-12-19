@@ -13,7 +13,7 @@ import Footer from '../components/common/Footer';
 //     </div>
 //   );
 // }
-function MainLayout() {
+function AdminLayout() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       {/* 1. Thanh Menu bên trái (Sidebar) */}
@@ -41,4 +41,4 @@ function MainLayout() {
   );
 }
 
-export default MainLayout;
+export default AdminLayout;
