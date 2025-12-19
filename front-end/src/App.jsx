@@ -25,7 +25,7 @@ function App() {
       {/* --- KHU VỰC KHÁCH HÀNG (CLIENT) --- */}
       <Route path="/" element={<MainLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="shop" element={<ProductList />} />
+        <Route path="products" element={<ProductList />} />
         
         {/* Các trang Login/Register nếu muốn có Header/Footer thì để ở đây */}
         {/* Nếu muốn trang Login trắng trơn thì đưa ra ngoài Route này */}
