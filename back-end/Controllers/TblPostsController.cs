@@ -41,8 +41,8 @@ namespace back_end.Controllers
                     ThumbnailUrl = p.ThumbnailUrl,
                     Status = p.Status,
                     PostCategoryId = p.PostCategoryId,
-                    CategoryName = p.PostCategory.CategoryName, 
-                    AuthorName = p.Author.FullName,             
+                    CategoryName = p.PostCategory.CategoryName,
+                    AuthorName = p.Author.FullName,
                     PublishedAt = p.PublishedAt,
                     CreatedAt = p.CreatedAt,
                     IsDeleted = p.IsDeleted ?? false
@@ -64,8 +64,8 @@ namespace back_end.Controllers
                 Tags = postDto.Tags,
                 Status = postDto.Status ?? "Draft",
                 CreatedAt = DateTime.Now,
-                AuthorId = 6, 
-                IsDeleted = postDto.IsDeleted 
+                AuthorId = 6,
+                IsDeleted = postDto.IsDeleted
             };
 
             if (post.Status == "Published") post.PublishedAt = DateTime.Now;
