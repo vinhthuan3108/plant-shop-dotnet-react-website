@@ -97,7 +97,7 @@ const Cart = () => {
                         <span style={{ color: '#d32f2f' }}>{cartTotal.toLocaleString()} đ</span>
                     </div>
                     <button 
-                        onClick={() => alert("Chức năng thanh toán đang phát triển!")}
+                        onClick={() => navigate('/checkout')} // Chuyển hướng sang trang Checkout
                         style={{ width: '100%', padding: '15px', backgroundColor: '#2e7d32', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}
                     >
                         TIẾN HÀNH THANH TOÁN

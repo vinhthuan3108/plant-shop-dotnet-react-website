@@ -17,7 +17,8 @@ namespace back_end.Controllers
             _environment = environment;
         }
 
-        [HttpPost("{type?}")] 
+        // URL sẽ là: api/upload/users
+        [HttpPost("{type?}")]
         public async Task<IActionResult> Upload(IFormFile file, string type = "images")
         {
             if (file == null || file.Length == 0)
@@ -26,8 +27,22 @@ namespace back_end.Controllers
             var fileExtension = Path.GetExtension(file.FileName);
             var uniqueFileName = Guid.NewGuid().ToString() + fileExtension;
 
-            // Nếu type là "posts" thì vào wwwroot/posts, ngược lại mặc định vào wwwroot/images
-            var subFolder = type == "posts" ? "posts" : "images";
+            // --- CẬP NHẬT LOGIC FOLDER TẠI ĐÂY ---
+            string subFolder;
+            if (type == "posts")
+            {
+                subFolder = "posts";
+            }
+            else if (type == "users") // Thêm dòng này cho Avatar
+            {
+                subFolder = "users";
+            }
+            else
+            {
+                subFolder = "images"; // Mặc định là sản phẩm
+            }
+            // --------------------------------------
+
             var uploadFolder = Path.Combine(_environment.WebRootPath, subFolder);
 
             if (!Directory.Exists(uploadFolder))
@@ -42,6 +57,7 @@ namespace back_end.Controllers
                 await file.CopyToAsync(stream);
             }
 
+            // Trả về đường dẫn tương đối: /users/ten-file.jpg
             var url = $"/{subFolder}/{uniqueFileName}";
 
             return Ok(new { url = url });
