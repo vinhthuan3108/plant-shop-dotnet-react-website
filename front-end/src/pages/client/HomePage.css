@@ -1,0 +1,210 @@
+/* --- 1. BANNER HERO --- */
+.hero-banner {
+    background-image: url('https://images.unsplash.com/photo-1470058869958-2a77ade41c02?q=80&w=1200&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    height: 450px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+    color: white;
+  }
+  
+  /* Lớp phủ đen mờ để chữ nổi bật hơn */
+  .hero-overlay {
+    background-color: rgba(0, 0, 0, 0.4);
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 800px;
+  }
+  
+  .hero-title {
+    font-size: 48px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  
+  .hero-subtitle {
+    font-size: 18px;
+    margin-bottom: 30px;
+    font-style: italic;
+  }
+  
+  .hero-btn {
+    background-color: #2e7d32;
+    color: white;
+    padding: 12px 30px;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 4px;
+    transition: 0.3s;
+  }
+  
+  .hero-btn:hover {
+    background-color: #1b5e20;
+  }
+  
+  /* --- CHUNG CHO CÁC SECTION --- */
+  .section-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 50px 20px;
+  }
+  
+  .section-title {
+    text-align: center;
+    color: #ff9800;
+    font-size: 24px;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+    position: relative;
+  }
+  
+  /* --- 2. LÝ DO CHỌN (3 CỘT) --- */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    text-align: center;
+  }
+  
+  .feature-item {
+    padding: 20px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+  }
+  
+  .feature-icon {
+    font-size: 40px;
+    color: #2e7d32; /* Màu xanh lá */
+    margin-bottom: 15px;
+  }
+  
+  .feature-title {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  
+  .feature-desc {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+  }
+  
+  /* --- 3. DANH MỤC TIÊU BIỂU --- */
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  
+  .cat-item {
+    position: relative;
+    height: 250px;
+    overflow: hidden;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  
+  .cat-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s;
+  }
+  
+  .cat-item:hover .cat-img {
+    transform: scale(1.1); /* Phóng to ảnh khi hover */
+  }
+  
+  .cat-label {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 10px 20px;
+    font-weight: bold;
+    color: #2e7d32;
+    border-radius: 4px;
+  }
+  
+  /* --- 4. SẢN PHẨM NỔI BẬT --- */
+  .product-list-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 cột trên PC */
+    gap: 25px;
+  }
+  
+  .home-product-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    text-align: center;
+    transition: 0.3s;
+    background: white;
+    padding-bottom: 15px;
+  }
+  
+  .home-product-card:hover {
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    transform: translateY(-5px);
+  }
+  
+  .hp-img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+  }
+  
+  .hp-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 15px 0 5px;
+    color: #333;
+  }
+  
+  .hp-price {
+    color: #d32f2f;
+    font-weight: bold;
+    font-size: 16px;
+    display: block;
+    margin-bottom: 15px;
+  }
+  
+  .hp-btn {
+    background-color: #ff9800;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: bold;
+  }
+  
+  .hp-btn:hover {
+    background-color: #f57c00;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .features-grid, .category-grid {
+      grid-template-columns: 1fr; /* Mobile thành 1 cột */
+    }
+    .product-list-grid {
+      grid-template-columns: repeat(2, 1fr); /* Mobile 2 cột */
+    }
+  }
