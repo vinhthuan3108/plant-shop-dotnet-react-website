@@ -15,7 +15,6 @@
         public decimal ImportPrice { get; set; }
     }
 
-    // DTO cho toàn bộ phiếu nhập
     public class ImportReceiptCreateDto
     {
         public int SupplierId { get; set; }
@@ -28,7 +27,7 @@
     {
         public int ProductId { get; set; }
         public int UserId { get; set; }
-        public int QuantityAdjusted { get; set; } // Số âm nếu giảm, dương nếu tăng
-        public string Reason { get; set; } // Lý do: Cây chết, vỡ chậu...
+        public int QuantityAdjusted { get; set; } 
+        public string Reason { get; set; } 
     }
 }

@@ -15,7 +15,6 @@ namespace back_end.Controllers
             _context = context;
         }
 
-        //Không trả về cột PasswordHash
         [HttpGet]
         public async Task<IActionResult> GetUsers()
         {
@@ -39,11 +38,9 @@ namespace back_end.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateUser(TblUser user)
         {
-            // Kiểm tra email trùng
             if (await _context.TblUsers.AnyAsync(u => u.Email == user.Email))
                 return BadRequest(new { message = "Email đã tồn tại" });
 
-            // Mã hóa mật khẩu (Mặc định là 123456 nếu admin quên nhập, hoặc lấy từ input)
 
             string passRaw = string.IsNullOrEmpty(user.PasswordHash) ? "123456" : user.PasswordHash;
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(passRaw);
@@ -74,7 +71,7 @@ namespace back_end.Controllers
             // Nếu ô mật khẩu trống, giữ nguyên pass cũ.
             if (!string.IsNullOrEmpty(user.PasswordHash) && user.PasswordHash.Length < 20)
             {
-                // Giả định: Nếu chuỗi gửi lên ngắn (<20 ký tự) thì đó là pass mới chưa hash -> Hash nó
+                // Giả định: Nếu chuỗi gửi lên ngắn (<20 ký tự) thì đó là pass mới chưa hash -> Hash 
                 existingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
             }
 

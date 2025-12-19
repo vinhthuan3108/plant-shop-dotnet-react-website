@@ -16,26 +16,22 @@ public class InventoryAdjustmentsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateAdjustment(InventoryAdjustmentDto dto)
     {
-        // Sử dụng Transaction để đảm bảo tính toàn vẹn dữ liệu
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // 1. Lưu log vào bảng TblInventoryAdjustments
             var adjustment = new TblInventoryAdjustment
             {
                 ProductId = dto.ProductId,
                 UserId = dto.UserId,
                 QuantityAdjusted = dto.QuantityAdjusted,
-                Reason = dto.Reason, // Nhận trực tiếp chuỗi text từ FE
+                Reason = dto.Reason, 
                 CreatedAt = DateTime.Now
             };
             _context.TblInventoryAdjustments.Add(adjustment);
 
-            // 2. Tác vụ hệ thống: Cập nhật tồn kho ngay lập tức
             var product = await _context.TblProducts.FindAsync(dto.ProductId);
             if (product == null) return NotFound("Sản phẩm không tồn tại");
 
-            // Số lượng điều chỉnh có thể âm (giảm) hoặc dương (tăng)
             product.StockQuantity = (product.StockQuantity ?? 0) + dto.QuantityAdjusted;
             product.UpdatedAt = DateTime.Now;
 

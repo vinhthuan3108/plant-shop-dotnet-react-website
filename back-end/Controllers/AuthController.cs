@@ -17,9 +17,9 @@ namespace back_end.Controllers
     public class AuthController : ControllerBase
     {
         private readonly DbplantShopThuanCuongContext _context;
-        private readonly IConfiguration _configuration; //?
+        private readonly IConfiguration _configuration; 
 
-        // 1. Thêm EmailService vào Constructor
+
         private readonly EmailService _emailService;
         private readonly IMemoryCache _cache;
         public AuthController(DbplantShopThuanCuongContext context, IConfiguration configuration, EmailService emailService, IMemoryCache cache)
@@ -30,7 +30,6 @@ namespace back_end.Controllers
             _cache = cache;
         }
 
-        // 2. Sửa hàm Register
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto request)
         {
@@ -39,14 +38,11 @@ namespace back_end.Controllers
                 return BadRequest("Email đã tồn tại.");
             }
 
-            // --- TẠO MÃ OTP ---
             string otp = new Random().Next(100000, 999999).ToString();
 
-            // --- LƯU OTP VÀO RAM (Thay vì Database) ---
-            // Key là Email, Value là OTP. Tự động hủy sau 10 phút.
+
             _cache.Set(request.Email, otp, TimeSpan.FromMinutes(10));
 
-            // --- TẠO USER (Lưu ý: Không cần cột VerificationToken nữa) ---
             var user = new TblUser
             {
                 Email = request.Email,
@@ -54,7 +50,7 @@ namespace back_end.Controllers
                 FullName = request.FullName,
                 PhoneNumber = request.PhoneNumber,
                 RoleId = 2,
-                IsActive = false, // Vẫn cần cái này để biết chưa kích hoạt
+                IsActive = false, 
                 CreatedAt = DateTime.Now,
                 UpdatedAt = DateTime.Now
             };
@@ -62,7 +58,6 @@ namespace back_end.Controllers
             _context.TblUsers.Add(user);
             await _context.SaveChangesAsync();
 
-            // --- GỬI EMAIL ---
             await _emailService.SendEmailAsync(request.Email, "Mã xác thực", $"Mã OTP: {otp}");
 
             return Ok("Đăng ký thành công! Kiểm tra email.");
@@ -72,7 +67,6 @@ namespace back_end.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto request)
         {
-            // 1. Tìm user theo email
             var user = await _context.TblUsers.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (user == null)
             {
@@ -95,7 +89,6 @@ namespace back_end.Controllers
             });
         }
 
-        // Hàm tạo JWT Token
         private string CreateToken(TblUser user)
         {
             List<Claim> claims = new List<Claim>
@@ -111,7 +104,7 @@ namespace back_end.Controllers
 
             var token = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.Now.AddDays(1), // Token hết hạn sau 1 ngày
+                expires: DateTime.Now.AddDays(1), 
                 signingCredentials: creds
             );
 
@@ -121,7 +114,6 @@ namespace back_end.Controllers
         [HttpPost("verify-otp")]
         public async Task<IActionResult> VerifyOtp(VerifyDto request)
         {
-            // 1. Kiểm tra OTP trong RAM trước (Nhanh hơn gọi DB)
             if (!_cache.TryGetValue(request.Email, out string savedOtp))
             {
                 return BadRequest("Mã xác thực đã hết hạn hoặc không tồn tại.");
@@ -132,14 +124,12 @@ namespace back_end.Controllers
                 return BadRequest("Mã xác thực không đúng.");
             }
 
-            // 2. Nếu OTP đúng, mới gọi DB để kích hoạt tài khoản
             var user = await _context.TblUsers.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (user == null) return BadRequest("Tài khoản lỗi.");
 
             user.IsActive = true;
             await _context.SaveChangesAsync();
 
-            // 3. Xóa OTP khỏi RAM sau khi dùng xong (để không dùng lại được)
             _cache.Remove(request.Email);
 
             return Ok("Kích hoạt thành công!");
