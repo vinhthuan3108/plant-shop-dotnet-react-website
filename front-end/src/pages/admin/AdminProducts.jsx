@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // 1. Thêm useNavigate
 import ProductModal from '../../components/admin/ProductModal';
 
 function Products() {
@@ -6,12 +7,13 @@ function Products() {
     const [categories, setCategories] = useState([]); 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
-
+    
+    const navigate = useNavigate(); // 2. Khởi tạo navigate
 
     const API_URL = 'https://localhost:7298/api/TblProducts';
     const CAT_API_URL = 'https://localhost:7298/api/TblCategories';
 
-
+    // ... (Giữ nguyên các hàm fetchProducts, fetchCategories, handleDelete, handleSaveFromModal)
     const fetchProducts = () => {
         fetch(API_URL)
             .then(res => res.json())
@@ -84,7 +86,6 @@ function Products() {
                 fetchProducts();
             } else {
                 const err = await res.json();
-
                 console.error("Server Error:", err); 
                 alert('Lỗi: ' + (err.title || 'Kiểm tra lại dữ liệu nhập (FK, Unique Code...)'));
             }
@@ -97,9 +98,38 @@ function Products() {
         <div style={{ padding: '20px' }}>
             <h2>Quản Lý Sản Phẩm</h2>
             
-            <button onClick={handleOpenAdd} style={{ marginBottom: '15px', padding: '10px 20px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                + Thêm Sản Phẩm
-            </button>
+            {/* 3. Khu vực chứa 2 nút điều hướng */}
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                <button 
+                    onClick={handleOpenAdd} 
+                    style={{ 
+                        padding: '10px 20px', 
+                        background: '#28a745', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                    }}
+                >
+                    + Thêm Sản Phẩm
+                </button>
+
+                <button 
+                    onClick={() => navigate('/admin/categories')} // Chuyển hướng sang trang danh mục
+                    style={{ 
+                        padding: '10px 20px', 
+                        background: '#17a2b8', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                    }}
+                >
+                    📁 Quản lý Danh mục
+                </button>
+            </div>
 
             <table border="1" style={{ width: '100%', borderCollapse: 'collapse', borderColor: '#ddd', fontSize: '14px' }}>
                 <thead style={{ backgroundColor: '#f8f9fa' }}>
@@ -146,7 +176,7 @@ function Products() {
                 onClose={() => setIsModalOpen(false)}
                 onSubmit={handleSaveFromModal}
                 initialData={editingItem}
-                categories={categories} // Truyền danh sách Category vào modal
+                categories={categories}
             />
         </div>
     );

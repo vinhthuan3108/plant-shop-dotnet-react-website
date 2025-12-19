@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // 1. Thêm useNavigate
 import PostModal from '../../components/admin/PostModal';
 import axios from 'axios';
 
@@ -7,6 +8,8 @@ const AdminPosts = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPost, setSelectedPost] = useState(null);
     const API_BASE = 'https://localhost:7298';
+    
+    const navigate = useNavigate(); // 2. Khởi tạo navigate
 
     const fetchPosts = async () => {
         try {
@@ -30,13 +33,38 @@ const AdminPosts = () => {
 
     return (
         <div className="admin-posts-container" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <h2>Quản lý bài viết</h2>
+            <h2>Quản lý bài viết</h2>
+
+            {/* 3. Thay đổi khu vực nút bấm cho giống trang Products */}
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
                 <button 
                     onClick={() => { setSelectedPost(null); setIsModalOpen(true); }}
-                    style={{ backgroundColor: '#28a745', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    style={{ 
+                        backgroundColor: '#28a745', 
+                        color: 'white', 
+                        padding: '10px 20px', 
+                        border: 'none', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer',
+                        fontWeight: 'bold' 
+                    }}
                 >
                     + Viết bài mới
+                </button>
+
+                <button 
+                    onClick={() => navigate('/admin/post-categories')} // Điều hướng sang trang DM bài viết
+                    style={{ 
+                        backgroundColor: '#17a2b8', 
+                        color: 'white', 
+                        padding: '10px 20px', 
+                        border: 'none', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer',
+                        fontWeight: 'bold' 
+                    }}
+                >
+                    📁 Quản lý Danh mục 
                 </button>
             </div>
 
@@ -61,15 +89,12 @@ const AdminPosts = () => {
                             <td style={{ padding: '10px' }}>
                                 <div style={{ fontWeight: 'bold', maxWidth: '250px' }}>{post.title}</div>
                             </td>
-                            {/* THÊM TÁC GIẢ */}
                             <td style={{ padding: '10px', textAlign: 'center' }}>{post.authorName}</td>
-                            {/* THÊM DANH MỤC */}
                             <td style={{ padding: '10px', textAlign: 'center' }}>
                                 <span style={{ backgroundColor: '#eee', padding: '2px 8px', borderRadius: '4px', fontSize: '13px' }}>
                                     {post.categoryName}
                                 </span>
                             </td>
-                            {/* THÊM NGÀY ĐĂNG */}
                             <td style={{ padding: '10px', textAlign: 'center' }}>
                                 {post.createdAt ? new Date(post.createdAt).toLocaleDateString('vi-VN') : '---'}
                             </td>
