@@ -65,9 +65,25 @@ const Header = () => {
                         {userFullName ? (
                             // Giao diện khi đã đăng nhập
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <span style={{ color: '#2e7d32', fontWeight: 'bold', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                
+                                {/* --- SỬA ĐOẠN NÀY --- */}
+                                <span 
+                                    onClick={() => navigate('/profile')} // 1. Thêm sự kiện click
+                                    style={{ 
+                                        color: '#2e7d32', 
+                                        fontWeight: 'bold', 
+                                        fontSize: '13px', 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '5px',
+                                        cursor: 'pointer' // 2. Thêm cái này để người dùng biết là bấm được
+                                    }}
+                                    title="Xem hồ sơ cá nhân" // Tooltip khi rê chuột vào
+                                >
                                     <FaUserCircle /> {userFullName.toUpperCase()}
                                 </span>
+                                {/* ------------------- */}
+
                                 <button 
                                     onClick={handleLogout}
                                     style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '3px' }}

@@ -1,11 +1,12 @@
 using back_end.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer; // Thêm
+using Microsoft.IdentityModel.Tokens; // Thêm
+using System.Text; // Thêm
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.AddControllers();
-
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<DbplantShopThuanCuongContext>(options =>
@@ -14,13 +15,33 @@ builder.Services.AddDbContext<DbplantShopThuanCuongContext>(options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
-        builder => builder.WithOrigins("http://localhost:3000", "http://localhost:5173") // Port React 
-                          .AllowAnyMethod()
-                          .AllowAnyHeader());
+        b => b.WithOrigins("http://localhost:3000", "http://localhost:5173")
+              .AllowAnyMethod()
+              .AllowAnyHeader());
 });
-builder.Services.AddAuthentication().AddJwtBearer();
+
+// CẤU HÌNH AUTHENTICATION MỚI
+// Giả sử bạn lưu Key trong appsettings.json là "Jwt:Key"
+// Nếu không, bạn điền cứng chuỗi key vào đây (như ví dụ trên)
+var secretKey = builder.Configuration["Jwt:Key"] ?? "tokencuavinhthuanvamanhcuong-dsjfhjdfhshfhsfdfhsdfhsdhfsfskhfdjhfkshdfhsdfsdf";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<back_end.Services.EmailService>();
+
 var app = builder.Build();
 
 app.UseCors("AllowReactApp");
@@ -31,9 +52,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
 
+// THỨ TỰ QUAN TRỌNG: Auth -> Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

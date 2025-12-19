@@ -62,7 +62,9 @@ function Sidebar() {
            <span>📦 Quản lý Sản phẩm</span>
         </NavLink>
         
-
+        <NavLink to="/admin/orders" style={activeStyle}>
+           <span>📝 Quản lý đơn hàng</span>
+        </NavLink>
         <NavLink to="/admin/posts" style={activeStyle}>
            <span>📝 Quản lý Bài đăng</span>
         </NavLink>
@@ -91,6 +93,10 @@ function Sidebar() {
 
         <NavLink to="/admin/users" style={activeStyle}>
            <span>👥 Quản lý Tài khoản</span>
+        </NavLink>
+        
+        <NavLink to="/admin/backup" style={activeStyle}>
+           <span>👥 Backup</span>
         </NavLink>
       </nav>
 

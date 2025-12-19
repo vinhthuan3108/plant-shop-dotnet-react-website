@@ -8,6 +8,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Content Include="Controllers\ProfileController.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
 
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
@@ -22,6 +26,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.0" />
+		<PackageReference Include="payOS.Net5" Version="1.0.2" />
 	</ItemGroup>
 
 	<ItemGroup>

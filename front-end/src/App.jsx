@@ -23,8 +23,18 @@ import CreateImportReceipt from './pages/admin/CreateImportReceipt';
 import ImportReceiptList from './pages/admin/ImportReceiptList';
 import InventoryAdjustment from './pages/admin/InventoryAdjustment';
 import ProductDetail from './components/common/ProductDetail';
+import Checkout from './pages/client/Checkout';
+import OrderSuccess from './pages/client/OrderSuccess';
+import PaymentSuccess from './pages/client/PaymentSuccess';
+import PaymentCancel from './pages/client/PaymentCancel';
+import ProfilePage from './pages/client/ProfilePage';
+import AdminOrders from './pages/admin/AdminOrder';
+import SystemBackup from './pages/admin/Systembackup';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 function App() {
   return (
+    <>
     <Routes>
       {/* --- NHÓM 1: DÀNH CHO KHÁCH HÀNG (Dùng MainLayout) --- */}
       <Route path="/" element={<MainLayout />}>
@@ -32,6 +42,12 @@ function App() {
         <Route path="products" element={<HomePage />} />
         <Route path="product/:id" element={<ProductDetail />} />
         <Route path="cart" element={<Cart />} />
+        <Route path="checkout" element={<Checkout />} />
+        <Route path="order-success" element={<OrderSuccess />} />
+        <Route path="payment-success" element={<PaymentSuccess />} />
+        <Route path="payment-cancel" element={<PaymentCancel />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        
         {/* Các trang khác của khách hàng... */}
       </Route>
 
@@ -46,14 +62,30 @@ function App() {
         <Route path="imports" element={<CreateImportReceipt/>} />
         <Route path="import-history" element={<ImportReceiptList/>} /> 
         <Route path="inventory-adjustment" element={<InventoryAdjustment />} />
+        <Route path="orders" element={<AdminOrders />} />
         <Route path="users" element={<Users />} />
+        <Route path="backup" element={<SystemBackup />} />
       </Route>
 
       {/* --- NHÓM 3: AUTH (Login/Register thường không có Layout) --- */}
       <Route path="/login" element={<Login />} />
       <Route path="register" element={<Register />} />
       <Route path="verify-otp" element={<VerifyOtp />} />
+
+      
     </Routes>
+    <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+      </>
   );
 }
 
