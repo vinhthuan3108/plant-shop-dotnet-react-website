@@ -85,7 +85,8 @@ namespace back_end.Controllers
             {
                 Token = token,
                 FullName = user.FullName,
-                Role = user.RoleId 
+                Role = user.RoleId,
+                UserId = user.UserId
             });
         }
 

@@ -1,15 +1,13 @@
 import { Routes, Route } from 'react-router-dom';
 
-// --- SỬA DÒNG NÀY ---
-// File MainLayout hiện đang nằm trong thư mục 'src/layouts'
-import MainLayout from './layouts/MainLayout'; 
+// Layouts
+import AdminLayout from './layouts/AdminLayout'; 
+import MainLayout from './layouts/MainLayout'; // Import thêm MainLayout
 
-// CÁC FILE KHÁC (Đã đúng theo cấu trúc thư mục trong ảnh)
 // Client Pages
 import HomePage from './pages/client/HomePage';
-import ProductList from './pages/client/ProductList';
-
-// Auth Pages
+import Cart from './pages/client/Cart';
+// Auth Pages (Thường không dùng chung layout với Client/Admin)
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import VerifyOtp from './pages/auth/VerifyOtp';
@@ -24,32 +22,37 @@ import Suppliers from './pages/admin/Suppliers';
 import CreateImportReceipt from './pages/admin/CreateImportReceipt';
 import ImportReceiptList from './pages/admin/ImportReceiptList';
 import InventoryAdjustment from './pages/admin/InventoryAdjustment';
+import ProductDetail from './components/common/ProductDetail';
 function App() {
   return (
     <Routes>
-      {/* Route cha có Layout */}
+      {/* --- NHÓM 1: DÀNH CHO KHÁCH HÀNG (Dùng MainLayout) --- */}
       <Route path="/" element={<MainLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="products" element={<ProductList />} />
-        
-        {/* Các trang Login/Register nếu muốn có Header/Footer thì để ở đây */}
-        {/* Nếu muốn trang Login trắng trơn thì đưa ra ngoài Route này */}
-        <Route path="login" element={<Login />} />
-        <Route path="register" element={<Register />} />
-        <Route path="verify-otp" element={<VerifyOtp />} />
-        {/* Đưa Admin vào đây để thừa hưởng MainLayout */}
-        <Route path="admin">
-          <Route path="products" element={<AdminProducts />} />
-          <Route path="categories" element={<Categories />} />
-          <Route path="post-categories" element={<PostCategories />} />
-          <Route path="posts" element={<AdminPosts/>} />
-          <Route path="suppliers" element={<Suppliers/>} />
-          <Route path="imports" element={<CreateImportReceipt/>} />
-          <Route path="import-history" element={<ImportReceiptList/>} /> 
-          <Route path="inventory-adjustment" element={<InventoryAdjustment />} />
-          <Route path="users" element={<Users />} />
-        </Route>
+        <Route path="products" element={<HomePage />} />
+        <Route path="product/:id" element={<ProductDetail />} />
+        <Route path="cart" element={<Cart />} />
+        {/* Các trang khác của khách hàng... */}
       </Route>
+
+      {/* --- NHÓM 2: DÀNH CHO ADMIN (Dùng AdminLayout) --- */}
+      <Route path="/admin" element={<AdminLayout />}>
+        {/* Lưu ý: path ở đây là tương đối so với /admin */}
+        <Route path="products" element={<AdminProducts />} />
+        <Route path="categories" element={<Categories />} />
+        <Route path="post-categories" element={<PostCategories />} />
+        <Route path="posts" element={<AdminPosts/>} />
+        <Route path="suppliers" element={<Suppliers/>} />
+        <Route path="imports" element={<CreateImportReceipt/>} />
+        <Route path="import-history" element={<ImportReceiptList/>} /> 
+        <Route path="inventory-adjustment" element={<InventoryAdjustment />} />
+        <Route path="users" element={<Users />} />
+      </Route>
+
+      {/* --- NHÓM 3: AUTH (Login/Register thường không có Layout) --- */}
+      <Route path="/login" element={<Login />} />
+      <Route path="register" element={<Register />} />
+      <Route path="verify-otp" element={<VerifyOtp />} />
     </Routes>
   );
 }
