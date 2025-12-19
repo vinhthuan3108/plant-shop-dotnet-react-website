@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react'; // 1. Thêm useContext
 import { useNavigate } from 'react-router-dom';
+import { CartContext } from '../../context/CartContext'; // 2. Import Context
 
 function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
+
+    // 3. Lấy hàm refreshCart từ Context
+    const { refreshCart } = useContext(CartContext); 
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -20,18 +24,21 @@ function Login() {
             if (res.ok) {
                 alert('Xin chào: ' + data.fullName);
                 
-                // 1. Lưu Token vào LocalStorage (Bộ nhớ trình duyệt)
+                // Lưu thông tin vào LocalStorage
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('userRole', data.role);
                 localStorage.setItem('userName', data.fullName);
+                localStorage.setItem('userId', data.userId); // Quan trọng
 
-                // 2. Chuyển hướng
-                // Nếu là Admin (RoleId = 1) -> Vào trang quản trị
-                // Nếu là Khách -> Về trang chủ
-                if (data.role === 1 || data.role === 3 || data.role === 4  ) {
-                    navigate('/admin/products'); // Trang Admin
+                // 4. GỌI HÀM NÀY ĐỂ CẬP NHẬT GIỎ HÀNG NGAY LẬP TỨC
+                // Nó sẽ lấy userId vừa lưu để tải giỏ hàng từ DB về
+                await refreshCart(); 
+
+                // Chuyển hướng
+                if (data.role === 1 || data.role === 3 || data.role === 4) {
+                    navigate('/admin/products');
                 } else {
-                    alert("Bạn là khách hàng, trang chủ chưa làm");
+                    navigate('/products');
                 }
             } else {
                 alert(data); 

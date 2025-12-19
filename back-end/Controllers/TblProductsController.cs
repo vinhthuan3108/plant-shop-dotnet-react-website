@@ -36,7 +36,14 @@ namespace back_end.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<TblProduct>> GetTblProduct(int id)
         {
-            var tblProduct = await _context.TblProducts.FindAsync(id);
+            // CŨ (Bị lỗi thiếu ảnh): 
+            // var tblProduct = await _context.TblProducts.FindAsync(id);
+
+            // MỚI (Sửa lại để lấy kèm ảnh và danh mục):
+            var tblProduct = await _context.TblProducts
+                                           .Include(p => p.TblProductImages) // Quan trọng: Load kèm ảnh
+                                           .Include(p => p.Category)         // Load kèm tên danh mục (nếu cần hiển thị)
+                                           .FirstOrDefaultAsync(p => p.ProductId == id);
 
             if (tblProduct == null)
             {
@@ -46,6 +53,7 @@ namespace back_end.Controllers
             return tblProduct;
         }
 
+        // PUT: api/TblProducts/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTblProduct(int id, TblProduct tblProduct)
         {
@@ -54,14 +62,45 @@ namespace back_end.Controllers
                 return BadRequest();
             }
 
+            // BƯỚC 1: Lấy sản phẩm cũ từ DB, BẮT BUỘC phải Include ảnh cũ để xử lý
+            var existingProduct = await _context.TblProducts
+                .Include(p => p.TblProductImages)
+                .FirstOrDefaultAsync(p => p.ProductId == id);
 
-            tblProduct.UpdatedAt = DateTime.Now;
+            if (existingProduct == null)
+            {
+                return NotFound();
+            }
 
-            _context.Entry(tblProduct).State = EntityState.Modified;
+            // BƯỚC 2: Cập nhật thông tin cơ bản (Text, số...)
+            // Cách này copy giá trị từ tblProduct (gửi lên) sang existingProduct (trong DB)
+            _context.Entry(existingProduct).CurrentValues.SetValues(tblProduct);
 
+            // Giữ nguyên ngày tạo, cập nhật ngày sửa
+            existingProduct.UpdatedAt = DateTime.Now;
+            // Đảm bảo CreatedAt không bị ghi đè bởi null hoặc giá trị sai (dù SetValues đã copy, nhưng an toàn thì giữ lại cái cũ)
+            _context.Entry(existingProduct).Property(x => x.CreatedAt).IsModified = false;
 
-            _context.Entry(tblProduct).Property(x => x.CreatedAt).IsModified = false;
+            // BƯỚC 3: Xử lý hình ảnh
+            // 3.1. Xóa toàn bộ ảnh cũ của sản phẩm này trong Database
+            if (existingProduct.TblProductImages != null && existingProduct.TblProductImages.Any())
+            {
+                _context.TblProductImages.RemoveRange(existingProduct.TblProductImages);
+            }
 
+            // 3.2. Thêm lại danh sách ảnh mới từ Frontend gửi lên
+            if (tblProduct.TblProductImages != null && tblProduct.TblProductImages.Any())
+            {
+                foreach (var img in tblProduct.TblProductImages)
+                {
+                    // Quan trọng: Gán ImageId = 0 để EF hiểu đây là dữ liệu mới cần Insert
+                    img.ImageId = 0;
+                    img.ProductId = id; // Gắn lại ID sản phẩm cho chắc chắn
+
+                    // Thêm vào danh sách ảnh của sản phẩm
+                    _context.TblProductImages.Add(img);
+                }
+            }
 
             try
             {

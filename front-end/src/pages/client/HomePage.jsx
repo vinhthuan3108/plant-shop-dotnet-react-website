@@ -1,26 +1,56 @@
-import React from 'react';
+import React, { useState, useEffect, useContext } from 'react'; // Import useContext
 import { Link } from 'react-router-dom';
-import { FaTree, FaMedal, FaHandshake } from 'react-icons/fa'; // Import icon
-import './HomePage.css'; // Import file CSS vừa tạo
+import { FaTree, FaMedal, FaHandshake } from 'react-icons/fa';
+import { CartContext } from '../../context/CartContext'; // Import Context
+import './HomePage.css';
 
 function HomePage() {
+  // 2. State để lưu dữ liệu từ API
+  const { addToCart } = useContext(CartContext);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
   
-  // Dữ liệu giả lập cho sản phẩm nổi bật
-  const featuredProducts = [
-    { id: 1, name: 'Cây Kim Ngân', price: 150000, img: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=400' },
-    { id: 2, name: 'Cây Lưỡi Hổ', price: 90000, img: 'https://images.unsplash.com/photo-1599598425947-32c02f0a196f?w=400' },
-    { id: 3, name: 'Cây Bàng Singapore', price: 320000, img: 'https://images.unsplash.com/photo-1459156212016-c812468e2115?w=400' },
-    { id: 4, name: 'Sen Đá Kim Cương', price: 45000, img: 'https://images.unsplash.com/photo-1509423350716-97f9360b4e09?w=400' },
-    { id: 5, name: 'Cây Trầu Bà', price: 85000, img: 'https://images.unsplash.com/photo-1628126354320-569b7e710505?w=400' },
-    { id: 6, name: 'Cây Hạnh Phúc', price: 250000, img: 'https://images.unsplash.com/photo-1616682056086-6216447c20ba?w=400' },
-    { id: 7, name: 'Cây Monstera', price: 450000, img: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?w=400' },
-    { id: 8, name: 'Cây Lan Ý', price: 120000, img: 'https://images.unsplash.com/photo-1599598425947-32c02f0a196f?w=400' },
-  ];
+  // Cấu hình đường dẫn API (dựa theo code backend cũ của bạn)
+  const BASE_URL = 'https://localhost:7298'; 
+  const API_URL = `${BASE_URL}/api/TblProducts`;
+
+  // 3. Gọi API khi component load
+  useEffect(() => {
+    fetch(API_URL)
+      .then(res => res.json())
+      .then(data => {
+        // Lọc sản phẩm đang hoạt động (isActive = true)
+        const activeProducts = data.filter(p => p.isActive === true);
+        
+        // Sắp xếp sản phẩm mới nhất lên đầu (dựa vào createdAt)
+        const sortedProducts = activeProducts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        // Chỉ lấy 8 sản phẩm đầu tiên để hiển thị ở trang chủ
+        setFeaturedProducts(sortedProducts.slice(0, 8));
+      })
+      .catch(err => console.error("Lỗi fetch sản phẩm:", err));
+  }, []);
+
+  // 4. Hàm xử lý lấy link ảnh thumbnail
+  const getProductImage = (product) => {
+    // Nếu không có danh sách ảnh hoặc rỗng
+    if (!product.tblProductImages || product.tblProductImages.length === 0) {
+        return 'https://via.placeholder.com/400x400?text=No+Image'; // Ảnh mặc định nếu không có ảnh
+    }
+
+    // Tìm ảnh được đánh dấu là thumbnail
+    const thumb = product.tblProductImages.find(img => img.isThumbnail === true);
+
+    // Nếu có thumbnail thì dùng, không thì lấy ảnh đầu tiên
+    const imagePath = thumb ? thumb.imageUrl : product.tblProductImages[0].imageUrl;
+
+    // Trả về đường dẫn đầy đủ (Back-end trả về đường dẫn tương đối)
+    return `${BASE_URL}${imagePath}`;
+  };
 
   return (
     <div className="homepage-wrapper">
       
-      {/* 1. BANNER HERO */}
+      {/* 1. BANNER HERO (Giữ nguyên) */}
       <section className="hero-banner">
         <div className="hero-overlay"></div>
         <div className="hero-content">
@@ -30,7 +60,7 @@ function HomePage() {
         </div>
       </section>
 
-      {/* 2. LÝ DO CHỌN CHÚNG TÔI */}
+      {/* 2. LÝ DO CHỌN CHÚNG TÔI (Giữ nguyên) */}
       <section className="section-container">
         <h2 className="section-title">LÝ DO CHỌN VƯỜN CÂY VIỆT</h2>
         <div className="features-grid">
@@ -52,7 +82,7 @@ function HomePage() {
         </div>
       </section>
 
-      {/* 3. DANH MỤC TIÊU BIỂU */}
+      {/* 3. DANH MỤC TIÊU BIỂU (Tạm thời giữ cứng hoặc gọi API Category nếu cần) */}
       <section className="section-container" style={{backgroundColor: '#f9f9f9'}}>
         <h2 className="section-title">DANH MỤC CÂY TIÊU BIỂU</h2>
         <div className="category-grid">
@@ -71,18 +101,56 @@ function HomePage() {
         </div>
       </section>
 
-      {/* 4. SẢN PHẨM NỔI BẬT */}
+      {/* 4. SẢN PHẨM NỔI BẬT (Đã sửa để dùng dữ liệu thật) */}
       <section className="section-container">
-        <h2 className="section-title">SẢN PHẨM NỔI BẬT</h2>
+        <h2 className="section-title">SẢN PHẨM MỚI NHẤT</h2>
         <div className="product-list-grid">
-          {featuredProducts.map(product => (
-            <div key={product.id} className="home-product-card">
-              <img src={product.img} alt={product.name} className="hp-img" />
-              <h3 className="hp-name">{product.name}</h3>
-              <span className="hp-price">{product.price.toLocaleString()} đ</span>
-              <button className="hp-btn">THÊM VÀO GIỎ</button>
+          {featuredProducts.length > 0 ? (
+            featuredProducts.map(product => (
+            <div key={product.productId} className="home-product-card">
+              
+              {/* Ảnh sản phẩm từ hàm helper */}
+              <Link to={`/product/${product.productId}`} style={{ cursor: 'pointer' }}>
+                <div style={{width: '100%', height: '250px', overflow: 'hidden'}}>
+                    <img 
+                      src={getProductImage(product)} 
+                      alt={product.productName} 
+                      className="hp-img" 
+                      style={{width: '100%', height: '100%', objectFit: 'cover'}}
+                    />
+                </div>
+            </Link>
+
+              {/* Tên sản phẩm */}
+              <Link to={`/product/${product.productId}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <h3 className="hp-name">{product.productName}</h3>
+              </Link>
+              
+              {/* Giá tiền (Ưu tiên hiện SalePrice nếu có) */}
+              <span className="hp-price">
+                {product.salePrice && product.salePrice < product.originalPrice ? (
+                    <>
+                        <span style={{textDecoration:'line-through', color:'#999', fontSize:'0.8em', marginRight:'8px'}}>
+                            {product.originalPrice.toLocaleString()} đ
+                        </span>
+                        {product.salePrice.toLocaleString()} đ
+                    </>
+                ) : (
+                    `${product.originalPrice.toLocaleString()} đ`
+                )}
+              </span>
+
+              <button 
+                  className="hp-btn"
+                  onClick={() => addToCart(product)} // Gọi hàm từ Context
+              >
+                  THÊM VÀO GIỎ
+              </button>
             </div>
-          ))}
+          ))
+          ) : (
+              <p style={{textAlign: 'center', width: '100%'}}>Đang tải sản phẩm...</p>
+          )}
         </div>
         <div style={{textAlign: 'center', marginTop: '30px'}}>
              <Link to="/shop" style={{color: '#2e7d32', fontWeight: 'bold', fontSize: '14px', textDecoration:'underline'}}>XEM TẤT CẢ SẢN PHẨM</Link>
