@@ -32,6 +32,7 @@ import PaymentCancel from './pages/client/PaymentCancel';
 import ProfilePage from './pages/client/ProfilePage';
 import AdminOrders from './pages/admin/AdminOrder';
 import SystemBackup from './pages/admin/Systembackup';
+import Vouchers from './pages/admin/Vouchers';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 function App() {
@@ -68,6 +69,7 @@ function App() {
         <Route path="orders" element={<AdminOrders />} />
         <Route path="users" element={<Users />} />
         <Route path="backup" element={<SystemBackup />} />
+        <Route path="vouchers" element={<Vouchers />} />
       </Route>
 
       {/* --- NHÓM 3: AUTH (Login/Register thường không có Layout) --- */}

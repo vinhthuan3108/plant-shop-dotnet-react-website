@@ -55,6 +55,8 @@ function Login() {
             <form onSubmit={handleLogin}>
                 <div style={{ marginBottom: '10px' }}>
                     <label>Email:</label>
+                    <div></div>
+                    <label>c3lttrong.2a2.vthuan@gmail.com</label>
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={{ width: '100%', padding: '8px' }} />
                 </div>
                 <div style={{ marginBottom: '10px' }}>

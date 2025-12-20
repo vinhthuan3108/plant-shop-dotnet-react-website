@@ -405,5 +405,41 @@ namespace back_end.Controllers
                 return StatusCode(500, "Lỗi cập nhật: " + ex.Message);
             }
         }
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetOrdersByUser(int userId)
+        {
+            var orders = await _context.TblOrders
+                .Where(o => o.UserId == userId)
+                .Include(o => o.TblOrderDetails)
+                    .ThenInclude(od => od.Product) // Include để lấy tên & ảnh sản phẩm
+                .OrderByDescending(o => o.OrderDate) // Đơn mới nhất lên đầu
+                .Select(o => new
+                {
+                    o.OrderId,
+                    o.OrderDate,
+                    o.OrderStatus, // Trạng thái: Pending, Processing, Shipped...
+                    o.TotalAmount,
+                    o.PaymentStatus,
+                    // Lấy danh sách sản phẩm tóm tắt
+                    Items = o.TblOrderDetails.Select(od => new
+                    {
+                        ProductName = od.Product.ProductName,
+
+                        // 2. Logic lấy ảnh: Vào bảng ảnh, tìm cái nào là Thumbnail = true, lấy ra Url
+                        ProductImage = od.Product.TblProductImages
+                                .Where(img => img.IsThumbnail == true)
+                                .Select(img => img.ImageUrl)
+                                .FirstOrDefault() // Lấy cái đầu tiên tìm được
+                                                  // Nếu không có thumbnail thì lấy ảnh bất kỳ (fallback)
+                                ?? od.Product.TblProductImages.Select(img => img.ImageUrl).FirstOrDefault(),
+
+                        Quantity = od.Quantity,
+                        Price = od.PriceAtTime
+                    }).ToList()
+                })
+                .ToListAsync();
+
+            return Ok(orders);
+        }
     }
 }

@@ -1,0 +1,179 @@
+/* Sidebar menu style */
+.menu-item {
+    padding: 12px 15px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    transition: all 0.2s;
+    color: #333;
+}
+
+.menu-item:hover {
+    background-color: #f5f5f5;
+}
+
+.menu-item.active {
+    background-color: #e8f5e9; /* Màu xanh nhạt */
+    color: #2e7d32; /* Màu xanh đậm */
+    font-weight: bold;
+}
+
+/* Badge trạng thái */
+.badge {
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+}
+
+.badge-warning { background-color: #fbc02d; color: #333; } /* Vàng - Pending */
+.badge-info { background-color: #0288d1; } /* Xanh dương - Processing */
+.badge-primary { background-color: #00796b; } /* Xanh Teal - Shipped */
+.badge-success { background-color: #388e3c; } /* Xanh lá - Delivered */
+.badge-danger { background-color: #d32f2f; } /* Đỏ - Cancelled */
+.badge-secondary { background-color: #757575; } /* Xám - Khác */
+
+
+/* aaa */
+.order-status-tabs {
+    display: flex;
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    overflow-x: auto; /* Cho phép cuộn ngang trên mobile */
+}
+
+.status-tab-item {
+    flex: 1; /* Chia đều độ rộng 5 tab */
+    text-align: center;
+    padding: 15px 5px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #555;
+    position: relative;
+    white-space: nowrap;
+    transition: all 0.3s;
+    user-select: none;
+}
+
+.status-tab-item:hover {
+    color: #2e7d32;
+    background-color: #f9fff9;
+}
+
+/* Tab đang được chọn */
+.status-tab-item.active {
+    color: #2e7d32;
+    font-weight: bold;
+    border-bottom: 2px solid #2e7d32;
+}
+
+/* --- CSS CHO THẺ ĐƠN HÀNG (CARD) --- */
+.order-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    background-color: #fafafa;
+    border-radius: 8px 8px 0 0;
+}
+
+.order-date {
+    margin-left: 10px;
+    color: #888;
+    font-size: 13px;
+    font-weight: normal;
+}
+
+.order-items {
+    padding: 15px;
+}
+
+.order-item-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.order-item-row:last-child {
+    margin-bottom: 0;
+}
+
+.order-item-row img {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #eee;
+}
+
+.item-info {
+    flex: 1;
+}
+
+.item-name {
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.item-meta {
+    font-size: 13px;
+    color: #777;
+}
+
+.item-price {
+    font-size: 14px;
+    color: #2e7d32;
+    margin-top: 5px;
+}
+
+.order-footer {
+    padding: 12px 15px;
+    border-top: 1px solid #f0f0f0;
+    text-align: right;
+}
+
+.total-price {
+    font-size: 15px;
+}
+
+.total-price span {
+    font-size: 18px;
+    font-weight: bold;
+    color: #d32f2f;
+    margin-left: 5px;
+}
+
+.order-actions button {
+    margin-left: 10px;
+    padding: 6px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    border: 1px solid #ddd;
+    background: #fff;
+}
+
+.btn-buy-again {
+    background-color: #2e7d32 !important;
+    color: white !important;
+    border: none !important;
+}
+
+.btn-cancel {
+    color: #d32f2f !important;
+    border-color: #d32f2f !important;
+}
+
+.btn-cancel:hover {
+    background-color: #fff5f5 !important;
+}

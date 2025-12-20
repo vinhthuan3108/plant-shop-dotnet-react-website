@@ -59,14 +59,17 @@ function Sidebar() {
       
       <nav style={{ flexGrow: 1 }}>
         <NavLink to="/admin/products" style={activeStyle}>
-           <span>📦 Quản lý Sản phẩm</span>
+           <span>📦 Quản lý sản phẩm</span>
         </NavLink>
         
         <NavLink to="/admin/orders" style={activeStyle}>
            <span>📝 Quản lý đơn hàng</span>
         </NavLink>
+        <NavLink to="/admin/vouchers" style={activeStyle}>
+           <span>📝 Quản lý mã giảm giá</span>
+        </NavLink>
         <NavLink to="/admin/posts" style={activeStyle}>
-           <span>📝 Quản lý Bài đăng</span>
+           <span>📝 Quản lý bài đăng</span>
         </NavLink>
         {/* <NavLink to="/admin/suppliers" style={activeStyle}>
            <span>🏢 Quản lý Nhà cung cấp</span>
