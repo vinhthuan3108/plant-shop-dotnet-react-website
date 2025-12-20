@@ -3,14 +3,19 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer; // Thêm
 using Microsoft.IdentityModel.Tokens; // Thêm
 using System.Text; // Thêm
-
+using System.Text.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(x =>
+{
+    // Lệnh này giúp bỏ qua lỗi vòng lặp (A chứa B, B chứa A)
+    x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    x.JsonSerializerOptions.WriteIndented = true;
+});
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<DbplantShopThuanCuongContext>(options =>
-    options.UseSqlServer("Server=DELL;Database=DBPlantShopThuanCuong;Trusted_Connection=True;TrustServerCertificate=True;"));
+    options.UseSqlServer("Server=LAPTOP-BPFVN8L7\\SQLEXPRESS02;Database=DBPlantShopThuanCuong;Trusted_Connection=True;TrustServerCertificate=True;"));
 
 builder.Services.AddCors(options =>
 {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-//import './ProfilePage.css'; // Nhớ tạo file CSS hoặc comment lại nếu chưa có
+import './ProfilePage.css'; // Nhớ tạo file CSS hoặc comment lại nếu chưa có
 
 const ProfilePage = () => {
     // --- CẤU HÌNH ĐƯỜNG DẪN GỐC API (Sửa port tại đây) ---
@@ -24,9 +24,17 @@ const ProfilePage = () => {
 
     // --- STATE ADDRESS ---
     const [addresses, setAddresses] = useState([]);
+    const [orders, setOrders] = useState([]);
+    const [orderStatusTab, setOrderStatusTab] = useState('Completed');
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [isEditingAddress, setIsEditingAddress] = useState(false); 
-    
+    const ORDER_TABS = [
+        { id: 'Pending', label: 'Chờ xác nhận' },
+        { id: 'Processing', label: 'Đang đóng gói' },
+        { id: 'Shipped', label: 'Đang vận chuyển' },
+        { id: 'Completed', label: 'Hoàn thành' },
+        { id: 'Cancelled', label: 'Đã hủy' },
+    ];
     // Form data cho địa chỉ
     const [addressForm, setAddressForm] = useState({
         addressId: 0,
@@ -53,6 +61,7 @@ const ProfilePage = () => {
         }
         fetchProfile();
         fetchAddresses();
+        fetchOrders();
         fetchLocationProvinces();
     }, [userId]);
 
@@ -84,7 +93,24 @@ const ProfilePage = () => {
         const res = await axios.get('https://provinces.open-api.vn/api/?depth=1');
         setProvinces(res.data);
     };
-
+    const fetchOrders = async () => {
+        try {
+            const res = await axios.get(`${API_BASE_URL}/api/Orders/user/${userId}`);
+            setOrders(res.data);
+        } catch (err) {
+            console.error("Lỗi lấy đơn hàng:", err);
+        }
+    };
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'Pending': return <span className="badge badge-warning">Chờ xác nhận</span>;
+            case 'Processing': return <span className="badge badge-info">Đang đóng gói</span>;
+            case 'Shipped': return <span className="badge badge-primary">Đang vận chuyển</span>;
+            case 'Delivered': return <span className="badge badge-success">Giao thành công</span>;
+            case 'Cancelled': return <span className="badge badge-danger">Đã hủy</span>;
+            default: return <span className="badge badge-secondary">{status}</span>;
+        }
+    };
     const handleProvinceChange = async (e) => {
         const provinceName = e.target.options[e.target.selectedIndex].text;
         const code = e.target.value;
@@ -148,8 +174,8 @@ const ProfilePage = () => {
     // Giúp nối domain backend vào đường dẫn tương đối
     const getAvatarSrc = (url) => {
         if (!url) return "https://via.placeholder.com/150";
-        if (url.startsWith('http')) return url; // Ảnh online (Google/Facebook)
-        return `${API_BASE_URL}${url}`; // Ảnh trên server mình
+        if (url.startsWith('http')) return url;
+        return `${API_BASE_URL}${url}`;
     };
 
     // --- 4. ADDRESS ACTIONS ---
@@ -214,7 +240,7 @@ const ProfilePage = () => {
             }
         }
     };
-
+    const filteredOrders = orders.filter(o => o.orderStatus === orderStatusTab);
     return (
         <div className="container" style={{ marginTop: '30px', display: 'flex', gap: '20px' }}>
             
@@ -241,6 +267,12 @@ const ProfilePage = () => {
                         onClick={() => setActiveTab('address')}
                     >
                         Sổ địa chỉ
+                    </li>
+                    <li 
+                        className={`menu-item ${activeTab === 'orders' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('orders')}
+                    >
+                        Đơn mua
                     </li>
                 </ul>
             </div>
@@ -369,6 +401,91 @@ const ProfilePage = () => {
                                 </div>
                             </div>
                         )}
+                    </div>
+                )}
+                {activeTab === 'orders' && (
+                    <div>
+                        <h2 style={{ marginBottom: '20px' }}>Lịch Sử Đơn Hàng</h2>
+                        
+                        {/* 1. THANH TAB TRẠNG THÁI */}
+                        <div className="order-status-tabs">
+                            {ORDER_TABS.map(tab => (
+                                <div 
+                                    key={tab.id}
+                                    className={`status-tab-item ${orderStatusTab === tab.id ? 'active' : ''}`}
+                                    onClick={() => setOrderStatusTab(tab.id)}
+                                >
+                                    {tab.label}
+                                    {/* (Tùy chọn) Hiển thị số lượng đơn bên cạnh */}
+                                    <span style={{marginLeft: '5px', fontSize: '12px', background: '#eee', padding: '2px 6px', borderRadius: '10px'}}>
+                                        {orders.filter(o => o.orderStatus === tab.id).length}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 2. DANH SÁCH ĐƠN HÀNG ĐÃ LỌC */}
+                        <div className="order-list-container" style={{ marginTop: '20px' }}>
+                            {filteredOrders.length === 0 ? (
+                                <div style={{ textAlign: 'center', color: '#888', padding: '50px', background: '#f9f9f9', borderRadius: '8px' }}>
+                                    <img src="https://cdn-icons-png.flaticon.com/512/4076/4076432.png" alt="Empty" style={{width: '60px', opacity: 0.5, marginBottom: '10px'}}/>
+                                    <p>Chưa có đơn hàng nào ở trạng thái này.</p>
+                                </div>
+                            ) : (
+                                filteredOrders.map(order => (
+                                    <div key={order.orderId} className="order-card">
+                                        {/* Header đơn hàng */}
+                                        <div className="order-header">
+                                            <div>
+                                                <strong>#{order.orderId}</strong>
+                                                <span className="order-date">
+                                                    {new Date(order.orderDate).toLocaleDateString('vi-VN')}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                {/* Gọi lại hàm getStatusBadge cũ của bạn */}
+                                                {getStatusBadge(order.orderStatus)}
+                                            </div>
+                                        </div>
+
+                                        {/* List sản phẩm */}
+                                        <div className="order-items">
+                                            {order.items.map((item, idx) => (
+                                                <div key={idx} className="order-item-row">
+                                                    <img 
+                                                        src={getAvatarSrc(item.productImage)} 
+                                                        alt={item.productName}
+                                                    />
+                                                    <div className="item-info">
+                                                        <div className="item-name">{item.productName}</div>
+                                                        <div className="item-meta">x {item.quantity}</div>
+                                                        <div className="item-price">{item.price.toLocaleString()}đ</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Footer: Tổng tiền & Nút thao tác */}
+                                        <div className="order-footer">
+                                            <div className="total-price">
+                                                Thành tiền: <span>{order.totalAmount.toLocaleString()}đ</span>
+                                            </div>
+                                            
+                                            {/* Nút hành động tùy theo Tab */}
+                                            <div className="order-actions" style={{marginTop: '10px'}}>
+                                                {orderStatusTab === 'Pending' && (
+                                                    <button className="btn-cancel" onClick={() => alert("Tính năng hủy đang phát triển")}>Hủy đơn</button>
+                                                )}
+                                                {orderStatusTab === 'Delivered' && (
+                                                    <button className="btn-buy-again">Mua lại</button>
+                                                )}
+                                                <button className="btn-detail">Xem chi tiết</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
