@@ -135,5 +135,71 @@ namespace back_end.Controllers
 
             return Ok("Kích hoạt thành công!");
         }
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordDto request)
+        {
+            // 1. Kiểm tra email có tồn tại trong hệ thống không
+            var user = await _context.TblUsers.FirstOrDefaultAsync(u => u.Email == request.Email);
+            if (user == null)
+            {
+                return BadRequest("Email không tồn tại trong hệ thống.");
+            }
+
+            // 2. Tạo mã OTP ngẫu nhiên
+            string otp = new Random().Next(100000, 999999).ToString();
+
+            // 3. Lưu OTP vào Cache với key riêng (ví dụ: RESET_email) để không trùng với OTP đăng ký
+            // Thời hạn 10 phút
+            string cacheKey = $"RESET_{request.Email}";
+            _cache.Set(cacheKey, otp, TimeSpan.FromMinutes(10));
+
+            // 4. Gửi email
+            try
+            {
+                await _emailService.SendEmailAsync(request.Email, "Yêu cầu đặt lại mật khẩu",
+                    $"<h3>Mã xác nhận đặt lại mật khẩu của bạn là: <b style='color:red'>{otp}</b></h3>" +
+                    $"<p>Mã này có hiệu lực trong 10 phút.</p>");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Lỗi gửi email: " + ex.Message);
+            }
+
+            return Ok("Mã xác nhận đã được gửi vào email của bạn.");
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto request)
+        {
+            string cacheKey = $"RESET_{request.Email}";
+
+            // 1. Kiểm tra OTP trong cache
+            if (!_cache.TryGetValue(cacheKey, out string savedOtp))
+            {
+                return BadRequest("Mã xác thực đã hết hạn hoặc không tồn tại.");
+            }
+
+            if (savedOtp != request.OtpCode)
+            {
+                return BadRequest("Mã xác thực không đúng.");
+            }
+
+            // 2. Lấy user từ DB
+            var user = await _context.TblUsers.FirstOrDefaultAsync(u => u.Email == request.Email);
+            if (user == null) return BadRequest("Lỗi người dùng.");
+
+            // 3. Hash mật khẩu mới và cập nhật
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+
+            // Cập nhật ngày sửa đổi (nếu cần)
+            user.UpdatedAt = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            // 4. Xóa OTP sau khi dùng xong
+            _cache.Remove(cacheKey);
+
+            return Ok("Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.");
+        }
     }
 }

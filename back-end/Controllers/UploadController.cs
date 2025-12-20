@@ -17,7 +17,11 @@ namespace back_end.Controllers
             _environment = environment;
         }
 
-        // URL sẽ là: api/upload/users
+        // URL gọi API: 
+        // 1. Upload sản phẩm: POST api/upload/images (hoặc không truyền type)
+        // 2. Upload bài viết: POST api/upload/posts
+        // 3. Upload user:     POST api/upload/users
+        // 4. Upload banner:   POST api/upload/banners  <-- MỚI
         [HttpPost("{type?}")]
         public async Task<IActionResult> Upload(IFormFile file, string type = "images")
         {
@@ -29,22 +33,28 @@ namespace back_end.Controllers
 
             // --- CẬP NHẬT LOGIC FOLDER TẠI ĐÂY ---
             string subFolder;
-            if (type == "posts")
+            
+            // Dùng hàm ToLower() để tránh lỗi nếu lỡ nhập chữ hoa (Ví dụ: Banners)
+            switch (type.ToLower()) 
             {
-                subFolder = "posts";
-            }
-            else if (type == "users") // Thêm dòng này cho Avatar
-            {
-                subFolder = "users";
-            }
-            else
-            {
-                subFolder = "images"; // Mặc định là sản phẩm
+                case "posts":
+                    subFolder = "posts";
+                    break;
+                case "users":
+                    subFolder = "users";
+                    break;
+                case "banners": // <-- Đã thêm phần này cho bạn
+                    subFolder = "banners";
+                    break;
+                default:
+                    subFolder = "images"; // Mặc định là thư mục chứa ảnh sản phẩm
+                    break;
             }
             // --------------------------------------
 
             var uploadFolder = Path.Combine(_environment.WebRootPath, subFolder);
 
+            // Tự động tạo thư mục nếu chưa có
             if (!Directory.Exists(uploadFolder))
             {
                 Directory.CreateDirectory(uploadFolder);
@@ -57,7 +67,7 @@ namespace back_end.Controllers
                 await file.CopyToAsync(stream);
             }
 
-            // Trả về đường dẫn tương đối: /users/ten-file.jpg
+            // Trả về đường dẫn tương đối: /banners/ten-file-ngau-nhien.jpg
             var url = $"/{subFolder}/{uniqueFileName}";
 
             return Ok(new { url = url });
