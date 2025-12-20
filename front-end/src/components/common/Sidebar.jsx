@@ -93,7 +93,9 @@ function Sidebar() {
             <NavLink to="/admin/suppliers" style={activeSubStyle}>⚙️ Quản lý nhà cung cấp</NavLink>
           </div>
         )}
-
+        <NavLink to="/admin/banners" style={activeStyle}>
+           <span>👥 Quản lý Banner</span>
+        </NavLink>
         <NavLink to="/admin/users" style={activeStyle}>
            <span>👥 Quản lý Tài khoản</span>
         </NavLink>

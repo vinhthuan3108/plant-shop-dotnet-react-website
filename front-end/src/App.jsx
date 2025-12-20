@@ -35,6 +35,8 @@ import SystemBackup from './pages/admin/Systembackup';
 import Vouchers from './pages/admin/Vouchers';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import AdminBanners from './pages/admin/AdminBanners';
+import ForgotPassword from './pages/auth/ForgotPassword';
 function App() {
   return (
     <>
@@ -70,13 +72,14 @@ function App() {
         <Route path="users" element={<Users />} />
         <Route path="backup" element={<SystemBackup />} />
         <Route path="vouchers" element={<Vouchers />} />
+        <Route path="banners" element={<AdminBanners />} />
       </Route>
 
       {/* --- NHÓM 3: AUTH (Login/Register thường không có Layout) --- */}
       <Route path="/login" element={<Login />} />
       <Route path="register" element={<Register />} />
       <Route path="verify-otp" element={<VerifyOtp />} />
-
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       
     </Routes>
     <ToastContainer 

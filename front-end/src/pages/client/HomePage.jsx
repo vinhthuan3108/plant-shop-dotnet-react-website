@@ -21,7 +21,7 @@ function HomePage() {
 
   // --- 1. GỌI API BANNER ---
   useEffect(() => {
-    fetch(`${BASE_URL}/api/TblBanners`)
+    fetch(`${BASE_URL}/api/TblBanners/public`)
       .then(res => res.json())
       .then(data => {
         const formattedBanners = data.map(b => ({
