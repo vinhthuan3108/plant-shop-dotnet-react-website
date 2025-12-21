@@ -59,11 +59,25 @@ const CreateImportReceipt = () => {
     if (!supplierId) return alert("Vui lòng chọn nhà cung cấp!");
     if (details.some(d => !d.productId)) return alert("Vui lòng chọn đầy đủ sản phẩm!");
 
+    // 1. Lấy Token
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert("Bạn chưa đăng nhập!");
+        return;
+    }
+
+    // 2. Cấu hình Header
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    };
+
     const payload = {
         supplierId: parseInt(supplierId),
         importDate: importDate,
         note: note,
-        creatorId: 6, 
+        // creatorId: 6,  <-- XÓA DÒNG NÀY (Backend tự lấy ID rồi)
         details: details.map(d => ({
             productId: parseInt(d.productId),
             quantity: parseInt(d.quantity),
@@ -72,19 +86,21 @@ const CreateImportReceipt = () => {
     };
 
     try {
-        // SỬA TẠI ĐÂY: Dùng cổng 7298 và kiểm tra tên Controller (TblImportReceipts)
-        const response = await axios.post('https://localhost:7298/api/ImportReceipts', payload);
+        // 3. Truyền config vào tham số thứ 3 của axios.post
+        const response = await axios.post('https://localhost:7298/api/ImportReceipts', payload, config);
         
         if (response.status === 200 || response.status === 201) {
             alert("Đã lưu phiếu nhập và cập nhật tồn kho thành công!");
-            // Reset form sau khi thành công
+            // Reset form
             setDetails([{ productId: '', quantity: 1, importPrice: 0 }]);
             setNote('');
             setSupplierId('');
         }
     } catch (err) {
         console.error("Lỗi khi POST dữ liệu:", err);
-        alert("Lỗi: " + (err.response?.data || "Không tìm thấy API xử lý phiếu nhập. Hãy kiểm tra lại tên Controller ở Backend!"));
+        // Hiển thị lỗi chi tiết hơn nếu có
+        const errorMessage = err.response?.data?.message || err.response?.data || "Lỗi hệ thống";
+        alert(`Lỗi: ${errorMessage}`);
     }
 };
 

@@ -2,6 +2,8 @@
 using back_end.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization; // Thêm dòng này
+using System.Security.Claims;
 [Route("api/[controller]")]
 [ApiController]
 public class ImportReceiptsController : ControllerBase
@@ -57,8 +59,18 @@ public class ImportReceiptsController : ControllerBase
         return Ok(detail);
     }
     [HttpPost]
+    [Authorize] // <--- 1. Bắt buộc phải đăng nhập mới tạo được phiếu
     public async Task<IActionResult> CreateReceipt(ImportReceiptCreateDto dto)
     {
+        // --- 2. Lấy UserId từ Token ---
+        var userIdClaim = User.FindFirst("UserId");
+        if (userIdClaim == null)
+        {
+            return Unauthorized(new { message = "Không tìm thấy thông tin người dùng." });
+        }
+        int loggedInUserId = int.Parse(userIdClaim.Value);
+        // ------------------------------
+
         if (dto.Details == null || !dto.Details.Any())
             return BadRequest("Phải chọn ít nhất 1 sản phẩm để nhập kho.");
 
@@ -70,7 +82,10 @@ public class ImportReceiptsController : ControllerBase
                 SupplierId = dto.SupplierId,
                 ImportDate = dto.ImportDate,
                 Note = dto.Note,
-                CreatorId = dto.CreatorId, 
+
+                // --- 3. Gán ID lấy từ Token vào đây ---
+                CreatorId = loggedInUserId,
+                // (Không dùng dto.CreatorId nữa)
 
                 TotalAmount = dto.Details.Sum(d => d.Quantity * d.ImportPrice)
             };
@@ -78,10 +93,9 @@ public class ImportReceiptsController : ControllerBase
             _context.TblImportReceipts.Add(receipt);
             await _context.SaveChangesAsync();
 
-
+            // ... (Phần xử lý Details giữ nguyên như cũ) ...
             foreach (var item in dto.Details)
             {
-
                 var detail = new TblImportReceiptDetail
                 {
                     ReceiptId = receipt.ReceiptId,
@@ -95,7 +109,7 @@ public class ImportReceiptsController : ControllerBase
                 if (product != null)
                 {
                     product.StockQuantity = (product.StockQuantity ?? 0) + item.Quantity;
-                    product.UpdatedAt = DateTime.Now; 
+                    product.UpdatedAt = DateTime.Now;
                 }
             }
 
@@ -107,6 +121,8 @@ public class ImportReceiptsController : ControllerBase
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
+            // Log lỗi ra console để debug nếu cần
+            Console.WriteLine(ex.ToString());
             return StatusCode(500, $"Lỗi hệ thống: {ex.Message}");
         }
     }

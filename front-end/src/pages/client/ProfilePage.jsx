@@ -144,12 +144,35 @@ const ProfilePage = () => {
     };
 
     // --- ACTIONS: PROFILE ---
+    // --- ACTIONS: PROFILE ---
     const handleUpdateProfile = async () => {
         try {
-            await axios.put(`${API_BASE_URL}/api/Profile/${userId}`, profile);
+            // 1. Tạo payload (dữ liệu) chuẩn để gửi đi
+            const payload = {
+                fullName: profile.fullName,
+                phoneNumber: profile.phoneNumber,
+                gender: profile.gender,
+                avatarUrl: profile.avatarUrl,
+                // Xử lý quan trọng: Nếu ngày sinh rỗng thì gửi null, ngược lại gửi nguyên chuỗi YYYY-MM-DD
+                dateofBirth: profile.dateofBirth ? profile.dateofBirth : null
+            };
+
+            // Lưu ý: Không gửi email và userId vì backend không dùng để update
+
+            // 2. Gửi request
+            await axios.put(`${API_BASE_URL}/api/Profile/${userId}`, payload);
             alert("Cập nhật hồ sơ thành công!");
         } catch (err) {
-            alert("Lỗi cập nhật!");
+            console.error("Lỗi update:", err); // Log lỗi ra console để dễ debug
+            
+            // Hiển thị thông báo lỗi chi tiết từ Backend nếu có
+            if (err.response && err.response.data && err.response.data.errors) {
+                 // Lấy lỗi validation cụ thể (ví dụ: "DateofBirth is invalid")
+                 const errorMsg = JSON.stringify(err.response.data.errors);
+                 alert("Lỗi dữ liệu: " + errorMsg);
+            } else {
+                alert("Lỗi cập nhật! Vui lòng kiểm tra lại thông tin.");
+            }
         }
     };
 

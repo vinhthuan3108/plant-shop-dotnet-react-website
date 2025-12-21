@@ -2,16 +2,21 @@
 using Microsoft.EntityFrameworkCore;
 using back_end.Models; // Namespace chứa DbContext và Models
 using back_end.DTOs;
-
+using Microsoft.AspNetCore.Hosting; // 1. Thêm thư viện này
+using System.IO;
 [Route("api/[controller]")]
 [ApiController]
 public class ProfileController : ControllerBase
 {
     private readonly DbplantShopThuanCuongContext _context;
 
-    public ProfileController(DbplantShopThuanCuongContext context)
+    private readonly IWebHostEnvironment _environment; // 3. Khai báo biến môi trường
+
+    // 4. Inject vào constructor
+    public ProfileController(DbplantShopThuanCuongContext context, IWebHostEnvironment environment)
     {
         _context = context;
+        _environment = environment;
     }
 
     // 1. Lấy thông tin User
@@ -34,23 +39,42 @@ public class ProfileController : ControllerBase
         return Ok(user);
     }
 
-    // 2. Cập nhật thông tin User
     [HttpPut("{userId}")]
     public async Task<IActionResult> UpdateProfile(int userId, [FromBody] UserProfileDto dto)
     {
         var user = await _context.TblUsers.FindAsync(userId);
         if (user == null) return NotFound();
 
+        // Cập nhật thông tin text
         user.FullName = dto.FullName;
         user.PhoneNumber = dto.PhoneNumber;
         user.DateofBirth = dto.DateofBirth;
         user.Gender = dto.Gender;
 
-        // Nếu có gửi link ảnh mới thì cập nhật
-        if (!string.IsNullOrEmpty(dto.AvatarUrl))
+        // --- LOGIC XÓA ẢNH CŨ ---
+        // Nếu có link ảnh mới VÀ link đó khác với link hiện tại trong DB
+        if (!string.IsNullOrEmpty(dto.AvatarUrl) && dto.AvatarUrl != user.AvatarUrl)
         {
+            // 1. Xóa ảnh cũ (nếu có)
+            if (!string.IsNullOrEmpty(user.AvatarUrl))
+            {
+                var oldRelativePath = user.AvatarUrl.TrimStart('/');
+                var oldFullPath = Path.Combine(_environment.WebRootPath, oldRelativePath);
+
+                if (System.IO.File.Exists(oldFullPath))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(oldFullPath);
+                    }
+                    catch { /* Bỏ qua lỗi nếu file đang bị lock */ }
+                }
+            }
+
+            // 2. Cập nhật đường dẫn ảnh mới
             user.AvatarUrl = dto.AvatarUrl;
         }
+        // ------------------------
 
         await _context.SaveChangesAsync();
         return Ok(new { message = "Cập nhật hồ sơ thành công" });

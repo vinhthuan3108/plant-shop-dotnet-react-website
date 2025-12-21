@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios'; // Hoặc axios instance của bạn
-import { toast } from 'react-toastify'; // Nếu có dùng thư viện toast
+import axios from 'axios';
+// import { toast } from 'react-toastify'; 
 
-const SystemConfigPage = () => {
+function SystemConfigPage() {
     // State lưu trữ giá trị các cấu hình
     const [configs, setConfigs] = useState({
         StoreName: '',
@@ -17,17 +17,17 @@ const SystemConfigPage = () => {
         FaviconUrl: ''
     });
 
-    // Hàm lấy dữ liệu khi mới vào trang
+    const BASE_URL = 'https://localhost:7298'; 
+
     useEffect(() => {
         fetchConfigs();
     }, []);
 
     const fetchConfigs = async () => {
         try {
-            const res = await axios.get('https://localhost:7298/api/TblSystemConfig'); // Sửa port theo máy bạn
+            const res = await axios.get(`${BASE_URL}/api/TblSystemConfig`);
             const data = res.data;
             
-            // Chuyển mảng Key-Value thành Object để dễ binding vào input
             const newConfig = { ...configs };
             data.forEach(item => {
                 if (newConfig.hasOwnProperty(item.configKey)) {
@@ -40,13 +40,11 @@ const SystemConfigPage = () => {
         }
     };
 
-    // Hàm xử lý khi nhập liệu
     const handleChange = (e) => {
         const { name, value } = e.target;
         setConfigs(prev => ({ ...prev, [name]: value }));
     };
 
-    // Hàm xử lý upload ảnh (Logo/Favicon)
     const handleUpload = async (e, keyName) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -55,16 +53,12 @@ const SystemConfigPage = () => {
         formData.append('file', file);
 
         try {
-            // SỬA 1: Đổi đường dẫn thành /configs để Backend biết tạo folder configs
-            const res = await axios.post('https://localhost:7298/api/Upload/configs', formData, {
+            const res = await axios.post(`${BASE_URL}/api/Upload/configs`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             
-            // SỬA 2: Backend trả về { url: ... } nên phải dùng res.data.url
             if (res.data.url) {
                 setConfigs(prev => ({ ...prev, [keyName]: res.data.url }));
-                // Có thể alert nhẹ để biết đã upload xong (chưa lưu vào DB, chỉ mới lên server)
-                // alert("Đã upload ảnh lên server, hãy bấm Lưu cấu hình!"); 
             }
         } catch (error) {
             console.error(error);
@@ -72,86 +66,191 @@ const SystemConfigPage = () => {
         }
     };
 
-    // Hàm lưu dữ liệu
     const handleSave = async () => {
-        // Chuyển object state về dạng mảng Key-Value để gửi lên API
         const payload = Object.keys(configs).map(key => ({
             configKey: key,
             configValue: configs[key]
         }));
 
         try {
-            await axios.post('https://localhost:7298/api/TblSystemConfig/BulkUpdate', payload);
+            await axios.post(`${BASE_URL}/api/TblSystemConfig/BulkUpdate`, payload);
             alert('Cập nhật thành công!');
-            // Reload lại trang hoặc cập nhật lại context nếu cần
         } catch (error) {
             alert('Lỗi khi lưu cấu hình');
         }
     };
 
+    // --- STYLES ---
+    const containerStyle = {
+        padding: '20px',
+        maxWidth: '1000px',
+        margin: '0 auto'
+    };
+
+    const sectionStyle = {
+        backgroundColor: '#fff',
+        padding: '20px',
+        borderRadius: '8px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        marginBottom: '20px'
+    };
+
+    const headerStyle = {
+        borderBottom: '1px solid #eee',
+        paddingBottom: '10px',
+        marginBottom: '15px',
+        fontSize: '18px',
+        fontWeight: 'bold',
+        color: '#333'
+    };
+
+    const gridStyle = {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr', // Chia 2 cột
+        gap: '20px'
+    };
+
+    const formGroupStyle = {
+        marginBottom: '1px'
+    };
+
+    const labelStyle = {
+        display: 'block',
+        marginBottom: '1px',
+        fontWeight: '500',
+        fontSize: '14px'
+    };
+
+    const inputStyle = {
+        width: '100%',
+        padding: '8px 12px',
+        borderRadius: '4px',
+        border: '1px solid #ccc',
+        fontSize: '14px',
+        boxSizing: 'border-box' // Quan trọng để padding không làm vỡ layout
+    };
+
+    // Style cho khung upload ảnh để tránh vỡ giao diện
+    const imageBoxStyle = {
+        border: '2px dashed #ddd',
+        borderRadius: '6px',
+        padding: '10px',
+        textAlign: 'center',
+        backgroundColor: '#fafafa',
+        height: '180px', // Chiều cao cố định
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center'
+    };
+
+    const imgPreviewStyle = {
+        maxWidth: '100%',
+        maxHeight: '100px', // Giới hạn chiều cao ảnh
+        objectFit: 'contain',
+        marginBottom: '10px'
+    };
+
     return (
-        <div className="p-4 bg-white shadow rounded">
-            <h2 className="text-xl font-bold mb-4">Cấu hình hệ thống (Header/Footer)</h2>
+        <div style={containerStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ margin: 0 }}>Cấu hình hệ thống</h2>
+                <button 
+                    onClick={handleSave} 
+                    style={{ 
+                        padding: '10px 25px', 
+                        background: '#007bff', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer', 
+                        fontWeight: 'bold',
+                        fontSize: '16px'
+                    }}
+                >
+                    💾 Lưu Cấu Hình
+                </button>
+            </div>
             
-            <div className="grid grid-cols-2 gap-4">
-                {/* Thông tin chung */}
-                <div className="col-span-2"><h3 className="font-semibold mt-4">Thông tin cửa hàng</h3></div>
-                
-                <div>
-                    <label>Tên cửa hàng</label>
-                    <input type="text" name="StoreName" value={configs.StoreName} onChange={handleChange} className="border p-2 w-full"/>
-                </div>
-                <div>
-                    <label>Hotline</label>
-                    <input type="text" name="Hotline" value={configs.Hotline} onChange={handleChange} className="border p-2 w-full"/>
-                </div>
-                <div>
-                    <label>Email</label>
-                    <input type="email" name="Email" value={configs.Email} onChange={handleChange} className="border p-2 w-full"/>
-                </div>
-                <div>
-                    <label>Địa chỉ</label>
-                    <input type="text" name="Address" value={configs.Address} onChange={handleChange} className="border p-2 w-full"/>
-                </div>
-                <div className="col-span-2">
-                    <label>Copyright</label>
-                    <input type="text" name="Copyright" value={configs.Copyright} onChange={handleChange} className="border p-2 w-full"/>
-                </div>
-
-                {/* Mạng xã hội */}
-                <div className="col-span-2"><h3 className="font-semibold mt-4">Liên kết Mạng xã hội</h3></div>
-                <div>
-                    <label>Zalo (SĐT/Link)</label>
-                    <input type="text" name="SocialZalo" value={configs.SocialZalo} onChange={handleChange} className="border p-2 w-full"/>
-                </div>
-                <div>
-                    <label>Facebook Fanpage</label>
-                    <input type="text" name="SocialFacebook" value={configs.SocialFacebook} onChange={handleChange} className="border p-2 w-full"/>
-                </div>
-                <div>
-                    <label>Messenger Link</label>
-                    <input type="text" name="SocialMessenger" value={configs.SocialMessenger} onChange={handleChange} className="border p-2 w-full"/>
-                </div>
-
-                {/* Hình ảnh */}
-                <div className="col-span-2"><h3 className="font-semibold mt-4">Logo & Favicon</h3></div>
-                
-                <div>
-                    <label>Logo Website</label>
-                    <input type="file" onChange={(e) => handleUpload(e, 'LogoUrl')} className="block mt-1"/>
-                    {configs.LogoUrl && <img src={`https://localhost:7298${configs.LogoUrl}`} alt="Logo" className="h-20 mt-2 object-contain bg-gray-100"/>}
-                </div>
-
-                <div>
-                    <label>Favicon</label>
-                    <input type="file" onChange={(e) => handleUpload(e, 'FaviconUrl')} className="block mt-1"/>
-                    {configs.FaviconUrl && <img src={`https://localhost:7298${configs.FaviconUrl}`} alt="Favicon" className="h-10 mt-2 object-contain bg-gray-100"/>}
+            {/* KHỐI 1: THÔNG TIN CHUNG */}
+            <div style={sectionStyle}>
+                <div style={headerStyle}>🏠 Thông tin cửa hàng</div>
+                <div style={gridStyle}>
+                    <div style={formGroupStyle}>
+                        <label style={labelStyle}>Tên cửa hàng</label>
+                        <input type="text" name="StoreName" value={configs.StoreName} onChange={handleChange} style={inputStyle}/>
+                    </div>
+                    <div style={formGroupStyle}>
+                        <label style={labelStyle}>Hotline</label>
+                        <input type="text" name="Hotline" value={configs.Hotline} onChange={handleChange} style={inputStyle}/>
+                    </div>
+                    <div style={formGroupStyle}>
+                        <label style={labelStyle}>Email</label>
+                        <input type="email" name="Email" value={configs.Email} onChange={handleChange} style={inputStyle}/>
+                    </div>
+                    <div style={formGroupStyle}>
+                        <label style={labelStyle}>Địa chỉ</label>
+                        <input type="text" name="Address" value={configs.Address} onChange={handleChange} style={inputStyle}/>
+                    </div>
+                    <div style={{ ...formGroupStyle, gridColumn: 'span 2' }}>
+                        <label style={labelStyle}>Copyright Footer</label>
+                        <input type="text" name="Copyright" value={configs.Copyright} onChange={handleChange} style={inputStyle}/>
+                    </div>
                 </div>
             </div>
 
-            <button onClick={handleSave} className="mt-6 bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                Lưu cấu hình
-            </button>
+            {/* KHỐI 2: MẠNG XÃ HỘI */}
+            <div style={sectionStyle}>
+                <div style={headerStyle}>🌐 Mạng xã hội</div>
+                <div style={{ ...gridStyle, gridTemplateColumns: '1fr 1fr 1fr' }}> {/* Chia 3 cột */}
+                    <div style={formGroupStyle}>
+                        <label style={labelStyle}>Zalo (SĐT/Link)</label>
+                        <input type="text" name="SocialZalo" value={configs.SocialZalo} onChange={handleChange} style={inputStyle}/>
+                    </div>
+                    <div style={formGroupStyle}>
+                        <label style={labelStyle}>Facebook Fanpage</label>
+                        <input type="text" name="SocialFacebook" value={configs.SocialFacebook} onChange={handleChange} style={inputStyle}/>
+                    </div>
+                    <div style={formGroupStyle}>
+                        <label style={labelStyle}>Messenger Link</label>
+                        <input type="text" name="SocialMessenger" value={configs.SocialMessenger} onChange={handleChange} style={inputStyle}/>
+                    </div>
+                </div>
+            </div>
+
+            {/* KHỐI 3: LOGO & FAVICON */}
+            <div style={sectionStyle}>
+                <div style={headerStyle}>🖼️ Hình ảnh thương hiệu</div>
+                <div style={gridStyle}>
+                    
+                    {/* Upload Logo */}
+                    <div>
+                        <label style={labelStyle}>Logo Website</label>
+                        <div style={imageBoxStyle}>
+                            {configs.LogoUrl ? (
+                                <img src={`${BASE_URL}${configs.LogoUrl}`} alt="Logo" style={imgPreviewStyle}/>
+                            ) : (
+                                <span style={{color: '#999', fontSize: '12px', marginBottom:'10px'}}>Chưa có Logo</span>
+                            )}
+                            <input type="file" onChange={(e) => handleUpload(e, 'LogoUrl')} style={{ fontSize: '12px' }}/>
+                        </div>
+                    </div>
+
+                    {/* Upload Favicon */}
+                    <div>
+                        <label style={labelStyle}>Favicon (Icon trên tab)</label>
+                        <div style={imageBoxStyle}>
+                            {configs.FaviconUrl ? (
+                                <img src={`${BASE_URL}${configs.FaviconUrl}`} alt="Favicon" style={{...imgPreviewStyle, width: '32px', height: '32px'}}/> 
+                            ) : (
+                                <span style={{color: '#999', fontSize: '12px', marginBottom:'10px'}}>Chưa có Favicon</span>
+                            )}
+                            <input type="file" onChange={(e) => handleUpload(e, 'FaviconUrl')} style={{ fontSize: '12px' }}/>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
         </div>
     );
 };

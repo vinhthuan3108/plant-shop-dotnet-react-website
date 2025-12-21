@@ -166,10 +166,10 @@ function Products() {
 
                                 <td style={{ padding: '8px' }}>
                                     <strong>{item.productName}</strong><br/>
-                                    <small style={{color:'#666'}}>{item.shortDescription}</small>
+                                    
                                 </td>
                                 <td style={{ padding: '8px', textAlign: 'center' }}>{getCategoryName(item.categoryId)}</td>
-                                <td style={{ padding: '8px', textAlign: 'right' }}>
+                                <td style={{ padding: '8px', textAlign: 'center' }}>
                                     {item.originalPrice?.toLocaleString('vi-VN')} đ
                                 </td>
                                 <td style={{ padding: '8px', textAlign: 'center' }}>{item.stockQuantity}</td>
