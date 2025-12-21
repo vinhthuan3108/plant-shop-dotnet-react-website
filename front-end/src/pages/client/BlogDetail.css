@@ -1,0 +1,61 @@
+/* BlogDetail.css */
+
+.blog-content {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.8;
+    color: #333;
+    font-size: 16px;
+    overflow-wrap: break-word; /* Hỗ trợ ngắt dòng */
+    word-wrap: break-word;
+}
+
+/* --- XỬ LÝ ẢNH TRIỆT ĐỂ --- */
+.blog-content img {
+    display: block !important;       /* Ép thành khối để căn lề */
+    margin-left: auto !important;    /* Căn lề trái tự động */
+    margin-right: auto !important;   /* Căn lề phải tự động */
+    max-width: 100% !important;      /* Không bao giờ to hơn màn hình */
+    height: auto !important;         /* Giữ tỷ lệ ảnh */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1); /* Thêm bóng đổ cho đẹp */
+    border-radius: 8px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+/* --- XỬ LÝ CÁC THẺ P CHỨA ẢNH --- */
+/* Đôi khi Quill bọc ảnh trong thẻ p có style text-align: center */
+.blog-content .ql-align-center {
+    text-align: center !important;
+}
+
+/* --- CÁC STYLE KHÁC CHO BÀI VIẾT ĐẸP HƠN --- */
+.blog-content p {
+    margin-bottom: 15px;
+    text-align: justify; /* Căn đều 2 bên cho văn bản đẹp hơn */
+}
+
+/* Nếu thẻ p chứa ảnh thì cho nó ra giữa (ghi đè justify ở trên) */
+.blog-content p:has(img) {
+    text-align: center !important;
+}
+
+.blog-content h2, .blog-content h3 {
+    color: #2e7d32;
+    font-weight: 700;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    border-left: 5px solid #2e7d32;
+    padding-left: 10px;
+}
+
+.blog-content ul, .blog-content ol {
+    margin-bottom: 20px;
+    padding-left: 30px;
+    background: #f9f9f9;
+    padding: 15px 15px 15px 40px;
+    border-radius: 5px;
+}
+
+.blog-content li {
+    margin-bottom: 8px;
+}

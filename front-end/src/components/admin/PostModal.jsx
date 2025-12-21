@@ -71,13 +71,20 @@ const PostModal = ({ post, onClose, onSuccess }) => {
                 [{ 'header': [1, 2, 3, false] }],
                 ['bold', 'italic', 'underline', 'strike'],
                 [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                [{ 'align': [] }],
                 ['image', 'link', 'video'],
                 ['clean']
             ],
             handlers: { image: imageHandler }
         }
     }), []);
-
+    const formats = [
+        'header',
+        'bold', 'italic', 'underline', 'strike',
+        'list', 'bullet',
+        'align', // Quan trọng: Phải có align ở đây
+        'image', 'link', 'video'
+    ];
     const handleSubmit = async () => {
         if (!title || !categoryId) return alert("Vui lòng nhập đầy đủ thông tin!");
 
@@ -158,7 +165,7 @@ const PostModal = ({ post, onClose, onSuccess }) => {
                 </div>
 
                 <div className="editor-wrapper" style={{ marginBottom: '50px' }}>
-                    <ReactQuill ref={quillRef} theme="snow" value={content} onChange={setContent} modules={modules} style={{ height: '300px' }} />
+                    <ReactQuill ref={quillRef} theme="snow" value={content} onChange={setContent} modules={modules} formats={formats} style={{ height: '300px' }} />
                 </div>
                 
                 <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>

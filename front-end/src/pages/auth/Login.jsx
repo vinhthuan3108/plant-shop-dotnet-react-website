@@ -51,6 +51,8 @@ function Login() {
                     <label>Email:</label>
                     <div></div>
                     <label>c3lttrong.2a2.vthuan@gmail.com</label>
+                    <div></div>
+                    <label>vinhthuan9@gmail.com</label>
                     <input 
                         type="email" 
                         value={email} 

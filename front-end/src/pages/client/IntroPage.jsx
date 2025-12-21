@@ -1,71 +1,77 @@
-import React from 'react';
-import './IntroPage.css';
-// Nhớ import logo của bạn vào đây (đường dẫn có thể khác tùy máy bạn)
-import logo from '../../assets/images/logo.png'; 
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import './BlogDetail.css'; // Dùng lại CSS của trang chi tiết bài viết cho đẹp
 
 const IntroPage = () => {
-  return (
-    <div className="intro-container">
-      
-      {/* Phần đầu trang: Logo & Tiêu đề */}
-      <div className="intro-header">
-        <img src={logo} alt="PLANT SHOP" className="intro-logo" />
-        <h1 className="intro-title">PLANT SHOP</h1>
-        <p className="intro-slogan">Cho trải nghiệm "không chỉ là cây cảnh"!</p>
-      </div>
+    const [post, setPost] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-      {/* Nội dung chính */}
-      <div className="intro-content">
-        <p className="intro-text">
-          Cây cảnh, từ trước đến nay vẫn được xem như vật trang trí, làm đẹp không gian sống cho con người. Cây để bàn, bonsai, terrarium, cây thuỷ sinh hoặc cây treo chậu... mỗi loại mỗi cây đều có ý nghĩa và vẻ đẹp riêng của mình, góp phần đáng kể làm cho cuộc sống chúng ta thêm sinh động, trở nên đáng yêu và thanh bình hơn.
-        </p>
-        <p className="intro-text">
-          Nhưng tại <strong>Vườn Cây Việt</strong>, chúng tôi muốn mang đến cho bạn không chỉ là cây cảnh, chúng tôi muốn mang đến cho bạn những trải nghiệm tuyệt vời mà không nơi nào có. Vườn Cây Việt hiểu rằng đối với cây cảnh, bạn sẽ muốn:
-        </p>
+    const API_BASE = 'https://localhost:7298'; 
 
-        <ul className="intro-list">
-          <li>Hiểu ý nghĩa (một cách sâu sắc, đúng đắn và vững chắc) về loại cây mà mình chọn.</li>
-          <li>Hiểu phong thuỷ chính xác của cây để mang lại sự may mắn và thành công cho công việc, cuộc sống.</li>
-          <li>Hiểu câu chuyện tạo nên ý nghĩa đằng sau từng loại cây.</li>
-          <li>Hiểu cách chăm sóc để cây luôn trong trạng thái tốt nhất.</li>
-          <li>Lựa chọn loại chậu và phụ kiện chăm sóc cây sao cho phù hợp với nhu cầu.</li>
-        </ul>
+    useEffect(() => {
+        const fetchIntroPost = async () => {
+            try {
+                // 1. Lấy danh sách bài viết
+                // Lưu ý: Cách tốt nhất là bạn biết ID của danh mục "Giới thiệu"
+                // Ví dụ: Nếu ID danh mục Giới thiệu là 10, hãy gọi: 
+                // await axios.get(`${API_BASE}/api/TblPosts?categoryId=10`);
+                
+                // Cách củ chuối hơn (nhưng tự động) nếu không nhớ ID:
+                // Lấy tất cả bài viết, sau đó tìm bài nào có categoryName là "Giới thiệu"
+                const res = await axios.get(`${API_BASE}/api/TblPosts?status=Published`);
+                
+                // Tìm bài mới nhất có tên danh mục là "Giới thiệu"
+                // (Bạn cần đảm bảo trong Admin đã tạo danh mục tên chính xác là "Giới thiệu")
+                const introPost = res.data.find(p => 
+                    p.categoryName.toLowerCase().includes("giới thiệu") || 
+                    p.categoryName.toLowerCase().includes("about")
+                );
 
-        <p className="intro-text">
-          Và một điều có thể bạn chưa để ý... là thông qua loại cây bạn chọn, bạn sẽ thể hiện được <strong>cá tính</strong> và <strong>không gì độc đáo</strong> của bản thân mà không cần nói ra mà người khác đã tự hiểu rồi. Bạn làm điều đó bằng cách nào?
-        </p>
-        <p className="intro-text">
-          Rất khó, bởi không phải ai, dù thích chơi cây và yêu cây, đều có thể hiểu rõ từng ấy vấn đề. Nhưng không sao!
-        </p>
-        <p className="intro-text">
-          Hãy một lần đến với <strong>Vườn Cây Việt</strong>, chúng tôi không hứa gì ngoài việc mang đến cho bạn các sản phẩm cây cảnh và dịch vụ chất lượng cao nhất thông qua quy trình bán hàng, giao hàng, chăm sóc khách hàng, chăm sóc sản phẩm tiêu chuẩn... VỚI GIÁ CẢ PHẢI CHĂNG VÀ PHÙ HỢP TÚI TIỀN.
-        </p>
+                if (introPost) {
+                    // Nếu API list chỉ trả về thông tin tóm tắt, 
+                    // bạn nên gọi thêm 1 lần API Detail để lấy full nội dung (Content)
+                    const detailRes = await axios.get(`${API_BASE}/api/TblPosts/${introPost.postId}`);
+                    setPost(detailRes.data);
+                }
+            } catch (error) {
+                console.error("Lỗi tải bài giới thiệu:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchIntroPost();
+    }, []);
 
-        {/* Các mục Sứ mệnh, Tầm nhìn */}
-        <h3 className="intro-heading">Sứ mệnh</h3>
-        <p className="intro-text">
-          Với ý nghĩa đó, <strong>Vườn Cây Việt</strong> đặt ra cho mình sứ mệnh cung cấp các loại cây làm đẹp không gian sống và không chỉ vậy, còn cung cấp thêm các giá trị tinh thần cho khách hàng, là điểm đến cho mọi khách hàng có nhu cầu tìm mua những cây cảnh trang trí đẹp, phù hợp cá tính, phong thuỷ, không gian sống và làm việc.
-        </p>
+    // Hàm xử lý xuống dòng và ảnh (copy từ BlogDetail qua)
+    const processContent = (content) => {
+        if (!content) return "";
+        return content.replace(/&nbsp;/g, ' '); 
+    };
 
-        <h3 className="intro-heading">Tầm nhìn</h3>
-        <p className="intro-text">
-          Đến năm 2025, <strong>Vườn Cây Việt</strong> phấn đấu trở thành 1 trong 3 đơn vị dẫn đầu trong lĩnh vực cung cấp cây cảnh để bàn, cây cảnh mini, bonsai, cây thuỷ sinh, terrarium... tại Việt Nam, đồng thời trở thành nhà cung cấp đa dạng các loại hình cây cảnh phù hợp cho nhiều đối tượng khách hàng khác nhau với hệ thống đối tác phân phối rộng khắp cả nước.
-        </p>
+    if (loading) return <div className="container" style={{padding: '50px', textAlign: 'center'}}>Đang tải dữ liệu...</div>;
+    
+    // Nếu chưa có bài viết nào
+    if (!post) return (
+        <div className="container" style={{padding: '50px', textAlign: 'center'}}>
+            <h2>Về Chúng Tôi</h2>
+            <p>Nội dung đang được cập nhật...</p>
+        </div>
+    );
 
-        <h3 className="intro-heading">Giá trị cốt lõi</h3>
-        <ul className="intro-list">
-            <li><strong>Chất lượng:</strong> Tập trung vào chất lượng sản phẩm, cam kết chỉ đưa ra thị trường các sản phẩm thực sự chất lượng.</li>
-            <li><strong>Chính trực:</strong> Không lừa dối khách hàng, luôn đảm bảo tư vấn cho khách hàng một cách công tâm, khách quan nhất về sản phẩm.</li>
-            <li><strong>Sáng tạo, đổi mới:</strong> Không ngừng quan sát, tìm hiểu và học hỏi, từ đó đưa ra các ý tưởng, sản phẩm mới.</li>
-            <li><strong>Đồng đội:</strong> Luôn phối hợp tốt giữa các thành viên trong công ty, sẵn sàng chia sẻ, góp ý, động viên và học hỏi lẫn nhau: "vì sự phát triển của từng cá nhân, vì sự phát triển bền vững của công ty".</li>
-        </ul>
+    return (
+        <div className="container" style={{ padding: '40px 15px', maxWidth: '900px', margin: '0 auto' }}>
+            {/* Tiêu đề trang (Hardcode hoặc lấy từ title bài viết) */}
+            <h1 style={{ color: '#2e7d32', textAlign: 'center', marginBottom: '30px', textTransform: 'uppercase' }}>
+                {post.title}
+            </h1>
 
-        <p className="intro-text" style={{marginTop: '30px', fontStyle: 'italic'}}>
-            Đừng dừng lại ở đây, hãy khám phá các sản phẩm tại <strong>Vườn Cây Việt</strong> ngay bây giờ!
-        </p>
-      </div>
-    </div>
-  );
+            {/* Nội dung bài viết */}
+            <div 
+                className="blog-content" 
+                dangerouslySetInnerHTML={{ __html: processContent(post.content) }} 
+            />
+        </div>
+    );
 };
 
 export default IntroPage;
