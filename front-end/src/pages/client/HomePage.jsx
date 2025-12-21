@@ -187,7 +187,7 @@ function HomePage() {
 
       {/* 5. KHÁCH HÀNG */}
       <section className="section-container" style={{ backgroundColor: '#fff' }}>
-        <h2 className="section-title">KHÁCH HÀNG NÓI VỀ VƯỜN CÂY VIỆT</h2>
+        <h2 className="section-title">KHÁCH HÀNG NÓI VỀ PLANT SHOP</h2>
         <div className="testimonial-grid">
             {testimonials.length > 0 ? (
                 testimonials.map(item => (
