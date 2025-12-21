@@ -1,4 +1,13 @@
 /* src/pages/client/HomePage.css */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&family=Roboto:wght@400;700&display=swap');
+* {
+  font-family: 'Roboto', sans-serif; /* Dùng Roboto cho văn bản thường */
+}
+
+/* Tùy chọn: Dùng font Montserrat cho các tiêu đề để đẹp hơn */
+.hero-title, .section-title, .feature-title, .hp-name, .t-name {
+  font-family: 'Montserrat', sans-serif;
+}
 .hero-banner {
   /* Đảm bảo ảnh phủ kín khung, không bị méo */
   background-size: cover; 
@@ -137,6 +146,7 @@
 }
 
 .section-title {
+  font-family: 'Montserrat', sans-serif;
   text-align: center;
   color: #2e7d32; /* Đổi màu tiêu đề sang xanh thương hiệu */
   font-size: 32px;

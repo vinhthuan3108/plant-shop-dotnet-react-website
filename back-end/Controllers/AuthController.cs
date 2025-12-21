@@ -201,5 +201,31 @@ namespace back_end.Controllers
 
             return Ok("Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.");
         }
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword(ChangePasswordDto request)
+        {
+            // 1. Tìm user trong DB
+            var user = await _context.TblUsers.FindAsync(request.UserId);
+            if (user == null)
+            {
+                return BadRequest("Tài khoản không tồn tại.");
+            }
+
+            // 2. Kiểm tra mật khẩu cũ có đúng không
+            // Sử dụng BCrypt để so sánh mật khẩu nhập vào (request.CurrentPassword) với Hash trong DB
+            if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+            {
+                return BadRequest("Mật khẩu hiện tại không đúng.");
+            }
+
+            // 3. Hash mật khẩu mới và cập nhật
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.UpdatedAt = DateTime.Now;
+
+            // 4. Lưu thay đổi
+            await _context.SaveChangesAsync();
+
+            return Ok("Đổi mật khẩu thành công.");
+        }
     }
 }

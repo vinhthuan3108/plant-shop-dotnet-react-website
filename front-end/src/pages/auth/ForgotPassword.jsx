@@ -8,6 +8,7 @@ function ForgotPassword() {
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState(''); // 1. Thêm state mới
     const [loading, setLoading] = useState(false);
     
     const navigate = useNavigate();
@@ -23,10 +24,10 @@ function ForgotPassword() {
                 body: JSON.stringify({ email })
             });
 
-            const text = await res.text(); // Backend trả về text
+            const text = await res.text(); 
             if (res.ok) {
                 alert(text);
-                setStep(2); // Chuyển sang bước nhập OTP
+                setStep(2); 
             } else {
                 alert(text);
             }
@@ -40,6 +41,13 @@ function ForgotPassword() {
     // Xử lý Đặt lại mật khẩu
     const handleResetPassword = async (e) => {
         e.preventDefault();
+
+        // 2. Thêm validation kiểm tra trùng khớp
+        if (newPassword !== confirmPassword) {
+            alert("Mật khẩu xác nhận không khớp!");
+            return;
+        }
+
         setLoading(true);
         try {
             const res = await fetch('https://localhost:7298/api/Auth/reset-password', {
@@ -55,7 +63,7 @@ function ForgotPassword() {
             const text = await res.text();
             if (res.ok) {
                 alert("Thành công! Vui lòng đăng nhập lại.");
-                navigate('/login'); // Chuyển về trang đăng nhập
+                navigate('/login'); 
             } else {
                 alert(text);
             }
@@ -111,6 +119,19 @@ function ForgotPassword() {
                             value={newPassword} 
                             onChange={e => setNewPassword(e.target.value)} 
                             required 
+                            style={{ width: '100%', padding: '8px', marginTop: '5px' }} 
+                        />
+                    </div>
+
+                    {/* 3. Thêm ô nhập lại mật khẩu vào đây */}
+                    <div style={{ marginBottom: '15px' }}>
+                        <label>Nhập lại mật khẩu mới:</label>
+                        <input 
+                            type="password" 
+                            value={confirmPassword} 
+                            onChange={e => setConfirmPassword(e.target.value)} 
+                            required 
+                            placeholder="Nhập lại mật khẩu mới"
                             style={{ width: '100%', padding: '8px', marginTop: '5px' }} 
                         />
                     </div>

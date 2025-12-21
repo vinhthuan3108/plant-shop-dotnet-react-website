@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './ProfilePage.css'; // Nhớ tạo file CSS hoặc comment lại nếu chưa có
+import './ProfilePage.css'; 
 
 const ProfilePage = () => {
-    // --- CẤU HÌNH ĐƯỜNG DẪN GỐC API (Sửa port tại đây) ---
     const API_BASE_URL = "https://localhost:7298"; 
-    // -----------------------------------------------------
-
     const navigate = useNavigate();
     const userId = localStorage.getItem('userId'); 
+
+    // Thêm tab 'password' vào state activeTab
     const [activeTab, setActiveTab] = useState('info'); 
 
     // --- STATE PROFILE ---
@@ -24,10 +23,16 @@ const ProfilePage = () => {
 
     // --- STATE ADDRESS ---
     const [addresses, setAddresses] = useState([]);
-    const [orders, setOrders] = useState([]);
-    const [orderStatusTab, setOrderStatusTab] = useState('Completed');
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [isEditingAddress, setIsEditingAddress] = useState(false); 
+    const [addressForm, setAddressForm] = useState({
+        addressId: 0, recipientName: '', phoneNumber: '', addressDetail: '',
+        province: '', district: '', ward: '', isDefault: false
+    });
+
+    // --- STATE ORDERS ---
+    const [orders, setOrders] = useState([]);
+    const [orderStatusTab, setOrderStatusTab] = useState('Completed');
     const ORDER_TABS = [
         { id: 'Pending', label: 'Chờ xác nhận' },
         { id: 'Processing', label: 'Đang đóng gói' },
@@ -35,16 +40,12 @@ const ProfilePage = () => {
         { id: 'Completed', label: 'Hoàn thành' },
         { id: 'Cancelled', label: 'Đã hủy' },
     ];
-    // Form data cho địa chỉ
-    const [addressForm, setAddressForm] = useState({
-        addressId: 0,
-        recipientName: '',
-        phoneNumber: '',
-        addressDetail: '',
-        province: '',
-        district: '',
-        ward: '',
-        isDefault: false
+
+    // --- STATE CHANGE PASSWORD (MỚI) ---
+    const [passwordForm, setPasswordForm] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
     });
 
     // Location API Data
@@ -52,7 +53,7 @@ const ProfilePage = () => {
     const [districts, setDistricts] = useState([]);
     const [wards, setWards] = useState([]);
 
-    // --- 1. LOAD DATA ---
+    // --- LOAD DATA ---
     useEffect(() => {
         if (!userId) {
             alert("Vui lòng đăng nhập!");
@@ -68,7 +69,6 @@ const ProfilePage = () => {
     const fetchProfile = async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/api/Profile/${userId}`);
-            // Format ngày sinh (YYYY-MM-DD) để hiển thị đúng trong input type="date"
             let formattedDob = '';
             if (res.data.dateofBirth) {
                 formattedDob = res.data.dateofBirth.split('T')[0];
@@ -88,11 +88,6 @@ const ProfilePage = () => {
         }
     };
 
-    // --- 2. LOCATION API HANDLERS (API Việt Nam) ---
-    const fetchLocationProvinces = async () => {
-        const res = await axios.get('https://provinces.open-api.vn/api/?depth=1');
-        setProvinces(res.data);
-    };
     const fetchOrders = async () => {
         try {
             const res = await axios.get(`${API_BASE_URL}/api/Orders/user/${userId}`);
@@ -101,23 +96,36 @@ const ProfilePage = () => {
             console.error("Lỗi lấy đơn hàng:", err);
         }
     };
+
+    const fetchLocationProvinces = async () => {
+        const res = await axios.get('https://provinces.open-api.vn/api/?depth=1');
+        setProvinces(res.data);
+    };
+
+    // --- HELPER FUNCTIONS ---
     const getStatusBadge = (status) => {
         switch (status) {
-            case 'Pending': return <span className="badge badge-warning">Chờ xác nhận</span>;
-            case 'Processing': return <span className="badge badge-info">Đang đóng gói</span>;
-            case 'Shipped': return <span className="badge badge-primary">Đang vận chuyển</span>;
-            case 'Delivered': return <span className="badge badge-success">Giao thành công</span>;
-            case 'Cancelled': return <span className="badge badge-danger">Đã hủy</span>;
+            case 'Pending': return <span className="badge badge-warning" style={{padding:'5px', background:'#ffc107', borderRadius:'4px'}}>Chờ xác nhận</span>;
+            case 'Processing': return <span className="badge badge-info" style={{padding:'5px', background:'#17a2b8', color:'white', borderRadius:'4px'}}>Đang đóng gói</span>;
+            case 'Shipped': return <span className="badge badge-primary" style={{padding:'5px', background:'#007bff', color:'white', borderRadius:'4px'}}>Đang vận chuyển</span>;
+            case 'Completed': return <span className="badge badge-success" style={{padding:'5px', background:'#28a745', color:'white', borderRadius:'4px'}}>Hoàn thành</span>;
+            case 'Cancelled': return <span className="badge badge-danger" style={{padding:'5px', background:'#dc3545', color:'white', borderRadius:'4px'}}>Đã hủy</span>;
             default: return <span className="badge badge-secondary">{status}</span>;
         }
     };
+
+    const getAvatarSrc = (url) => {
+        if (!url) return "https://via.placeholder.com/150";
+        if (url.startsWith('http')) return url;
+        return `${API_BASE_URL}${url}`;
+    };
+
+    // --- LOCATION HANDLERS ---
     const handleProvinceChange = async (e) => {
         const provinceName = e.target.options[e.target.selectedIndex].text;
         const code = e.target.value;
-        
         setAddressForm({...addressForm, province: provinceName, district: '', ward: ''});
         setDistricts([]); setWards([]);
-
         const res = await axios.get(`https://provinces.open-api.vn/api/p/${code}?depth=2`);
         setDistricts(res.data.districts);
     };
@@ -125,9 +133,7 @@ const ProfilePage = () => {
     const handleDistrictChange = async (e) => {
         const districtName = e.target.options[e.target.selectedIndex].text;
         const code = e.target.value;
-
         setAddressForm({...addressForm, district: districtName, ward: ''});
-        
         const res = await axios.get(`https://provinces.open-api.vn/api/d/${code}?depth=2`);
         setWards(res.data.wards);
     };
@@ -137,67 +143,42 @@ const ProfilePage = () => {
         setAddressForm({...addressForm, ward: wardName});
     };
 
-    // --- 3. PROFILE ACTIONS ---
+    // --- ACTIONS: PROFILE ---
     const handleUpdateProfile = async () => {
         try {
             await axios.put(`${API_BASE_URL}/api/Profile/${userId}`, profile);
             alert("Cập nhật hồ sơ thành công!");
         } catch (err) {
             alert("Lỗi cập nhật!");
-            console.error(err);
         }
     };
 
     const handleAvatarUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
         const formData = new FormData();
         formData.append('file', file);
-
         try {
-            // Gọi API Upload vào folder "users"
             const res = await axios.post(`${API_BASE_URL}/api/Upload/users`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            
-            // Backend trả về đường dẫn (vd: /users/abc.jpg)
-            // Cập nhật vào state profile ngay để hiện Preview
             setProfile({ ...profile, avatarUrl: res.data.url }); 
         } catch (err) {
-            console.error("Lỗi upload ảnh:", err);
             alert("Có lỗi khi tải ảnh lên server");
         }
     };
 
-    // --- HÀM HỖ TRỢ HIỂN THỊ ẢNH ---
-    // Giúp nối domain backend vào đường dẫn tương đối
-    const getAvatarSrc = (url) => {
-        if (!url) return "https://via.placeholder.com/150";
-        if (url.startsWith('http')) return url;
-        return `${API_BASE_URL}${url}`;
-    };
-
-    // --- 4. ADDRESS ACTIONS ---
+    // --- ACTIONS: ADDRESS ---
     const openAddAddress = () => {
-        setAddressForm({
-            addressId: 0, recipientName: '', phoneNumber: '', addressDetail: '',
-            province: '', district: '', ward: '', isDefault: false
-        });
+        setAddressForm({ addressId: 0, recipientName: '', phoneNumber: '', addressDetail: '', province: '', district: '', ward: '', isDefault: false });
         setIsEditingAddress(false);
         setShowAddressForm(true);
     };
 
     const openEditAddress = (addr) => {
         setAddressForm({
-            addressId: addr.addressId,
-            recipientName: addr.recipientName,
-            phoneNumber: addr.phoneNumber,
-            addressDetail: addr.addressDetail,
-            province: addr.province,
-            district: addr.district,
-            ward: addr.ward,
-            isDefault: addr.isDefault
+            addressId: addr.addressId, recipientName: addr.recipientName, phoneNumber: addr.phoneNumber,
+            addressDetail: addr.addressDetail, province: addr.province, district: addr.district, ward: addr.ward, isDefault: addr.isDefault
         });
         setIsEditingAddress(true);
         setShowAddressForm(true);
@@ -208,13 +189,10 @@ const ProfilePage = () => {
             alert("Vui lòng điền đầy đủ thông tin!");
             return;
         }
-
         try {
             if (isEditingAddress) {
-                // UPDATE
                 await axios.put(`${API_BASE_URL}/api/Profile/addresses/${addressForm.addressId}`, addressForm);
             } else {
-                // ADD NEW
                 await axios.post(`${API_BASE_URL}/api/Profile/${userId}/addresses`, addressForm);
             }
             alert("Thao tác thành công!");
@@ -222,7 +200,6 @@ const ProfilePage = () => {
             fetchAddresses();
         } catch (err) {
             alert("Có lỗi xảy ra");
-            console.error(err);
         }
     };
 
@@ -240,14 +217,64 @@ const ProfilePage = () => {
             }
         }
     };
+
+    // --- ACTIONS: CHANGE PASSWORD (MỚI) ---
+    const handleChangePassword = async () => {
+        // 1. Validate Client
+        if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+            alert("Vui lòng nhập đầy đủ thông tin!");
+            return;
+        }
+
+        // Kiểm tra độ mạnh mật khẩu (>=8 ký tự và có ký tự đặc biệt)
+        const isValidPassword = (pass) => {
+            const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
+            return pass.length >= 8 && hasSpecialChar;
+        };
+
+        if (!isValidPassword(passwordForm.newPassword)) {
+            alert("Mật khẩu mới phải có tối thiểu 8 ký tự và chứa ít nhất 1 ký tự đặc biệt!");
+            return;
+        }
+
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+            alert("Mật khẩu xác nhận không khớp!");
+            return;
+        }
+
+        // 2. Call API
+        try {
+            // Giả sử API endpoint là /api/Auth/change-password
+            const payload = {
+                userId: parseInt(userId),
+                currentPassword: passwordForm.currentPassword,
+                newPassword: passwordForm.newPassword
+            };
+
+            await axios.post(`${API_BASE_URL}/api/Auth/change-password`, payload);
+            
+            alert("Đổi mật khẩu thành công!");
+            // Reset form
+            setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        } catch (err) {
+            console.error(err);
+            // Xử lý lỗi trả về từ Backend (VD: Mật khẩu cũ không đúng)
+            if (err.response && err.response.data) {
+                alert(err.response.data);
+            } else {
+                alert("Lỗi đổi mật khẩu! Vui lòng kiểm tra lại.");
+            }
+        }
+    };
+
     const filteredOrders = orders.filter(o => o.orderStatus === orderStatusTab);
+
     return (
         <div className="container" style={{ marginTop: '30px', display: 'flex', gap: '20px' }}>
             
             {/* SIDEBAR */}
             <div className="profile-sidebar" style={{ width: '250px', background: '#f9f9f9', padding: '15px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                    {/* Sử dụng hàm getAvatarSrc để hiển thị ảnh đúng */}
                     <img 
                         src={getAvatarSrc(profile.avatarUrl)} 
                         alt="Avatar" 
@@ -269,10 +296,17 @@ const ProfilePage = () => {
                         Sổ địa chỉ
                     </li>
                     <li 
-                        className={`menu-item ${activeTab === 'orders' ? 'active' : ''}`}
+                        style={{ padding: '10px', cursor: 'pointer', background: activeTab === 'orders' ? '#e0f2f1' : 'transparent', color: activeTab === 'orders' ? '#00796b' : '#333' }}
                         onClick={() => setActiveTab('orders')}
                     >
                         Đơn mua
+                    </li>
+                    {/* --- MỤC MỚI: ĐỔI MẬT KHẨU --- */}
+                    <li 
+                        style={{ padding: '10px', cursor: 'pointer', background: activeTab === 'password' ? '#e0f2f1' : 'transparent', color: activeTab === 'password' ? '#00796b' : '#333' }}
+                        onClick={() => setActiveTab('password')}
+                    >
+                        Đổi mật khẩu
                     </li>
                 </ul>
             </div>
@@ -345,8 +379,7 @@ const ProfilePage = () => {
                                         <div>
                                             <strong>{addr.recipientName}</strong> <span style={{color: '#888'}}>| {addr.phoneNumber}</span>
                                             <div style={{fontSize: '14px', color: '#555', marginTop: '5px'}}>
-                                                {addr.addressDetail}
-                                                <br/>
+                                                {addr.addressDetail}<br/>
                                                 {addr.ward}, {addr.district}, {addr.province}
                                             </div>
                                             {addr.isDefault && <span style={{ border: '1px solid red', color: 'red', fontSize: '12px', padding: '2px 5px', marginTop: '5px', display: 'inline-block' }}>Mặc định</span>}
@@ -361,7 +394,6 @@ const ProfilePage = () => {
                                 ))}
                             </div>
                         ) : (
-                            // FORM THÊM/SỬA
                             <div className="address-form" style={{ marginTop: '20px' }}>
                                 <div className="form-group">
                                     <input placeholder="Họ và tên" className="form-control" value={addressForm.recipientName} onChange={e => setAddressForm({...addressForm, recipientName: e.target.value})} />
@@ -403,11 +435,11 @@ const ProfilePage = () => {
                         )}
                     </div>
                 )}
+
+                {/* --- TAB ĐƠN HÀNG --- */}
                 {activeTab === 'orders' && (
                     <div>
                         <h2 style={{ marginBottom: '20px' }}>Lịch Sử Đơn Hàng</h2>
-                        
-                        {/* 1. THANH TAB TRẠNG THÁI */}
                         <div className="order-status-tabs">
                             {ORDER_TABS.map(tab => (
                                 <div 
@@ -416,15 +448,12 @@ const ProfilePage = () => {
                                     onClick={() => setOrderStatusTab(tab.id)}
                                 >
                                     {tab.label}
-                                    {/* (Tùy chọn) Hiển thị số lượng đơn bên cạnh */}
                                     <span style={{marginLeft: '5px', fontSize: '12px', background: '#eee', padding: '2px 6px', borderRadius: '10px'}}>
                                         {orders.filter(o => o.orderStatus === tab.id).length}
                                     </span>
                                 </div>
                             ))}
                         </div>
-
-                        {/* 2. DANH SÁCH ĐƠN HÀNG ĐÃ LỌC */}
                         <div className="order-list-container" style={{ marginTop: '20px' }}>
                             {filteredOrders.length === 0 ? (
                                 <div style={{ textAlign: 'center', color: '#888', padding: '50px', background: '#f9f9f9', borderRadius: '8px' }}>
@@ -434,7 +463,6 @@ const ProfilePage = () => {
                             ) : (
                                 filteredOrders.map(order => (
                                     <div key={order.orderId} className="order-card">
-                                        {/* Header đơn hàng */}
                                         <div className="order-header">
                                             <div>
                                                 <strong>#{order.orderId}</strong>
@@ -442,20 +470,12 @@ const ProfilePage = () => {
                                                     {new Date(order.orderDate).toLocaleDateString('vi-VN')}
                                                 </span>
                                             </div>
-                                            <div>
-                                                {/* Gọi lại hàm getStatusBadge cũ của bạn */}
-                                                {getStatusBadge(order.orderStatus)}
-                                            </div>
+                                            <div>{getStatusBadge(order.orderStatus)}</div>
                                         </div>
-
-                                        {/* List sản phẩm */}
                                         <div className="order-items">
                                             {order.items.map((item, idx) => (
                                                 <div key={idx} className="order-item-row">
-                                                    <img 
-                                                        src={getAvatarSrc(item.productImage)} 
-                                                        alt={item.productName}
-                                                    />
+                                                    <img src={getAvatarSrc(item.productImage)} alt={item.productName}/>
                                                     <div className="item-info">
                                                         <div className="item-name">{item.productName}</div>
                                                         <div className="item-meta">x {item.quantity}</div>
@@ -464,21 +484,11 @@ const ProfilePage = () => {
                                                 </div>
                                             ))}
                                         </div>
-
-                                        {/* Footer: Tổng tiền & Nút thao tác */}
                                         <div className="order-footer">
                                             <div className="total-price">
                                                 Thành tiền: <span>{order.totalAmount.toLocaleString()}đ</span>
                                             </div>
-                                            
-                                            {/* Nút hành động tùy theo Tab */}
                                             <div className="order-actions" style={{marginTop: '10px'}}>
-                                                {orderStatusTab === 'Pending' && (
-                                                    <button className="btn-cancel" onClick={() => alert("Tính năng hủy đang phát triển")}>Hủy đơn</button>
-                                                )}
-                                                {orderStatusTab === 'Delivered' && (
-                                                    <button className="btn-buy-again">Mua lại</button>
-                                                )}
                                                 <button className="btn-detail">Xem chi tiết</button>
                                             </div>
                                         </div>
@@ -488,6 +498,53 @@ const ProfilePage = () => {
                         </div>
                     </div>
                 )}
+
+                {/* --- TAB ĐỔI MẬT KHẨU (MỚI) --- */}
+                {activeTab === 'password' && (
+                    <div>
+                        <h2 style={{borderBottom: '1px solid #eee', paddingBottom: '10px'}}>Đổi Mật Khẩu</h2>
+                        
+                        <div style={{ maxWidth: '500px', marginTop: '20px' }}>
+                            <div className="form-group">
+                                <label>Mật khẩu hiện tại (*)</label>
+                                <input 
+                                    type="password" 
+                                    className="form-control" 
+                                    value={passwordForm.currentPassword} 
+                                    onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                                    placeholder="Nhập mật khẩu đang dùng"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Mật khẩu mới (*)</label>
+                                <input 
+                                    type="password" 
+                                    className="form-control" 
+                                    value={passwordForm.newPassword} 
+                                    onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                                    placeholder="Tối thiểu 8 ký tự, có ký tự đặc biệt"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Nhập lại mật khẩu mới (*)</label>
+                                <input 
+                                    type="password" 
+                                    className="form-control" 
+                                    value={passwordForm.confirmPassword} 
+                                    onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                                    placeholder="Xác nhận mật khẩu mới"
+                                />
+                            </div>
+
+                            <button className="btn btn-primary" onClick={handleChangePassword} style={{marginTop: '20px'}}>
+                                Xác nhận đổi mật khẩu
+                            </button>
+                        </div>
+                    </div>
+                )}
+
             </div>
         </div>
     );
