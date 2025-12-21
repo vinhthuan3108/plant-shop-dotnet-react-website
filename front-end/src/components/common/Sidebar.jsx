@@ -4,6 +4,7 @@ import { NavLink } from 'react-router-dom';
 function Sidebar() {
   // State để đóng/mở menu Quản lý kho
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
 
   const sidebarStyle = {
     width: '250px',
@@ -62,7 +63,31 @@ function Sidebar() {
         <NavLink to="/admin/products" style={activeStyle}>
             <span>🌿 Quản lý sản phẩm</span>
         </NavLink>
-        
+
+        {/* Menu Cha: Báo cáo & Thống kê */}
+        <div 
+          onClick={() => setIsStatsOpen(!isStatsOpen)} 
+          style={{...linkStyle, backgroundColor: isStatsOpen ? '#444' : 'transparent'}}
+        >
+          <span>📊 Báo cáo & Thống kê</span>
+          <span>{isStatsOpen ? '▲' : '▼'}</span>
+        </div>
+
+        {/* Menu Con: Sổ xuống khi click */}
+        {isStatsOpen && (
+          <div style={{ marginBottom: '10px' }}>
+            {/* Mục Doanh thu (Link cũ) */}
+            <NavLink to="/admin/statistics" end style={activeSubStyle}>
+                💰 Doanh thu
+            </NavLink>
+            
+            {/* Mục Sản phẩm (Link mới) */}
+            <NavLink to="/admin/statistics/products" style={activeSubStyle}>
+                📦 Sản phẩm bán chạy
+            </NavLink>
+            
+          </div>
+        )}
         {/* Đổi icon thành hóa đơn/giỏ hàng */}
         <NavLink to="/admin/orders" style={activeStyle}>
             <span>🧾 Quản lý đơn hàng</span>
