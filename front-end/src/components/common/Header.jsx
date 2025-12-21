@@ -164,7 +164,7 @@ const Header = () => {
                         <li><Link to="/">TRANG CHỦ</Link></li>
                         <li><Link to="/intro">GIỚI THIỆU</Link></li>
                         <li><Link to="/shop">CÂY CẢNH</Link></li>
-                        <li><Link to="/service">HƯỚNG DẪN</Link></li>
+                        <li><Link to="/guide">HƯỚNG DẪN</Link></li>
                         <li><Link to="/blog">BÀI ĐĂNG</Link></li>
                         <li><Link to="/contact">LIÊN HỆ</Link></li>
                         {/* <li><Link to="/admin/products" style={{ color: '#ffd700' }}>QUẢN TRỊ</Link></li> */}

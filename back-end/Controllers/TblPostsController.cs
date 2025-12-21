@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Hosting; // 1. Thêm thư viện này
 using System.IO;
+using System.Text.RegularExpressions;
 namespace back_end.Controllers
 {
     [Route("api/[controller]")]
@@ -35,7 +36,18 @@ namespace back_end.Controllers
                 query = query.Where(p => p.PostCategoryId == categoryId);
 
             if (!string.IsNullOrEmpty(status))
+            {
                 query = query.Where(p => p.Status == status);
+
+                // LOGIC QUAN TRỌNG:
+                // Nếu đang lấy bài "Published" (tức là Client đang xem),
+                // thì BẮT BUỘC loại bỏ những bài đã bị Xóa mềm (IsDeleted = true)
+                if (status == "Published")
+                {
+                    // p.IsDeleted != true (nghĩa là lấy false hoặc null)
+                    query = query.Where(p => p.IsDeleted != true);
+                }
+            }
 
             var posts = await query
                 .OrderByDescending(p => p.CreatedAt)
@@ -57,7 +69,39 @@ namespace back_end.Controllers
 
             return Ok(posts);
         }
+        [HttpGet("{id}")]
+        public async Task<ActionResult> GetPost(int id)
+        {
+            var post = await _context.TblPosts
+                .Include(p => p.Author)      // Kèm thông tin tác giả
+                .Include(p => p.PostCategory) // Kèm danh mục
+                .FirstOrDefaultAsync(p => p.PostId == id);
 
+            if (post == null) return NotFound("Không tìm thấy bài viết");
+
+            // Chỉ cho phép xem bài đã Published (nếu muốn chặt chẽ hơn)
+            // if (post.Status != "Published") return BadRequest("Bài viết chưa được xuất bản");
+
+            // Tăng lượt xem (nếu có trường ViewCount) - ở đây model bạn chưa có nên bỏ qua
+
+            var postDto = new PostDto
+            {
+                PostId = post.PostId,
+                Title = post.Title,
+                ShortDescription = post.ShortDescription,
+                Content = post.Content,
+                ThumbnailUrl = post.ThumbnailUrl,
+                Status = post.Status,
+                PostCategoryId = post.PostCategoryId,
+                CategoryName = post.PostCategory?.CategoryName,
+                AuthorName = post.Author?.FullName,
+                PublishedAt = post.PublishedAt,
+                CreatedAt = post.CreatedAt,
+                Tags = post.Tags
+            };
+
+            return Ok(postDto);
+        }
         [HttpPost]
         [Authorize] // <--- Bắt buộc phải có token mới được đăng bài
         public async Task<ActionResult> CreatePost(PostDto postDto)

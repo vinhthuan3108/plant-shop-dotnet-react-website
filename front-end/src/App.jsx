@@ -42,6 +42,9 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import SystemConfigPage from './pages/admin/SystemConfigPage';
 import RevenueStats from './pages/admin/RevenueStats';
 import ProductStats from './pages/admin/ProductStats';
+import BlogPage from './pages/client/BlogPage';     // <-- Thêm dòng này
+import BlogDetail from './pages/client/BlogDetail';
+import GuidePage from './pages/client/GuidePage';
 function App() {
   useEffect(() => {
     const fetchSystemConfig = async () => {
@@ -96,9 +99,11 @@ function App() {
         <Route path="payment-success" element={<PaymentSuccess />} />
         <Route path="payment-cancel" element={<PaymentCancel />} />
         <Route path="/profile" element={<ProfilePage />} />
-        
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:id" element={<BlogDetail />} />
         {/* Các trang khác của khách hàng... */}
         <Route path="/intro" element={<IntroPage />} />
+        <Route path="/guide" element={<GuidePage />} />
       </Route>
 
       {/* --- NHÓM 2: DÀNH CHO ADMIN (Dùng AdminLayout) --- */}
