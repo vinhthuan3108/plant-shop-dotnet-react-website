@@ -1,5 +1,7 @@
+import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
-
+import axios from 'axios';
+//import './App.css';
 // Layouts
 import AdminLayout from './layouts/AdminLayout'; 
 import MainLayout from './layouts/MainLayout'; // Import thêm MainLayout
@@ -37,7 +39,47 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AdminBanners from './pages/admin/AdminBanners';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import SystemConfigPage from './pages/admin/SystemConfigPage';
 function App() {
+  useEffect(() => {
+    const fetchSystemConfig = async () => {
+      try {
+        // Thay đổi port 7298 cho đúng với máy bạn
+        const API_BASE = 'https://localhost:7298'; 
+        const res = await axios.get(`${API_BASE}/api/TblSystemConfig`);
+        
+        // Chuyển mảng thành object cho dễ dùng
+        const config = res.data.reduce((acc, item) => {
+            acc[item.configKey] = item.configValue;
+            return acc;
+        }, {});
+
+        // 1. CẬP NHẬT FAVICON
+        if (config.FaviconUrl) {
+          // Tìm thẻ link icon cũ
+          let link = document.querySelector("link[rel~='icon']");
+          if (!link) {
+            // Nếu chưa có thì tạo mới
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.getElementsByTagName('head')[0].appendChild(link);
+          }
+          // Gán đường dẫn ảnh mới (phải nối với API_BASE vì ảnh nằm ở server backend)
+          link.href = `${API_BASE}${config.FaviconUrl}`;
+        }
+
+        // 2. CẬP NHẬT TIÊU ĐỀ TAB TRÌNH DUYỆT (TITLE)
+        if (config.StoreName) {
+          document.title = config.StoreName;
+        }
+
+      } catch (error) {
+        console.error("Lỗi cập nhật cấu hình hệ thống:", error);
+      }
+    };
+
+    fetchSystemConfig();
+  }, []);
   return (
     <>
     <Routes>
@@ -73,6 +115,7 @@ function App() {
         <Route path="backup" element={<SystemBackup />} />
         <Route path="vouchers" element={<Vouchers />} />
         <Route path="banners" element={<AdminBanners />} />
+        <Route path="system-config" element={<SystemConfigPage />} />
       </Route>
 
       {/* --- NHÓM 3: AUTH (Login/Register thường không có Layout) --- */}

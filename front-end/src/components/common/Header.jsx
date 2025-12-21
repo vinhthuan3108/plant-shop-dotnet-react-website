@@ -2,20 +2,44 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaSearch, FaShoppingCart, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
 import { CartContext } from '../../context/CartContext';
+import axios from 'axios'; 
 import './Header.css';
-import logo from '../../assets/images/logo.png'; // Đảm bảo đường dẫn đúng
+
+// Ảnh dự phòng khi chưa upload logo trong admin
+import defaultLogo from '../../assets/images/logo.png'; 
 
 const Header = () => {
     const [userFullName, setUserFullName] = useState(null);
+    const [config, setConfig] = useState({}); // State lưu cấu hình
+    
     const navigate = useNavigate();
-
     const { cartCount, refreshCart } = useContext(CartContext);
     
+    // Cổng backend của bạn (hãy đổi nếu khác port 7000)
+    const API_BASE = 'https://localhost:7298'; 
+
     useEffect(() => {
+        // 1. Lấy thông tin User từ LocalStorage
         const savedName = localStorage.getItem('userName');
         if (savedName) {
             setUserFullName(savedName);
         }
+
+        // 2. Gọi API lấy thông tin cấu hình (Logo, Tên shop...)
+        const fetchConfig = async () => {
+            try {
+                const res = await axios.get(`${API_BASE}/api/TblSystemConfig`);
+                // Chuyển mảng [{configKey: 'A', configValue: 'B'}] -> object { A: 'B' }
+                const configData = res.data.reduce((acc, item) => {
+                    acc[item.configKey] = item.configValue;
+                    return acc;
+                }, {});
+                setConfig(configData);
+            } catch (error) {
+                console.error("Lỗi lấy cấu hình header:", error);
+            }
+        };
+        fetchConfig();
     }, []);
     
     const handleLogout = () => {
@@ -33,22 +57,31 @@ const Header = () => {
         }
     };
 
+    // LOGIC HIỂN THỊ LOGO:
+    // Nếu có config.LogoUrl (từ folder configs) thì dùng, không thì dùng defaultLogo
+    const logoSrc = config.LogoUrl ? `${API_BASE}${config.LogoUrl}` : defaultLogo;
+
     return (
         <header className="header-wrapper">
             <div className="header-top">
-                {/* --- 1. SỬA PHẦN LOGO: ẢNH + CHỮ --- */}
+                {/* --- 1. LOGO & TÊN SHOP --- */}
                 <Link to="/" className="logo-link">
-                    {/* Ảnh Logo bên trái */}
-                    <img src={logo} alt="Logo" className="logo-img" />
+                    <img 
+                        src={logoSrc} 
+                        alt="Logo" 
+                        className="logo-img" 
+                        style={{ objectFit: 'contain' }} 
+                    />
                     
-                    {/* Khối chữ bên phải */}
                     <div className="logo-text-group">
-                        <span className="logo-title">Plant Shop</span>
+                        <span className="logo-title">
+                            {config.StoreName || "Plant Shop"}
+                        </span>
                         <span className="logo-slogan">Thoả đam mê cây cảnh</span>
                     </div>
                 </Link>
 
-                {/* 2. Thanh tìm kiếm */}
+                {/* --- 2. TÌM KIẾM --- */}
                 <div className="search-container">
                     <select className="search-select">
                         <option>Tất cả</option>
@@ -61,15 +94,13 @@ const Header = () => {
                     </button>
                 </div>
 
-                {/* 3. Khu vực Đăng nhập & Giỏ hàng */}
+                {/* --- 3. ĐĂNG NHẬP & GIỎ HÀNG --- */}
                 <div className="header-actions">
                     <div className="auth-links">
                         {userFullName ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                
-                                {/* --- SỬA ĐOẠN NÀY --- */}
                                 <span 
-                                    onClick={() => navigate('/profile')} // 1. Thêm sự kiện click
+                                    onClick={() => navigate('/profile')} 
                                     style={{ 
                                         color: '#2e7d32', 
                                         fontWeight: 'bold', 
@@ -77,13 +108,12 @@ const Header = () => {
                                         display: 'flex', 
                                         alignItems: 'center', 
                                         gap: '5px',
-                                        cursor: 'pointer' // 2. Thêm cái này để người dùng biết là bấm được
+                                        cursor: 'pointer' 
                                     }}
-                                    title="Xem hồ sơ cá nhân" // Tooltip khi rê chuột vào
+                                    title="Xem hồ sơ cá nhân"
                                 >
                                     <FaUserCircle /> {userFullName.toUpperCase()}
                                 </span>
-                                {/* ------------------- */}
 
                                 <button 
                                     onClick={handleLogout}
@@ -127,7 +157,7 @@ const Header = () => {
                 </div>
             </div>
 
-            {/* --- PHẦN DƯỚI: MENU MÀU XANH --- */}
+            {/* --- MENU NAV --- */}
             <nav className="nav-bar">
                 <div className="nav-container">
                     <ul className="nav-list">

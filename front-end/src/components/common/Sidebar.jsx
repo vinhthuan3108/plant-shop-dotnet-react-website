@@ -1,4 +1,4 @@
-import { useState } from 'react'; // Thêm useState
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
 function Sidebar() {
@@ -58,50 +58,64 @@ function Sidebar() {
       </h2>
       
       <nav style={{ flexGrow: 1 }}>
+        {/* Đổi icon thành cây cỏ cho hợp shop cây */}
         <NavLink to="/admin/products" style={activeStyle}>
-           <span>📦 Quản lý sản phẩm</span>
+            <span>🌿 Quản lý sản phẩm</span>
         </NavLink>
         
+        {/* Đổi icon thành hóa đơn/giỏ hàng */}
         <NavLink to="/admin/orders" style={activeStyle}>
-           <span>📝 Quản lý đơn hàng</span>
+            <span>🧾 Quản lý đơn hàng</span>
         </NavLink>
-        <NavLink to="/admin/vouchers" style={activeStyle}>
-           <span>📝 Quản lý mã giảm giá</span>
-        </NavLink>
-        <NavLink to="/admin/posts" style={activeStyle}>
-           <span>📝 Quản lý bài đăng</span>
-        </NavLink>
-        {/* <NavLink to="/admin/suppliers" style={activeStyle}>
-           <span>🏢 Quản lý Nhà cung cấp</span>
-        </NavLink> */}
 
-        {/* MỤC QUẢN LÝ KHO (CHA) */}
+        {/* Đổi icon thành vé/thẻ giảm giá */}
+        <NavLink to="/admin/vouchers" style={activeStyle}>
+            <span>🎟️ Quản lý mã giảm giá</span>
+        </NavLink>
+
+        {/* Đổi icon thành báo/tin tức */}
+        <NavLink to="/admin/posts" style={activeStyle}>
+            <span>📰 Quản lý bài đăng</span>
+        </NavLink>
+
+        {/* MỤC QUẢN LÝ KHO (CHA) - Đổi thành Nhà kho/Thùng hàng */}
         <div 
           onClick={() => setIsInventoryOpen(!isInventoryOpen)} 
           style={{...linkStyle, backgroundColor: isInventoryOpen ? '#444' : 'transparent'}}
         >
-          <span>📦 Quản lý Kho</span>
+          <span>🏭 Quản lý Kho</span>
           <span>{isInventoryOpen ? '▲' : '▼'}</span>
         </div>
 
         {/* DANH SÁCH MENU CON */}
         {isInventoryOpen && (
           <div style={{ marginBottom: '10px' }}>
-            <NavLink to="/admin/imports" style={activeSubStyle}>➕ Tạo Phiếu nhập</NavLink>
-            <NavLink to="/admin/import-history" style={activeSubStyle}>📋 Lịch sử nhập kho</NavLink>
-            <NavLink to="/admin/inventory-adjustment" style={activeSubStyle}>⚙️ Điều chỉnh tồn kho</NavLink>
-            <NavLink to="/admin/suppliers" style={activeSubStyle}>⚙️ Quản lý nhà cung cấp</NavLink>
+            <NavLink to="/admin/imports" style={activeSubStyle}>📥 Tạo Phiếu nhập</NavLink>
+            <NavLink to="/admin/import-history" style={activeSubStyle}>📜 Lịch sử nhập kho</NavLink>
+            <NavLink to="/admin/inventory-adjustment" style={activeSubStyle}>⚖️ Điều chỉnh tồn kho</NavLink>
+            {/* Đổi icon thành cái bắt tay hợp tác */}
+            <NavLink to="/admin/suppliers" style={activeSubStyle}>🤝 Quản lý nhà cung cấp</NavLink>
           </div>
         )}
+
+        {/* Đổi icon thành khung tranh */}
         <NavLink to="/admin/banners" style={activeStyle}>
-           <span>👥 Quản lý Banner</span>
+            <span>🖼️ Quản lý Banner</span>
         </NavLink>
+
+        {/* Đổi icon thành bánh răng cài đặt */}
+        <NavLink to="/admin/system-config" style={activeStyle}>
+            <span>⚙️ Quản lý cấu hình </span>
+        </NavLink>
+
+        {/* Icon người dùng giữ nguyên */}
         <NavLink to="/admin/users" style={activeStyle}>
-           <span>👥 Quản lý Tài khoản</span>
+            <span>👥 Quản lý Tài khoản</span>
         </NavLink>
         
+        {/* Đổi icon thành đĩa mềm (lưu trữ) */}
         <NavLink to="/admin/backup" style={activeStyle}>
-           <span>👥 Backup</span>
+            <span>💾 Backup Dữ liệu</span>
         </NavLink>
       </nav>
 
