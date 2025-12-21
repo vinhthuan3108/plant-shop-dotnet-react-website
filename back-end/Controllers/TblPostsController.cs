@@ -2,7 +2,10 @@
 using back_end.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Hosting; // 1. Thêm thư viện này
+using System.IO;
 namespace back_end.Controllers
 {
     [Route("api/[controller]")]
@@ -11,9 +14,13 @@ namespace back_end.Controllers
     {
         private readonly DbplantShopThuanCuongContext _context;
 
-        public TblPostsController(DbplantShopThuanCuongContext context)
+        private readonly IWebHostEnvironment _environment; // 3. Khai báo biến môi trường
+
+        // 4. Inject vào constructor
+        public TblPostsController(DbplantShopThuanCuongContext context, IWebHostEnvironment environment)
         {
             _context = context;
+            _environment = environment;
         }
 
         [HttpGet]
@@ -52,8 +59,20 @@ namespace back_end.Controllers
         }
 
         [HttpPost]
+        [Authorize] // <--- Bắt buộc phải có token mới được đăng bài
         public async Task<ActionResult> CreatePost(PostDto postDto)
         {
+            // 1. Lấy UserId từ Token (tên "UserId" phải khớp với Bước 1)
+            var userIdClaim = User.FindFirst("UserId");
+
+            if (userIdClaim == null)
+            {
+                return Unauthorized(new { message = "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại." });
+            }
+
+            // Chuyển đổi từ string sang int
+            int loggedInUserId = int.Parse(userIdClaim.Value);
+
             var post = new TblPost
             {
                 Title = postDto.Title,
@@ -64,7 +83,10 @@ namespace back_end.Controllers
                 Tags = postDto.Tags,
                 Status = postDto.Status ?? "Draft",
                 CreatedAt = DateTime.Now,
-                AuthorId = 6,
+
+                // 2. GÁN ID NGƯỜI ĐĂNG NHẬP VÀO ĐÂY
+                AuthorId = loggedInUserId,
+
                 IsDeleted = postDto.IsDeleted
             };
 
@@ -83,10 +105,24 @@ namespace back_end.Controllers
             var post = await _context.TblPosts.FindAsync(id);
             if (post == null) return NotFound("Không tìm thấy bài viết");
 
+            // --- XỬ LÝ XÓA ẢNH CŨ KHI CẬP NHẬT (OPTIONAL) ---
+            // Nếu có ảnh cũ VÀ ảnh mới khác ảnh cũ (nghĩa là người dùng đã thay ảnh)
+            if (!string.IsNullOrEmpty(post.ThumbnailUrl) &&
+                post.ThumbnailUrl != postDto.ThumbnailUrl)
+            {
+                var oldRelativePath = post.ThumbnailUrl.TrimStart('/');
+                var oldFullPath = Path.Combine(_environment.WebRootPath, oldRelativePath);
+                if (System.IO.File.Exists(oldFullPath))
+                {
+                    try { System.IO.File.Delete(oldFullPath); } catch { }
+                }
+            }
+            // --------------------------------------------------
+
             post.Title = postDto.Title;
             post.ShortDescription = postDto.ShortDescription;
             post.Content = postDto.Content;
-            post.ThumbnailUrl = postDto.ThumbnailUrl;
+            post.ThumbnailUrl = postDto.ThumbnailUrl; // Cập nhật đường dẫn ảnh mới
             post.PostCategoryId = postDto.PostCategoryId;
             post.Tags = postDto.Tags;
 
@@ -111,9 +147,11 @@ namespace back_end.Controllers
             return Ok(new { message = "Cập nhật bài viết thành công!" });
         }
 
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePost(int id)
         {
+            // Soft Delete chỉ ẩn bài, vẫn giữ file ảnh để có thể khôi phục
             var post = await _context.TblPosts.FindAsync(id);
             if (post == null) return NotFound(new { message = "Không tìm thấy bài viết" });
 
@@ -122,11 +160,33 @@ namespace back_end.Controllers
             return Ok(new { message = "Đã ngừng hoạt động bài viết thành công" });
         }
 
+        // DELETE: Xóa vĩnh viễn (Hard Delete) -> Cần xóa file
         [HttpDelete("hard/{id}")]
         public async Task<IActionResult> HardDeletePost(int id)
         {
             var post = await _context.TblPosts.FindAsync(id);
             if (post == null) return NotFound(new { message = "Không tìm thấy bài viết" });
+
+            // --- ĐOẠN CODE XÓA FILE ẢNH VẬT LÝ ---
+            if (!string.IsNullOrEmpty(post.ThumbnailUrl))
+            {
+                // post.ThumbnailUrl dạng: /posts/anh1.jpg -> bỏ dấu / đầu
+                var relativePath = post.ThumbnailUrl.TrimStart('/');
+                var fullPath = Path.Combine(_environment.WebRootPath, relativePath);
+
+                if (System.IO.File.Exists(fullPath))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(fullPath);
+                    }
+                    catch (Exception)
+                    {
+                        // Bỏ qua lỗi nếu file đang bị khóa hoặc không xóa được
+                    }
+                }
+            }
+            // ---------------------------------------
 
             _context.TblPosts.Remove(post);
             await _context.SaveChangesAsync();

@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using back_end.Models;
-
+using System.IO;                // Thêm thư viện này để thao tác file
+using Microsoft.AspNetCore.Hosting;
 namespace back_end.Controllers
 {
     [Route("api/[controller]")]
@@ -15,9 +16,13 @@ namespace back_end.Controllers
     {
         private readonly DbplantShopThuanCuongContext _context;
 
-        public TblProductsController(DbplantShopThuanCuongContext context)
+        private readonly IWebHostEnvironment _environment; // 1. Khai báo biến môi trường
+
+        // Inject IWebHostEnvironment vào constructor
+        public TblProductsController(DbplantShopThuanCuongContext context, IWebHostEnvironment environment)
         {
             _context = context;
+            _environment = environment;
         }
 
         // GET: api/TblProducts
@@ -133,16 +138,49 @@ namespace back_end.Controllers
             return CreatedAtAction("GetTblProduct", new { id = tblProduct.ProductId }, tblProduct);
         }
 
-        // DELETE: api/TblProducts/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTblProduct(int id)
         {
-            var tblProduct = await _context.TblProducts.FindAsync(id);
+            // BƯỚC 1: Tìm sản phẩm và KÈM THEO DANH SÁCH ẢNH (Include)
+            var tblProduct = await _context.TblProducts
+                .Include(p => p.TblProductImages) // Quan trọng: Phải load ảnh ra mới biết đường dẫn mà xóa
+                .FirstOrDefaultAsync(p => p.ProductId == id);
+
             if (tblProduct == null)
             {
                 return NotFound();
             }
 
+            // BƯỚC 2: Xóa file vật lý trong thư mục wwwroot
+            if (tblProduct.TblProductImages != null && tblProduct.TblProductImages.Any())
+            {
+                foreach (var image in tblProduct.TblProductImages)
+                {
+                    // Giả sử property lưu đường dẫn ảnh trong DB là 'ImageUrl' (hoặc bạn sửa lại theo tên cột thực tế của bạn)
+                    // Đường dẫn trong DB thường dạng: /images/abc.jpg -> cần xóa dấu / ở đầu
+                    if (!string.IsNullOrEmpty(image.ImageUrl))
+                    {
+                        var relativePath = image.ImageUrl.TrimStart('/');
+                        var fullPath = Path.Combine(_environment.WebRootPath, relativePath);
+
+                        // Kiểm tra file có tồn tại không thì mới xóa
+                        if (System.IO.File.Exists(fullPath))
+                        {
+                            try
+                            {
+                                System.IO.File.Delete(fullPath);
+                            }
+                            catch (Exception ex)
+                            {
+                                // Có thể log lỗi nếu cần, nhưng thường ta sẽ bỏ qua để đảm bảo DB vẫn được xóa
+                                // Console.WriteLine("Lỗi xóa ảnh: " + ex.Message);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // BƯỚC 3: Xóa dữ liệu trong Database
             _context.TblProducts.Remove(tblProduct);
             await _context.SaveChangesAsync();
 

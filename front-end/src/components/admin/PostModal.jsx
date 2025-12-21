@@ -81,6 +81,21 @@ const PostModal = ({ post, onClose, onSuccess }) => {
     const handleSubmit = async () => {
         if (!title || !categoryId) return alert("Vui lòng nhập đầy đủ thông tin!");
 
+        // 1. Lấy Token từ localStorage (Kiểm tra xem lúc login bạn lưu tên là 'token' hay gì nhé)
+        const token = localStorage.getItem('token'); 
+        
+        if (!token) {
+            alert("Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn!");
+            return;
+        }
+
+        // 2. Tạo Header chứa Token
+        const config = {
+            headers: {
+                Authorization: `Bearer ${token}` // Quan trọng: Phải có chữ Bearer và khoảng trắng
+            }
+        };
+
         const payload = {
             postId: post?.postId,
             title,
@@ -89,20 +104,26 @@ const PostModal = ({ post, onClose, onSuccess }) => {
             thumbnailUrl,
             postCategoryId: parseInt(categoryId),
             status: 'Published',
-            // Gửi isDeleted ngược lại với giá trị checkbox
             isDeleted: !isActive 
         };
 
         try {
             if (post?.postId) {
-                await axios.put(`${API_BASE}/api/TblPosts/${post.postId}`, payload);
+                // Sửa bài viết (PUT) -> truyền config vào tham số thứ 3
+                await axios.put(`${API_BASE}/api/TblPosts/${post.postId}`, payload, config);
             } else {
-                await axios.post(`${API_BASE}/api/TblPosts`, payload);
+                // Thêm mới (POST) -> truyền config vào tham số thứ 3
+                await axios.post(`${API_BASE}/api/TblPosts`, payload, config);
             }
             onSuccess();
             onClose();
         } catch (error) {
-            alert("Lỗi khi lưu bài viết!");
+            console.error(error);
+            if (error.response && error.response.status === 401) {
+                alert("Hết phiên đăng nhập, vui lòng đăng nhập lại!");
+            } else {
+                alert("Lỗi khi lưu bài viết!");
+            }
         }
     };
 
