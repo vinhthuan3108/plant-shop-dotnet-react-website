@@ -15,6 +15,7 @@ import Register from './pages/auth/Register';
 import VerifyOtp from './pages/auth/VerifyOtp';
 //
 import IntroPage from './pages/client/IntroPage';
+import Contact from './pages/client/Contact';
 
 // Admin Pages
 import AdminProducts from './pages/admin/AdminProducts';
@@ -42,6 +43,7 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import SystemConfigPage from './pages/admin/SystemConfigPage';
 import RevenueStats from './pages/admin/RevenueStats';
 import ProductStats from './pages/admin/ProductStats';
+import Contacts from './pages/admin/Contacts';
 function App() {
   useEffect(() => {
     const fetchSystemConfig = async () => {
@@ -99,6 +101,7 @@ function App() {
         
         {/* Các trang khác của khách hàng... */}
         <Route path="/intro" element={<IntroPage />} />
+        <Route path="/contact" element={<Contact />} />
       </Route>
 
       {/* --- NHÓM 2: DÀNH CHO ADMIN (Dùng AdminLayout) --- */}
@@ -120,6 +123,7 @@ function App() {
         <Route path="system-config" element={<SystemConfigPage />} />
         <Route path="statistics" element={<RevenueStats />} />
         <Route path="statistics/products" element={<ProductStats />} />
+        <Route path="contacts" element={<Contacts />} />
       </Route>
 
       {/* --- NHÓM 3: AUTH (Login/Register thường không có Layout) --- */}
