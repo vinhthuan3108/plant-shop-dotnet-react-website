@@ -16,7 +16,7 @@
   background-position: center center; 
   
   /* Chiều cao cố định (bạn có thể giảm xuống 500px nếu thấy 600px quá cao) */
-  height: 600px; 
+  height: 350px; 
   
   display: flex;
   align-items: center;
@@ -25,7 +25,7 @@
   position: relative;
   color: white;
   transition: background-image 0.5s ease-in-out;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 /* Lớp phủ Gradient đen mờ để chữ nổi bật và nghệ thuật hơn */

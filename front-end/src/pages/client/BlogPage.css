@@ -1,0 +1,140 @@
+/* front-end/src/pages/client/BlogPage.css */
+
+/* 1. Container chính: Giới hạn chiều rộng và căn giữa màn hình */
+.blog-container {
+    max-width: 1200px;  /* Giới hạn chiều rộng để không bị loãng trên màn to */
+    margin: 0 auto;     /* Căn giữa container */
+    padding: 40px 15px;
+}
+
+/* 2. Banner tiêu đề */
+.blog-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+.blog-header h2 {
+    color: #2e7d32;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 28px;
+    margin-bottom: 10px;
+}
+.blog-header p {
+    color: #666;
+    font-size: 16px;
+}
+.blog-divider {
+    width: 60px;
+    height: 4px;
+    background: #2e7d32;
+    margin: 15px auto;
+    border-radius: 2px;
+}
+
+/* 3. Lưới bài viết (QUAN TRỌNG) */
+.blog-grid {
+    display: grid;
+    /* Ép buộc chia thành 3 cột đều nhau */
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 30px; /* Khoảng cách giữa các ô */
+}
+
+/* 4. Thẻ bài viết (Card) */
+.blog-card {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.blog-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.blog-thumb {
+    height: 220px; /* Chiều cao cố định cho ảnh */
+    overflow: hidden;
+}
+
+.blog-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Đảm bảo ảnh luôn lấp đầy khung mà không bị méo */
+    transition: transform 0.5s;
+}
+
+.blog-card:hover .blog-thumb img {
+    transform: scale(1.1); /* Hiệu ứng zoom ảnh nhẹ khi di chuột */
+}
+
+.blog-content-wrap {
+    padding: 20px;
+    flex: 1; /* Để nội dung giãn đều */
+    display: flex;
+    flex-direction: column;
+}
+
+.blog-meta {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 15px;
+}
+
+.blog-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 12px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Chỉ hiện tối đa 2 dòng tiêu đề */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.blog-title a {
+    text-decoration: none;
+    color: inherit;
+}
+.blog-title a:hover {
+    color: #2e7d32;
+}
+
+.blog-desc {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3; /* Chỉ hiện tối đa 3 dòng mô tả */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.read-more-btn {
+    margin-top: auto; /* Đẩy nút xuống dưới cùng */
+    color: #2e7d32;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* --- RESPONSIVE (Tự động chỉnh cột trên điện thoại) --- */
+@media (max-width: 992px) {
+    .blog-grid {
+        grid-template-columns: repeat(2, 1fr); /* Máy tính bảng: 2 cột */
+    }
+}
+
+@media (max-width: 576px) {
+    .blog-grid {
+        grid-template-columns: 1fr; /* Điện thoại: 1 cột */
+    }
+}
