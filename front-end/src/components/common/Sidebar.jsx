@@ -99,6 +99,10 @@ function Sidebar() {
         </NavLink>
 
         {/* Đổi icon thành báo/tin tức */}
+        <NavLink to="/admin/contacts" style={activeStyle}>
+            <span>📩 Quản lý liên hệ</span>
+        </NavLink>
+        {/* Đổi icon liên hệ */}
         <NavLink to="/admin/posts" style={activeStyle}>
             <span>📰 Quản lý bài đăng</span>
         </NavLink>
