@@ -155,3 +155,55 @@
 .nav-list > li > a:hover {
   color: #ffeb3b; /* Màu vàng khi hover */
 }
+/* --- XỬ LÝ DROPDOWN MENU (Thêm vào cuối file Header.css) --- */
+
+/* 1. Class đánh dấu menu cha (li) có chứa menu con */
+.has-dropdown {
+  position: relative; /* Để menu con định vị vị trí theo nó */
+}
+
+/* 2. Menu con (ul): Mặc định ẩn đi */
+.dropdown-menu {
+  display: none;       /* Ẩn */
+  position: absolute;  /* Nổi lên trên */
+  top: 100%;           /* Nằm ngay dưới menu cha */
+  left: 0;
+  background-color: white;
+  min-width: 220px;    /* Chiều rộng tối thiểu */
+  box-shadow: 0 4px 6px rgba(0,0,0,0.15); /* Đổ bóng cho đẹp */
+  padding: 10px 0;
+  list-style: none;
+  z-index: 1000;       /* Đảm bảo nằm trên các thành phần khác */
+  border-top: 3px solid #ffeb3b; /* Viền vàng trang trí */
+}
+
+/* 3. Hiệu ứng: Khi rê chuột (hover) vào menu cha thì hiện menu con */
+.has-dropdown:hover .dropdown-menu {
+  display: block;      /* Hiện lên */
+  animation: fadeIn 0.3s ease; /* Hiệu ứng hiện dần */
+}
+
+/* 4. Style cho các đường link bên trong menu con */
+.dropdown-menu li a {
+  display: block;
+  padding: 10px 20px;
+  color: #333 !important; /* Chữ màu đen cho dễ đọc trên nền trắng */
+  text-decoration: none;
+  font-size: 14px;
+  border-bottom: 1px solid #f0f0f0; /* Gạch mờ ngăn cách */
+  text-transform: none;   /* Chữ thường, không in hoa */
+  transition: all 0.2s;
+}
+
+/* 5. Khi rê chuột vào từng mục con */
+.dropdown-menu li a:hover {
+  background-color: #f9f9f9;
+  color: #2e7d32 !important; /* Chữ chuyển xanh lá */
+  padding-left: 25px;        /* Đẩy chữ sang phải xíu tạo hiệu ứng động */
+}
+
+/* 6. Định nghĩa hiệu ứng hiện dần (Fade In) */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

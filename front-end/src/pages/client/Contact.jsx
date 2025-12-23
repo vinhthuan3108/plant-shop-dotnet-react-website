@@ -64,7 +64,7 @@ function Contact() {
                     <ul style={{ listStyle: 'none', padding: 0, lineHeight: '2' }}>
                         <li><strong>Vườn Cây Việt:</strong> Chuyên cung cấp các loại cây cảnh...</li>
                         <li><strong>Hotline:</strong> 0987.654.321</li>
-                        <li><strong>Email:</strong> lienhe@vuoncayviet.com</li>
+                        <li><strong>Email:</strong> lienhe@plantsh.com</li>
                         <li><strong>Địa chỉ:</strong> 15 đường số 3, Khu dân cư Gia Hòa, TP.HCM</li>
                     </ul>
 

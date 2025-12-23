@@ -19,7 +19,16 @@ namespace back_end.Controllers
         {
             _context = context;
         }
-
+        // API 1: Lấy danh sách danh mục hiển thị cho khách hàng (Public)
+        // Chỉ lấy những cái IsActive = true và sắp xếp theo thứ tự
+        [HttpGet("active")]
+        public async Task<ActionResult<IEnumerable<TblCategory>>> GetActiveCategories()
+        {
+            return await _context.TblCategories
+                .Where(c => c.IsActive == true)
+                .OrderBy(c => c.DisplayOrder) // Sắp xếp theo thứ tự ưu tiên
+                .ToListAsync();
+        }
         // GET: api/TblCategories
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TblCategory>>> GetTblCategories()
