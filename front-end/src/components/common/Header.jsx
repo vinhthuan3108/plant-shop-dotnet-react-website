@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaSearch, FaShoppingCart, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
+import { FaSearch, FaShoppingCart, FaUserCircle, FaSignOutAlt, FaChevronDown } from 'react-icons/fa';
 import { CartContext } from '../../context/CartContext';
 import axios from 'axios'; 
 import './Header.css';
@@ -11,6 +11,7 @@ import defaultLogo from '../../assets/images/logo.png';
 const Header = () => {
     const [userFullName, setUserFullName] = useState(null);
     const [config, setConfig] = useState({}); // State lưu cấu hình
+    const [categories, setCategories] = useState([]); // State lưu danh mục
     
     const navigate = useNavigate();
     const { cartCount, refreshCart } = useContext(CartContext);
@@ -40,6 +41,18 @@ const Header = () => {
             }
         };
         fetchConfig();
+        // --- THÊM ĐOẠN CODE NÀY VÀO TRONG USEEFFECT ---
+        // Gọi API lấy danh mục (Lưu ý: Bạn phải đã làm Bước 1 ở phần hướng dẫn Backend rồi nhé)
+        const fetchCategories = async () => {
+            try {
+                // Gọi endpoint lấy danh mục đang hoạt động
+                const res = await axios.get(`${API_BASE}/api/TblCategories/active`);
+                setCategories(res.data);
+            } catch (error) {
+                console.error("Lỗi lấy danh mục:", error);
+            }
+        };
+        fetchCategories();
     }, []);
     
     const handleLogout = () => {
@@ -163,7 +176,23 @@ const Header = () => {
                     <ul className="nav-list">
                         <li><Link to="/">TRANG CHỦ</Link></li>
                         <li><Link to="/intro">GIỚI THIỆU</Link></li>
-                        <li><Link to="/shop">CÂY CẢNH</Link></li>
+                        <li className="has-dropdown">
+                <Link to="/shop" className="dropdown-toggle" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    CÂY CẢNH <FaChevronDown style={{ fontSize: '10px' }}/>
+                </Link>
+                {/* Menu con xổ xuống */}
+                <ul className="dropdown-menu">
+                    <li><Link to="/shop">Xem tất cả</Link></li>
+                    {categories.map((cate) => (
+                        <li key={cate.categoryId}>
+                            {/* Truyền ID danh mục lên URL */}
+                            <Link to={`/shop?category=${cate.categoryId}`}>
+                                {cate.categoryName}
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+            </li>
                         <li><Link to="/guide">HƯỚNG DẪN</Link></li>
                         <li><Link to="/blog">BÀI ĐĂNG</Link></li>
                         <li><Link to="/contact">LIÊN HỆ</Link></li>
