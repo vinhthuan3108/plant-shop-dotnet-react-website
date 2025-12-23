@@ -1,56 +1,34 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { MENU_ITEMS } from '../../constants/roles'; // Import file config
 
 function Sidebar() {
-  // State để đóng/mở menu Quản lý kho
-  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
-  const [isStatsOpen, setIsStatsOpen] = useState(false);
+  // State quản lý việc mở các menu con (dùng object để linh hoạt)
+  const [expandedMenus, setExpandedMenus] = useState({});
 
-  const sidebarStyle = {
-    width: '250px',
-    height: '100vh',
-    backgroundColor: '#333',
-    color: 'white',
-    padding: '20px',
-    display: 'flex',
-    flexDirection: 'column',
-    position: 'fixed',
-    left: 0,
-    top: 0,
-    overflowY: 'auto' // Cho phép cuộn nếu menu quá dài
+  // Lấy Role của user hiện tại
+  const user = JSON.parse(localStorage.getItem('user')) || {};
+  const userRoleId = user.roleId;
+
+  const toggleMenu = (menuId) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [menuId]: !prev[menuId] // Đảo trạng thái true/false
+    }));
   };
 
-  const linkStyle = {
-    color: 'white',
-    textDecoration: 'none',
-    padding: '12px 15px',
-    marginBottom: '5px',
-    borderRadius: '4px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    transition: 'background 0.3s',
-    cursor: 'pointer'
+  // --- Styles (Giữ nguyên của bạn) ---
+  const sidebarStyle = { width: '250px', height: '100vh', backgroundColor: '#333', color: 'white', padding: '20px', display: 'flex', flexDirection: 'column', position: 'fixed', left: 0, top: 0, overflowY: 'auto' };
+  const linkStyle = { color: 'white', textDecoration: 'none', padding: '12px 15px', marginBottom: '5px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'background 0.3s', cursor: 'pointer' };
+  const subLinkStyle = { ...linkStyle, paddingLeft: '40px', fontSize: '0.9em', backgroundColor: 'rgba(255, 255, 255, 0.05)', marginBottom: '2px' };
+  const activeStyle = ({ isActive }) => ({ ...linkStyle, backgroundColor: isActive ? '#4CAF50' : 'transparent', });
+  const activeSubStyle = ({ isActive }) => ({ ...subLinkStyle, backgroundColor: isActive ? '#4CAF50' : 'rgba(255, 255, 255, 0.05)', color: isActive ? 'white' : '#ccc' });
+
+  // --- Hàm kiểm tra quyền ---
+  const hasPermission = (allowedRoles) => {
+    if (!allowedRoles) return true; // Không quy định role nghĩa là ai cũng vào được
+    return allowedRoles.includes(userRoleId);
   };
-
-  const subLinkStyle = {
-    ...linkStyle,
-    paddingLeft: '40px', // Thụt đầu dòng cho menu con
-    fontSize: '0.9em',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    marginBottom: '2px'
-  };
-
-  const activeStyle = ({ isActive }) => ({
-    ...linkStyle,
-    backgroundColor: isActive ? '#4CAF50' : 'transparent',
-  });
-
-  const activeSubStyle = ({ isActive }) => ({
-    ...subLinkStyle,
-    backgroundColor: isActive ? '#4CAF50' : 'rgba(255, 255, 255, 0.05)',
-    color: isActive ? 'white' : '#ccc'
-  });
 
   return (
     <aside style={sidebarStyle}>
@@ -59,93 +37,48 @@ function Sidebar() {
       </h2>
       
       <nav style={{ flexGrow: 1 }}>
-        {/* Đổi icon thành cây cỏ cho hợp shop cây */}
-        <NavLink to="/admin/products" style={activeStyle}>
-            <span>🌿 Quản lý sản phẩm</span>
-        </NavLink>
+        {MENU_ITEMS.map((item) => {
+          // 1. Nếu không có quyền -> Ẩn luôn
+          if (!hasPermission(item.permissions)) return null;
 
-        {/* Menu Cha: Báo cáo & Thống kê */}
-        <div 
-          onClick={() => setIsStatsOpen(!isStatsOpen)} 
-          style={{...linkStyle, backgroundColor: isStatsOpen ? '#444' : 'transparent'}}
-        >
-          <span>📊 Báo cáo & Thống kê</span>
-          <span>{isStatsOpen ? '▲' : '▼'}</span>
-        </div>
+          // 2. Nếu có menu con (Children)
+          if (item.children) {
+            const isOpen = expandedMenus[item.id];
+            return (
+              <div key={item.id}>
+                {/* Menu Cha */}
+                <div 
+                  onClick={() => toggleMenu(item.id)} 
+                  style={{...linkStyle, backgroundColor: isOpen ? '#444' : 'transparent'}}
+                >
+                  <span>{item.title}</span>
+                  <span>{isOpen ? '▲' : '▼'}</span>
+                </div>
 
-        {/* Menu Con: Sổ xuống khi click */}
-        {isStatsOpen && (
-          <div style={{ marginBottom: '10px' }}>
-            {/* Mục Doanh thu (Link cũ) */}
-            <NavLink to="/admin/statistics" end style={activeSubStyle}>
-                💰 Doanh thu
+                {/* Menu Con */}
+                {isOpen && (
+                  <div style={{ marginBottom: '10px' }}>
+                    {item.children.map((child, index) => (
+                      // Kiểm tra quyền của menu con (nếu cần thiết)
+                      hasPermission(child.permissions) && (
+                        <NavLink key={index} to={child.path} style={activeSubStyle}>
+                          {child.title}
+                        </NavLink>
+                      )
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // 3. Nếu là menu thường
+          return (
+            <NavLink key={item.id} to={item.path} style={activeStyle}>
+              <span>{item.title}</span>
             </NavLink>
-            
-            {/* Mục Sản phẩm (Link mới) */}
-            <NavLink to="/admin/statistics/products" style={activeSubStyle}>
-                📦 Sản phẩm bán chạy
-            </NavLink>
-            
-          </div>
-        )}
-        {/* Đổi icon thành hóa đơn/giỏ hàng */}
-        <NavLink to="/admin/orders" style={activeStyle}>
-            <span>🧾 Quản lý đơn hàng</span>
-        </NavLink>
-
-        {/* Đổi icon thành vé/thẻ giảm giá */}
-        <NavLink to="/admin/vouchers" style={activeStyle}>
-            <span>🎟️ Quản lý mã giảm giá</span>
-        </NavLink>
-
-        {/* Đổi icon thành báo/tin tức */}
-        <NavLink to="/admin/contacts" style={activeStyle}>
-            <span>📩 Quản lý liên hệ</span>
-        </NavLink>
-        {/* Đổi icon liên hệ */}
-        <NavLink to="/admin/posts" style={activeStyle}>
-            <span>📰 Quản lý bài đăng</span>
-        </NavLink>
-
-        {/* MỤC QUẢN LÝ KHO (CHA) - Đổi thành Nhà kho/Thùng hàng */}
-        <div 
-          onClick={() => setIsInventoryOpen(!isInventoryOpen)} 
-          style={{...linkStyle, backgroundColor: isInventoryOpen ? '#444' : 'transparent'}}
-        >
-          <span>🏭 Quản lý Kho</span>
-          <span>{isInventoryOpen ? '▲' : '▼'}</span>
-        </div>
-
-        {/* DANH SÁCH MENU CON */}
-        {isInventoryOpen && (
-          <div style={{ marginBottom: '10px' }}>
-            <NavLink to="/admin/imports" style={activeSubStyle}>📥 Tạo Phiếu nhập</NavLink>
-            <NavLink to="/admin/import-history" style={activeSubStyle}>📜 Lịch sử nhập kho</NavLink>
-            <NavLink to="/admin/inventory-adjustment" style={activeSubStyle}>⚖️ Điều chỉnh tồn kho</NavLink>
-            {/* Đổi icon thành cái bắt tay hợp tác */}
-            <NavLink to="/admin/suppliers" style={activeSubStyle}>🤝 Quản lý nhà cung cấp</NavLink>
-          </div>
-        )}
-
-        {/* Đổi icon thành khung tranh */}
-        <NavLink to="/admin/banners" style={activeStyle}>
-            <span>🖼️ Quản lý Banner</span>
-        </NavLink>
-
-        {/* Đổi icon thành bánh răng cài đặt */}
-        <NavLink to="/admin/system-config" style={activeStyle}>
-            <span>⚙️ Quản lý cấu hình </span>
-        </NavLink>
-
-        {/* Icon người dùng giữ nguyên */}
-        <NavLink to="/admin/users" style={activeStyle}>
-            <span>👥 Quản lý Tài khoản</span>
-        </NavLink>
-        
-        {/* Đổi icon thành đĩa mềm (lưu trữ) */}
-        <NavLink to="/admin/backup" style={activeStyle}>
-            <span>💾 Backup Dữ liệu</span>
-        </NavLink>
+          );
+        })}
       </nav>
 
       <div style={{ borderTop: '1px solid #555', paddingTop: '20px' }}>

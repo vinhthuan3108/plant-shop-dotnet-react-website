@@ -18,24 +18,39 @@ function Login() {
                 body: JSON.stringify({ email, password })
             });
 
+            // Nếu server trả về lỗi text thay vì json thì phải handle kỹ hơn
+            // Nhưng giả sử API chuẩn trả về JSON
             const data = await res.json();
 
             if (res.ok) {
-                
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('userRole', data.role);
-                localStorage.setItem('userName', data.fullName);
-                localStorage.setItem('userId', data.userId);
+                // --- QUAN TRỌNG: SỬA ĐOẠN LƯU LOCALSTORAGE ---
+                // Phải gom thành object 'user' để Sidebar và ProtectedRoute đọc được
+                const userSave = {
+                    userId: data.userId,
+                    email: email,
+                    fullName: data.fullName,
+                    roleId: data.role, // Sidebar tìm cái này
+                    token: data.token
+                };
 
+                localStorage.setItem('user', JSON.stringify(userSave));
+                
+                // Lưu token riêng nếu cần cho các request API khác
+                localStorage.setItem('token', data.token);
+
+                // Cập nhật giỏ hàng (chỉ cần thiết với khách hàng)
                 await refreshCart(); 
 
+                // --- ĐIỀU HƯỚNG MƯỢT MÀ ---
+                // Dùng navigate thay vì window.location.reload()
+                // Vì dữ liệu 'user' đã chuẩn, Sidebar sẽ tự nhận diện khi chuyển trang
                 if (data.role === 1 || data.role === 3 || data.role === 4) {
                     navigate('/admin/products');
                 } else {
-                    navigate('/products');
+                    navigate('/'); // Về trang chủ cho khách hàng
                 }
             } else {
-                alert(data); 
+                alert(data.message || "Đăng nhập thất bại"); 
             }
         } catch (error) {
             console.error(error);
@@ -53,6 +68,7 @@ function Login() {
                     <label>c3lttrong.2a2.vthuan@gmail.com</label>
                     <div></div>
                     <label>vinhthuan9@gmail.com</label>
+
                     <input 
                         type="email" 
                         value={email} 
@@ -72,7 +88,6 @@ function Login() {
                         style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '4px', border: '1px solid #ddd' }} 
                     />
                     
-                    {/* Link Quên mật khẩu nằm ngay dưới ô password */}
                     <div style={{ textAlign: 'right', marginTop: '5px' }}>
                         <span 
                             onClick={() => navigate('/forgot-password')} 
@@ -87,7 +102,6 @@ function Login() {
                     Đăng nhập
                 </button>
 
-                {/* --- PHẦN MỚI THÊM: CHUYỂN SANG ĐĂNG KÝ --- */}
                 <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px' }}>
                     <span>Chưa có tài khoản? </span>
                     <span 
