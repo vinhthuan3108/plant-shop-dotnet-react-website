@@ -5,97 +5,138 @@ import { FaMapMarkerAlt, FaPhoneAlt, FaEnvelope, FaFacebook, FaYoutube } from 'r
 import './Footer.css';
 
 const Footer = () => {
+    // State lưu cấu hình
     const [config, setConfig] = useState({});
+    // State lưu danh mục nổi bật (Cột 3)
+    const [categories, setCategories] = useState([]); 
+    // State lưu bài viết hướng dẫn (Cột 2 - Mới thêm)
+    const [guidePosts, setGuidePosts] = useState([]);
+
     const API_BASE = 'https://localhost:7298'; // Cổng backend
 
     useEffect(() => {
+        // 1. Hàm lấy cấu hình hệ thống
         const fetchConfig = async () => {
             try {
                 const res = await axios.get(`${API_BASE}/api/TblSystemConfig`);
                 const configData = res.data.reduce((acc, item) => {
-                    acc[item.configKey] = item.configValue;
+                    const key = item.ConfigKey || item.configKey; 
+                    const value = item.ConfigValue || item.configValue;
+                    if (key) acc[key] = value;
                     return acc;
                 }, {});
                 setConfig(configData);
             } catch (error) {
-                console.error("Lỗi lấy cấu hình footer:", error);
+                console.error("Lỗi lấy Config:", error);
             }
         };
+
+        // 2. Hàm lấy 4 danh mục nổi bật (Code cũ)
+        const fetchCategories = async () => {
+            try {
+                const res = await axios.get(`${API_BASE}/api/TblCategories/get-featured`);
+                if(res.data) setCategories(res.data);
+            } catch (error) {
+                console.error("Lỗi lấy danh mục:", error);
+            }
+        };
+
+        // 3. Hàm lấy 4 bài viết Hướng dẫn (Code MỚI THÊM)
+        const fetchGuidePosts = async () => {
+            try {
+                // Gọi API lấy bài viết (tái sử dụng logic của bạn)
+                const res = await axios.get(`${API_BASE}/api/TblPosts?status=Published`);
+                
+                if (res.data) {
+                    // Lọc bài có danh mục chứa chữ "hướng dẫn" (không phân biệt hoa thường)
+                    const guides = res.data.filter(p => 
+                        p.categoryName && p.categoryName.toLowerCase().includes("hướng dẫn")
+                    );
+
+                    // Sắp xếp bài mới nhất lên đầu (dựa vào ngày PublishedAt hoặc CreatedAt)
+                    // (Nếu API chưa sắp xếp thì dùng đoạn sort này, nếu có rồi thì bỏ qua)
+                    guides.sort((a, b) => new Date(b.publishedAt || b.createdAt) - new Date(a.publishedAt || a.createdAt));
+
+                    // Chỉ lấy 4 bài đầu tiên
+                    setGuidePosts(guides.slice(0, 4));
+                }
+            } catch (error) {
+                console.error("Lỗi lấy bài hướng dẫn:", error);
+            }
+        };
+
         fetchConfig();
+        fetchCategories();
+        fetchGuidePosts(); // Gọi hàm mới
     }, []);
 
     return (
         <footer className="footer-wrapper">
+            
             <div className="footer-container">
                 {/* Cột 1: Thông tin cửa hàng */}
                 <div className="footer-col">
                     <h3>{config.StoreName ? config.StoreName.toUpperCase() : "PLANT SHOP"}</h3>
-                    <ul className="footer-links contact-list">
-                        <li>
-                            <FaMapMarkerAlt className="contact-icon" />
-                            <span>{config.Address || "Đang cập nhật địa chỉ..."}</span>
-                        </li>
-                        <li>
-                            <FaPhoneAlt className="contact-icon" />
-                            <span>{config.Hotline || "Đang cập nhật SĐT..."}</span>
-                        </li>
-                        <li>
-                            <FaEnvelope className="contact-icon" />
-                            <span>{config.Email || "lienhe@plantshop.com"}</span>
-                        </li>
-                    </ul>
+                    
+                    <div className="contact-info-block" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        <div style={{ display: 'flex', alignItems: 'start', color: '#ccc' }}>
+                            <FaMapMarkerAlt style={{ color: '#2e7d32', marginRight: '10px', marginTop: '3px', flexShrink: 0 }} />
+                            <span style={{ lineHeight: '1.4' }}>{config.Address || "Đang tải địa chỉ..."}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', color: '#ccc' }}>
+                            <FaPhoneAlt style={{ color: '#2e7d32', marginRight: '10px', flexShrink: 0 }} />
+                            <span>{config.Hotline || "Đang tải SĐT..."}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', color: '#ccc' }}>
+                            <FaEnvelope style={{ color: '#2e7d32', marginRight: '10px', flexShrink: 0 }} />
+                            <span>{config.Email || "Đang tải Email..."}</span>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Cột 2 */}
+                {/* Cột 2: Hỗ trợ khách hàng (Đã sửa thành Dynamic) */}
                 <div className="footer-col">
                     <h3>Hỗ trợ khách hàng</h3>
                     <ul className="footer-links">
-                        <li><Link to="#">Hướng dẫn mua hàng</Link></li>
-                        <li><Link to="#">Chính sách đổi trả</Link></li>
-                        <li><Link to="#">Chính sách bảo hành</Link></li>
-                        <li><Link to="#">Hình thức thanh toán</Link></li>
+                        {guidePosts.length > 0 ? (
+                            guidePosts.map(post => (
+                                <li key={post.postId}>
+                                    {/* Link bay sang trang chi tiết bài viết */}
+                                    <Link to={`/blog/${post.postId}`}>
+                                        {post.title}
+                                    </Link>
+                                </li>
+                            ))
+                        ) : (
+                            // Fallback nếu chưa có bài hướng dẫn nào
+                            <>
+                                <li><Link to="#">Hướng dẫn mua hàng</Link></li>
+                                <li><Link to="#">Chính sách đổi trả</Link></li>
+                            </>
+                        )}
                     </ul>
                 </div>
 
-                {/* Cột 3 */}
+                {/* Cột 3: Danh mục nổi bật */}
                 <div className="footer-col">
                     <h3>Danh mục nổi bật</h3>
                     <ul className="footer-links">
-                        <li><Link to="/shop">Cây nội thất</Link></li>
-                        <li><Link to="/shop">Cây để bàn</Link></li>
-                        <li><Link to="/shop">Cây thủy sinh</Link></li>
-                        <li><Link to="/shop">Sen đá - Xương rồng</Link></li>
+                        {categories.length > 0 ? (
+                            categories.map((cat) => (
+                                <li key={cat.categoryId || cat.CategoryId}>
+                                    <Link to={`/shop?categoryId=${cat.categoryId || cat.CategoryId}`}>
+                                        {cat.categoryName || cat.CategoryName}
+                                    </Link>
+                                </li>
+                            ))
+                        ) : (
+                            <li><Link to="/shop">Đang tải danh mục...</Link></li>
+                        )}
                     </ul>
                 </div>
 
                 {/* Cột 4: Kết nối MXH */}
                 <div className="footer-col">
-                    <h3>Kết nối với chúng tôi</h3>
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                        
-                        {/* Facebook - Lấy link từ DB */}
-                        <a 
-                            href={config.SocialFacebook || "#"} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            style={{ fontSize: '24px', color: '#1877f2' }}
-                        >
-                            <FaFacebook />
-                        </a>
-
-                        {/* Youtube - Giả sử chưa có config thì để # */}
-                        <a href="#" style={{ fontSize: '24px', color: '#ff0000' }}>
-                            <FaYoutube />
-                        </a>
-                        
-                        {/* Các icon liên hệ nhanh */}
-                        <a href={`tel:${config.Hotline}`} style={{ fontSize: '24px', color: '#ff0000' }}>
-                            <FaPhoneAlt />
-                        </a>
-                        <a href={`mailto:${config.Email}`} style={{ fontSize: '24px', color: '#ff0000' }}>
-                            <FaEnvelope />
-                        </a>
-                    </div>
 
                     <h3>Đăng ký nhận tin</h3>
                     <p style={{marginBottom: '15px'}}>Nhận thông tin khuyến mãi mới nhất.</p>

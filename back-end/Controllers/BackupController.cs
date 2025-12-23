@@ -27,7 +27,7 @@ public class BackupController : ControllerBase
     {
         try
         {
-            // 1. Lấy dữ liệu từ DB (Nên dùng AsNoTracking để tăng tốc độ)
+            // 1. Lấy dữ liệu từ DB 
             var backupData = new BackupDataDto
             {
                 BackupTime = DateTime.Now,

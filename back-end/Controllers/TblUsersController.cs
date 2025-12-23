@@ -28,8 +28,10 @@ namespace back_end.Controllers
                     u.PhoneNumber,
                     u.IsActive,
                     u.RoleId,
-                    RoleName = u.Role.RoleName 
+                    RoleName = u.Role.RoleName,
+                    u.CreatedAt
                 })
+                .OrderByDescending(u => u.CreatedAt)
                 .ToListAsync();
 
             return Ok(users);

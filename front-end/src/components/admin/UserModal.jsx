@@ -4,6 +4,7 @@ function UserModal({ isOpen, onClose, onSubmit, initialData, roles }) {
     const [email, setEmail] = useState('');
     const [fullName, setFullName] = useState('');
     const [password, setPassword] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
     const [roleId, setRoleId] = useState(2); 
     const [isActive, setIsActive] = useState(true);
 
@@ -11,12 +12,14 @@ function UserModal({ isOpen, onClose, onSubmit, initialData, roles }) {
         if (initialData) {
             setEmail(initialData.email);
             setFullName(initialData.fullName);
+            setPhoneNumber(initialData.phoneNumber || '');
             setRoleId(initialData.roleId);
             setIsActive(initialData.isActive);
             setPassword(''); 
         } else {
             setEmail('');
             setFullName('');
+            setPhoneNumber('');
             setPassword('');
             setRoleId(2);
             setIsActive(true);
@@ -33,6 +36,7 @@ function UserModal({ isOpen, onClose, onSubmit, initialData, roles }) {
         const formData = {
             email,
             fullName,
+            phoneNumber,
             roleId: parseInt(roleId),
             isActive,
             // Nếu có nhập pass thì gửi, ko thì gửi chuỗi rỗng
@@ -46,11 +50,22 @@ function UserModal({ isOpen, onClose, onSubmit, initialData, roles }) {
             <div style={{ background: 'white', padding: 20, borderRadius: 8, width: 400 }}>
                 <h3>{initialData ? 'Sửa Nhân Viên' : 'Thêm Nhân Viên'}</h3>
                 
+                {/* ... Các ô input cũ giữ nguyên ... */}
+                
                 <label>Email (Tên đăng nhập):</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} disabled={!!initialData} style={{ display: 'block', width: '100%', marginBottom: 10, padding: 5 }} />
 
                 <label>Họ tên:</label>
                 <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} style={{ display: 'block', width: '100%', marginBottom: 10, padding: 5 }} />
+
+                {/* 4. THÊM Ô NHẬP SỐ ĐIỆN THOẠI Ở ĐÂY */}
+                <label>Số điện thoại:</label>
+                <input 
+                    type="text" 
+                    value={phoneNumber} 
+                    onChange={e => setPhoneNumber(e.target.value)} 
+                    style={{ display: 'block', width: '100%', marginBottom: 10, padding: 5 }} 
+                />
 
                 <label>Mật khẩu {initialData && <small>(Để trống nếu không đổi)</small>}:</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={{ display: 'block', width: '100%', marginBottom: 10, padding: 5 }} />
