@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-// --- 1. IMPORT ẢNH MẶC ĐỊNH (LOGO) ---
+// 1. Import ảnh logo mặc định (Đảm bảo đường dẫn này đúng)
 import defaultImg from '../../assets/images/logo.png'; 
-// (Đảm bảo đường dẫn này đúng với nơi bạn lưu logo)
 
 const HomeProductCard = ({ product, addToCart, baseUrl }) => {
     const [qty, setQty] = useState(1);
@@ -11,20 +10,34 @@ const HomeProductCard = ({ product, addToCart, baseUrl }) => {
     // Tính toán giá sale
     const isSale = product.salePrice && product.salePrice < product.originalPrice;
 
-    // --- 2. SỬA HÀM LẤY ẢNH ---
+    // --- HÀM LẤY ẢNH THÔNG MINH (QUAN TRỌNG) ---
     const getProductImage = (prod) => {
-        // Nếu không có danh sách ảnh, trả về ảnh mặc định (Logo)
-        if (!prod.tblProductImages || prod.tblProductImages.length === 0) {
-            return defaultImg;
+        let imagePath = null;
+
+        // ƯU TIÊN 1: Lấy từ trường 'Thumbnail' hoặc 'thumbnail' (Do API Shop trả về)
+        if (prod.Thumbnail) {
+            imagePath = prod.Thumbnail;
+        } else if (prod.thumbnail) {
+            imagePath = prod.thumbnail;
         }
+        // ƯU TIÊN 2: Lấy từ mảng 'tblProductImages' (Do API Home/Admin trả về)
+        else if (prod.tblProductImages && prod.tblProductImages.length > 0) {
+            const thumb = prod.tblProductImages.find(img => img.isThumbnail === true);
+            imagePath = thumb ? thumb.imageUrl : prod.tblProductImages[0].imageUrl;
+        }
+
+        // Nếu không tìm thấy đường dẫn nào -> Trả về ảnh mặc định
+        if (!imagePath) return defaultImg;
+
+        // Xử lý đường dẫn: 
+        // Nếu là link online (http) thì giữ nguyên
+        if (imagePath.startsWith('http')) return imagePath;
         
-        // Tìm ảnh đại diện (thumbnail)
-        const thumb = prod.tblProductImages.find(img => img.isThumbnail === true);
-        const imagePath = thumb ? thumb.imageUrl : prod.tblProductImages[0].imageUrl;
-        
-        // Kiểm tra nếu link đã có http thì dùng luôn, chưa có thì nối domain
-        if (!imagePath) return defaultImg; // Nếu path rỗng cũng trả về default
-        return imagePath.startsWith('http') ? imagePath : `${baseUrl}${imagePath}`;
+        // Nếu là đường dẫn nội bộ thì nối thêm baseUrl.
+        // Xử lý bỏ dấu / thừa để tránh lỗi (ví dụ: ...7298//images...)
+        const cleanBase = baseUrl.replace(/\/$/, ''); 
+        const cleanPath = imagePath.replace(/^\//, '');
+        return `${cleanBase}/${cleanPath}`;
     };
 
     const handleIncrease = () => setQty(prev => prev + 1);
@@ -33,7 +46,7 @@ const HomeProductCard = ({ product, addToCart, baseUrl }) => {
     const handleAddToCart = () => {
         if (addToCart) {
             addToCart({ ...product, quantity: qty });
-            setQty(1); // Reset số lượng về 1 sau khi thêm
+            setQty(1); 
             alert("Đã thêm vào giỏ hàng!");
         }
     };
@@ -44,12 +57,11 @@ const HomeProductCard = ({ product, addToCart, baseUrl }) => {
                 <div className="product-img-wrap">
                     {isSale && <span className="sale-badge">SALE</span>}
                     
-                    {/* --- 3. SỬA THẺ IMG --- */}
                     <img 
                         src={getProductImage(product)} 
                         alt={product.productName} 
                         className="hp-img"
-                        // Nếu ảnh bị lỗi (404), tự động chuyển sang ảnh logo
+                        // Xử lý khi ảnh bị lỗi (404) -> Tự động chuyển về ảnh Logo
                         onError={(e) => { 
                             e.target.onerror = null; 
                             e.target.src = defaultImg; 
@@ -67,27 +79,25 @@ const HomeProductCard = ({ product, addToCart, baseUrl }) => {
                     {isSale ? (
                         <>
                             <span className="hp-price" style={{marginRight: '10px'}}>
-                                {product.salePrice.toLocaleString()} ₫
+                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.salePrice)}
                             </span>
                             <span className="hp-old-price">
-                                {product.originalPrice.toLocaleString()} ₫
+                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.originalPrice)}
                             </span>
                         </>
                     ) : (
                         <span className="hp-price">
-                            {product.originalPrice.toLocaleString()} ₫
+                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.originalPrice)}
                         </span>
                     )}
                 </div>
 
-                {/* Bộ nút tăng giảm số lượng */}
                 <div className="qty-wrapper">
                     <button className="qty-btn" onClick={handleDecrease}>-</button>
                     <input type="text" className="qty-input" value={qty} readOnly />
                     <button className="qty-btn" onClick={handleIncrease}>+</button>
                 </div>
 
-                {/* Nút thêm giỏ hàng */}
                 <button className="hp-btn-solid" onClick={handleAddToCart}>
                     THÊM VÀO GIỎ HÀNG
                 </button>

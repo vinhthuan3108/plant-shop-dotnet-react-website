@@ -36,7 +36,57 @@ namespace back_end.Controllers
                                  .OrderByDescending(p => p.CreatedAt)
                                  .ToListAsync();
         }
+        // GET: api/TblProducts/shop
+        // Đã sửa lỗi logic NULL và thêm Phân trang
+        [HttpGet("shop")]
+        public async Task<IActionResult> GetProductsForShop(int? categoryId, int page = 1, int pageSize = 12)
+        {
+            // 1. Khởi tạo Query
+            var query = _context.TblProducts
+                .Include(p => p.TblProductImages)
+                // --- SỬA LỖI QUAN TRỌNG Ở DÒNG DƯỚI ---
+                // Chấp nhận sản phẩm có IsDeleted là false HOẶC null
+                .Where(p => p.IsActive == true && (p.IsDeleted == false || p.IsDeleted == null));
 
+            // 2. Lọc theo danh mục nếu có
+            if (categoryId.HasValue)
+            {
+                query = query.Where(p => p.CategoryId == categoryId.Value);
+            }
+
+            // 3. Tính toán phân trang
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+
+            // 4. Lấy dữ liệu theo trang
+            var products = await query
+                .OrderByDescending(p => p.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new
+                {
+                    p.ProductId,
+                    p.ProductName,
+                    p.OriginalPrice,
+                    p.SalePrice,
+                    // Lấy ảnh thumbnail (từ Shop)
+                    thumbnail = p.TblProductImages
+                                .Where(img => img.IsThumbnail == true)
+                                .Select(img => img.ImageUrl)
+                                .FirstOrDefault()
+                                ?? p.TblProductImages.Select(img => img.ImageUrl).FirstOrDefault(),
+                    p.CategoryId
+                }).ToListAsync();
+
+            // 5. Trả về cấu trúc chuẩn cho Frontend
+            return Ok(new
+            {
+                data = products,      // Danh sách sản phẩm
+                totalPages = totalPages,
+                currentPage = page,
+                totalItems = totalItems
+            });
+        }
         // GET: api/TblProducts/5
         [HttpGet("{id}")]
         public async Task<ActionResult<TblProduct>> GetTblProduct(int id)
@@ -239,48 +289,6 @@ namespace back_end.Controllers
 
             return Ok(result);
         }
-        // --- ĐÂY LÀ HÀM BẠN ĐANG THIẾU ---
-        // GET: api/TblProducts/shop
-        // GET: api/TblProducts/shop
-        // GET: api/TblProducts/shop
-        [HttpGet("shop")]
-        public async Task<ActionResult<object>> GetProductsForShop(int? categoryId, int page = 1, int pageSize = 12)
-        {
-            // 1. Khởi tạo Query
-            var query = _context.TblProducts
-                .Include(p => p.Category)           // Kèm thông tin danh mục
-                .Include(p => p.TblProductImages)   // Kèm danh sách ảnh (QUAN TRỌNG)
-                .Where(p => p.IsActive == true && p.IsDeleted == false); // Chỉ lấy sản phẩm hiện
-
-            // 2. Lọc theo danh mục nếu có
-            if (categoryId.HasValue)
-            {
-                query = query.Where(p => p.CategoryId == categoryId.Value);
-            }
-
-            // 3. Tính toán phân trang
-            var totalItems = await query.CountAsync();
-            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-
-            // 4. Lấy dữ liệu (GIỮ NGUYÊN GỐC - KHÔNG CHẾ BIẾN)
-            // Giống hệt logic của API HomePage
-            var products = await query
-                .OrderByDescending(p => p.CreatedAt) // Sắp xếp mới nhất
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            // 5. Trả về format chuẩn
-            return Ok(new
-            {
-                data = products,      // Danh sách sản phẩm (Cấu trúc y hệt HomePage)
-                page = page,
-                pageSize = pageSize,
-                totalPages = totalPages,
-                totalItems = totalItems
-            });
-        }
-        // ----------------------------------
 
         // POST: api/TblProducts
         [HttpPost]
