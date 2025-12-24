@@ -4,9 +4,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using back_end.Models;
-using System.IO;
-using Microsoft.AspNetCore.Hosting;
 using System;
 using System.Collections.Generic;
 using System.IO;                // Thư viện thao tác file
@@ -20,15 +17,16 @@ namespace back_end.Controllers
     public class TblProductsController : ControllerBase
     {
         private readonly DbplantShopThuanCuongContext _context;
-        private readonly IWebHostEnvironment _environment;
+        private readonly IWebHostEnvironment _environment; // Khai báo biến môi trường
 
+        // Inject IWebHostEnvironment vào constructor
         public TblProductsController(DbplantShopThuanCuongContext context, IWebHostEnvironment environment)
         {
             _context = context;
             _environment = environment;
         }
 
-        // 1. GET: api/TblProducts (Lấy toàn bộ - Dùng cho Admin/Home)
+        // GET: api/TblProducts
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TblProduct>>> GetTblProducts()
         {
@@ -38,9 +36,57 @@ namespace back_end.Controllers
                                  .OrderByDescending(p => p.CreatedAt)
                                  .ToListAsync();
         }
+        // GET: api/TblProducts/shop
+        // Đã sửa lỗi logic NULL và thêm Phân trang
+        [HttpGet("shop")]
+        public async Task<IActionResult> GetProductsForShop(int? categoryId, int page = 1, int pageSize = 12)
+        {
+            // 1. Khởi tạo Query
+            var query = _context.TblProducts
+                .Include(p => p.TblProductImages)
+                // --- SỬA LỖI QUAN TRỌNG Ở DÒNG DƯỚI ---
+                // Chấp nhận sản phẩm có IsDeleted là false HOẶC null
+                .Where(p => p.IsActive == true && (p.IsDeleted == false || p.IsDeleted == null));
 
-        // ==================================================================
-        // 2. QUAN TRỌNG: ĐƯA HÀM "SHOP" LÊN TRƯỚC HÀM "ID"
+            // 2. Lọc theo danh mục nếu có
+            if (categoryId.HasValue)
+            {
+                query = query.Where(p => p.CategoryId == categoryId.Value);
+            }
+
+            // 3. Tính toán phân trang
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+
+            // 4. Lấy dữ liệu theo trang
+            var products = await query
+                .OrderByDescending(p => p.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new
+                {
+                    p.ProductId,
+                    p.ProductName,
+                    p.OriginalPrice,
+                    p.SalePrice,
+                    // Lấy ảnh thumbnail (từ Shop)
+                    thumbnail = p.TblProductImages
+                                .Where(img => img.IsThumbnail == true)
+                                .Select(img => img.ImageUrl)
+                                .FirstOrDefault()
+                                ?? p.TblProductImages.Select(img => img.ImageUrl).FirstOrDefault(),
+                    p.CategoryId
+                }).ToListAsync();
+
+            // 5. Trả về cấu trúc chuẩn cho Frontend
+            return Ok(new
+            {
+                data = products,      // Danh sách sản phẩm
+                totalPages = totalPages,
+                currentPage = page,
+                totalItems = totalItems
+            });
+        }
         // GET: api/TblProducts/5
         [HttpGet("{id}")]
         public async Task<ActionResult<TblProduct>> GetTblProduct(int id)
@@ -245,85 +291,55 @@ namespace back_end.Controllers
 
             return Ok(result);
         }
-        // --- ĐÂY LÀ HÀM BẠN ĐANG THIẾU ---
-        // GET: api/TblProducts/shop
-        // ==================================================================
-        [HttpGet("shop")]
-        public async Task<ActionResult<IEnumerable<object>>> GetProductsForShop(int? categoryId)
-        {
-            var query = _context.TblProducts
-                .Include(p => p.TblProductImages)
-                .Where(p => p.IsActive == true && p.IsDeleted == false);
 
-            if (categoryId.HasValue)
-            {
-                query = query.Where(p => p.CategoryId == categoryId.Value);
-            }
-
-            // Trả về dữ liệu đã chọn lọc (giống Homepage)
-            var products = await query.Select(p => new
-            {
-                p.ProductId,
-                p.ProductName,
-                p.OriginalPrice,
-                p.SalePrice,
-                // Lấy ảnh thumbnail
-                Thumbnail = p.TblProductImages
-                            .Where(img => img.IsThumbnail == true)
-                            .Select(img => img.ImageUrl)
-                            .FirstOrDefault()
-                            ?? p.TblProductImages.Select(img => img.ImageUrl).FirstOrDefault(),
-                p.CategoryId
-            }).ToListAsync();
-
-            return Ok(products);
-        }
-
-        // ==================================================================
-        // 3. HÀM LẤY THEO ID PHẢI ĐỂ DƯỚI CÙNG (Để tránh nhận nhầm chữ "shop" là ID)
-        // GET: api/TblProducts/5
-        // ==================================================================
-        [HttpGet("{id}")]
-        public async Task<ActionResult<TblProduct>> GetTblProduct(int id)
-        {
-            var tblProduct = await _context.TblProducts
-                                           .Include(p => p.TblProductImages)
-                                           .Include(p => p.Category)
-                                           .FirstOrDefaultAsync(p => p.ProductId == id);
-
-            if (tblProduct == null) return NotFound();
-
-            return tblProduct;
-        }
-
-        // ... CÁC HÀM KHÁC (PUT, POST, DELETE) GIỮ NGUYÊN Ở DƯỚI ...
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutTblProduct(int id, TblProduct tblProduct)
-        {
-            // (Giữ nguyên code hàm Put của bạn ở đây)
-            if (id != tblProduct.ProductId) return BadRequest();
-            // ... logic xử lý ...
-            return NoContent();
-        }
-
+        // POST: api/TblProducts
         [HttpPost]
         public async Task<ActionResult<TblProduct>> PostTblProduct(TblProduct tblProduct)
         {
-            // (Giữ nguyên code hàm Post của bạn)
+            tblProduct.CreatedAt = DateTime.Now;
+            tblProduct.UpdatedAt = DateTime.Now;
             _context.TblProducts.Add(tblProduct);
             await _context.SaveChangesAsync();
+
             return CreatedAtAction("GetTblProduct", new { id = tblProduct.ProductId }, tblProduct);
         }
 
+        // DELETE: api/TblProducts/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTblProduct(int id)
         {
-            // (Giữ nguyên code hàm Delete của bạn)
-            var tblProduct = await _context.TblProducts.FindAsync(id);
-            if (tblProduct == null) return NotFound();
+            // BƯỚC 1: Tìm sản phẩm và KÈM THEO DANH SÁCH ẢNH
+            var tblProduct = await _context.TblProducts
+                .Include(p => p.TblProductImages)
+                .FirstOrDefaultAsync(p => p.ProductId == id);
+
+            if (tblProduct == null)
+            {
+                return NotFound();
+            }
+
+            // BƯỚC 2: Xóa file vật lý trong thư mục wwwroot
+            if (tblProduct.TblProductImages != null && tblProduct.TblProductImages.Any())
+            {
+                foreach (var image in tblProduct.TblProductImages)
+                {
+                    if (!string.IsNullOrEmpty(image.ImageUrl))
+                    {
+                        var relativePath = image.ImageUrl.TrimStart('/');
+                        var fullPath = Path.Combine(_environment.WebRootPath, relativePath);
+
+                        if (System.IO.File.Exists(fullPath))
+                        {
+                            try { System.IO.File.Delete(fullPath); } catch { }
+                        }
+                    }
+                }
+            }
+
+            // BƯỚC 3: Xóa dữ liệu trong Database
             _context.TblProducts.Remove(tblProduct);
             await _context.SaveChangesAsync();
+
             return NoContent();
         }
 
