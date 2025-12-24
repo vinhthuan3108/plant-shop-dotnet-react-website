@@ -16,5 +16,7 @@
         // 5. Khoảng giá
         public decimal? MinPrice { get; set; }
         public decimal? MaxPrice { get; set; }
+        public bool? IsOnSale { get; set; } // true: Đang sale, false: Không sale
+        public string? SortByPrice { get; set; }
     }
 }
