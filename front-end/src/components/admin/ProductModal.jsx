@@ -120,6 +120,7 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
             if (initialData.tblProductImages) {
                 setImages(initialData.tblProductImages);
             }
+            setCatId(initialData.categoryId || '');
         } else {
             setCode('');
             setName('');
@@ -137,6 +138,7 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
             setFengShui('');
             setActive(true);
             setImages([]);
+            setCatId(categories.length > 0 ? categories[0].categoryId : '');
         }
     }, [initialData, isOpen, categories]);
 
