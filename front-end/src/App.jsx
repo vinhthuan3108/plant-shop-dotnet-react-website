@@ -9,6 +9,7 @@ import MainLayout from './layouts/MainLayout'; // Import thêm MainLayout
 // Client Pages
 import HomePage from './pages/client/HomePage';
 import Cart from './pages/client/Cart';
+import Shop from './pages/client/Shop';
 // Auth Pages (Thường không dùng chung layout với Client/Admin)
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -107,6 +108,7 @@ function App() {
         <Route path="/intro" element={<IntroPage />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/guide" element={<GuidePage />} />
+        <Route path="shop" element={<Shop />} />
       </Route>
 
       {/* --- NHÓM 2: DÀNH CHO ADMIN (Dùng AdminLayout) --- */}
