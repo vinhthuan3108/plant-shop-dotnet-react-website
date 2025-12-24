@@ -60,32 +60,30 @@ function PostCategories() {
                 + Thêm mới danh mục bài đăng
             </button>
 
-            <table border="1" style={{ width: '100%', borderCollapse: 'collapse', borderColor: '#ddd' }}>
+            <table border="1" style={{ width: '100%', borderCollapse: 'collapse', borderColor: '#ddd', tableLayout: 'fixed' }}>
                 <thead style={{ backgroundColor: '#f8f9fa' }}>
                     <tr>
-                        <th style={{ padding: '12px' }}>Tên Danh Mục</th>
+                        {/* Chiếm 30% chiều rộng */}
+                        <th style={{ padding: '12px', width: '20%' }}>Tên Danh Mục</th>
+                        
+                        {/* Chiếm phần còn lại (khoảng 70%) */}
                         <th style={{ padding: '12px' }}>Mô tả</th>
-                        <th style={{ padding: '12px', width: '80px' }}>Thứ tự</th>
-                        <th style={{ padding: '12px', width: '150px' }}>Trạng thái</th>
-                        <th style={{ padding: '12px', width: '150px' }}>Thao tác</th>
+                        
+                        {/* Cố định chiều rộng vừa đủ cho 2 nút */}
+                        <th style={{ padding: '12px', width: '110px', textAlign: 'center' }}>Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     {categories.map(item => (
                         <tr key={item.postCategoryId}>
-                            <td style={{ padding: '10px' }}><strong>{item.categoryName}</strong></td>
-                            <td style={{ padding: '10px' }}>{item.description}</td>
-                            <td style={{ padding: '10px', textAlign: 'center' }}>{item.displayOrder}</td>
-                            <td style={{ padding: '10px', textAlign: 'center' }}>
-                                <span style={{
-                                    padding: '4px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold',
-                                    backgroundColor: item.isActive ? '#d4edda' : '#f8d7da',
-                                    color: item.isActive ? '#155724' : '#721c24'
-                                }}>
-                                    {item.isActive ? 'Đang hoạt động' : 'Ngừng hoạt động'}
-                                </span>
+                            {/* wordBreak: 'break-word' giúp xuống dòng nếu tên quá dài */}
+                            <td style={{ padding: '10px', verticalAlign: 'top', wordBreak: 'break-word' }}>
+                                <strong>{item.categoryName}</strong>
                             </td>
-                            <td style={{ padding: '10px', textAlign: 'center' }}>
+                            <td style={{ padding: '10px', verticalAlign: 'top', wordBreak: 'break-word' }}>
+                                {item.description}
+                            </td>
+                            <td style={{ padding: '10px', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                                 <button onClick={() => { setEditingItem(item); setIsModalOpen(true); }}
                                     style={{ marginRight: '8px', padding: '5px 10px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>
                                     Sửa

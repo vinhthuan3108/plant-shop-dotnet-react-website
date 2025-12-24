@@ -30,10 +30,26 @@ namespace back_end.Controllers
                 .ToListAsync();
         }
         // GET: api/TblCategories
+        // GET: api/TblCategories
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TblCategory>>> GetTblCategories()
+        public async Task<IActionResult> GetTblCategories()
         {
-            return await _context.TblCategories.ToListAsync();
+            // Sử dụng Select để chỉ lấy dữ liệu cần thiết và đếm số sản phẩm
+            var categories = await _context.TblCategories
+                .Select(c => new
+                {
+                    c.CategoryId,
+                    c.CategoryName,
+                    c.Description,
+                    c.DisplayOrder,
+                    c.IsActive,
+                    c.IsDeleted,
+                    // Đếm số lượng sản phẩm thuộc danh mục này
+                    ProductCount = c.TblProducts.Count()
+                })
+                .ToListAsync();
+
+            return Ok(categories);
         }
 
         // GET: api/TblCategories/5

@@ -77,7 +77,7 @@ function Categories() {
                     <tr>
                         <th style={{ padding: '12px', textAlign: 'center' }}>Tên Danh Mục</th>
                         <th style={{ padding: '12px', textAlign: 'center' }}>Mô tả</th>
-                        
+                        <th style={{ padding: '12px', textAlign: 'center', width: '100px' }}>Số lượng SP</th>
 
                         <th style={{ padding: '12px', textAlign: 'center', width: '80px' }}>Thứ tự hiển thị</th>
                         
@@ -94,7 +94,9 @@ function Categories() {
                                 <strong>{item.categoryName}</strong>
                             </td>
                             <td style={{ padding: '10px' }}>{item.description}</td>
-                            
+                            <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#555' }}>
+                                {item.productCount}
+                            </td>
 
                             <td style={{ padding: '10px', textAlign: 'center' }}>
                                 {item.displayOrder}
