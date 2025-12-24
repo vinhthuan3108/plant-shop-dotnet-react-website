@@ -119,7 +119,20 @@ const ProductDetail = () => {
                     </div>
 
                     <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '4px', marginBottom: '20px' }}>
-                        <p><strong>Mô tả ngắn:</strong> {product.shortDescription}</p>
+                        {/* Sử dụng div bao ngoài để tránh lỗi lồng thẻ p bên trong thẻ p */}
+                        <div style={{ marginBottom: '15px' }}>
+                                <strong style={{ display: 'block', marginBottom: '5px' }}>Mô tả ngắn:</strong>
+                                <div 
+                                    dangerouslySetInnerHTML={{ __html: product.shortDescription }} 
+                                    style={{ 
+                                        wordWrap: 'break-word',      // Tự động xuống dòng nếu từ quá dài
+                                        overflowWrap: 'break-word',  // Chuẩn mới của trình duyệt để ngắt dòng
+                                        whiteSpace: 'pre-wrap',      // Giữ lại các dấu xuống dòng (Enter) người dùng nhập
+                                        lineHeight: '1.6',           // Giãn dòng ra một chút cho dễ đọc
+                                        color: '#333'
+                                    }}
+                                />
+                            </div>
                         <p><strong>Kích thước:</strong> {product.size || 'Theo mẫu'}</p>
                         <p><strong>Tình trạng:</strong> {product.stockQuantity > 0 ? `Còn hàng (${product.stockQuantity})` : 'Hết hàng'}</p>
                     </div>

@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo, useRef } from 'react'; // [cite: 1] Thêm useMemo, useRef
+import { useState, useEffect, useMemo, useRef } from 'react'; // Thêm useMemo, useRef
 import ReactQuill from 'react-quill-new'; 
 import 'react-quill-new/dist/quill.snow.css';
 
 function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
-    // --- Các State cũ giữ nguyên ---
+    // --- Các State dữ liệu ---
     const [code, setCode] = useState('');
     const [name, setName] = useState('');
     const [catId, setCatId] = useState(''); 
@@ -15,8 +15,10 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
 
     const [saleStart, setSaleStart] = useState('');
     const [saleEnd, setSaleEnd] = useState('');
+    
+    // State cho 2 ô soạn thảo
     const [shortDesc, setShortDesc] = useState('');
-    const [detailDesc, setDetailDesc] = useState(''); // State này sẽ dùng cho Quill
+    const [detailDesc, setDetailDesc] = useState(''); 
     
     const [size, setSize] = useState('');
     const [characteristics, setCharacteristics] = useState('');
@@ -26,23 +28,24 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
     const [images, setImages] = useState([]); 
     const [uploading, setUploading] = useState(false);
 
-    // --- Cấu hình cho React Quill ---
-    const quillRef = useRef(null);
-    const API_BASE = 'https://localhost:7298'; // Định nghĩa base URL
+    // --- CẤU HÌNH REACT QUILL (Nâng cấp hỗ trợ 2 Editor) ---
+    const shortQuillRef = useRef(null);  // Ref cho Mô tả ngắn
+    const detailQuillRef = useRef(null); // Ref cho Mô tả chi tiết (đổi tên từ quillRef cũ)
+    
+    const API_BASE = 'https://localhost:7298';
 
-    // Hàm upload ảnh riêng cho Editor (trả về URL để chèn vào bài viết)
+    // Hàm upload file lên server (dùng chung)
     const uploadFileForEditor = async (file) => {
         const formData = new FormData();
         formData.append('file', file);
         try {
-            // Sử dụng endpoint upload hiện có 
             const res = await fetch(`${API_BASE}/api/Upload`, {
                 method: 'POST',
                 body: formData
             });
             if (res.ok) {
                 const data = await res.json();
-                return data.url; // Trả về đường dẫn ảnh (ví dụ: /images/abc.jpg)
+                return data.url; 
             }
         } catch (err) {
             console.error("Upload ảnh editor lỗi:", err);
@@ -50,48 +53,60 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
         return null;
     };
 
-    const imageHandler = () => {
-        const input = document.createElement('input');
-        input.setAttribute('type', 'file');
-        input.setAttribute('accept', 'image/*');
-        input.click();
-        input.onchange = async () => {
-            const file = input.files[0];
-            if (file) {
-                const url = await uploadFileForEditor(file);
-                if (url) {
-                    const quill = quillRef.current.getEditor();
-                    const range = quill.getSelection();
-                    // Chèn ảnh vào editor với đường dẫn đầy đủ
-                    quill.insertEmbed(range.index, 'image', `${API_BASE}${url}`);
+    // Hàm tạo Image Handler riêng cho từng Editor
+    // editorRef: Tham chiếu đến Editor nào đang được thao tác
+    const createImageHandler = (editorRef) => {
+        return () => {
+            const input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', 'image/*');
+            input.click();
+            input.onchange = async () => {
+                const file = input.files[0];
+                if (file) {
+                    const url = await uploadFileForEditor(file);
+                    if (url) {
+                        // Lấy đúng instance của editor dựa trên Ref truyền vào
+                        const quill = editorRef.current.getEditor();
+                        const range = quill.getSelection();
+                        quill.insertEmbed(range ? range.index : 0, 'image', `${API_BASE}${url}`);
+                    }
                 }
-            }
+            };
         };
     };
 
-    const modules = useMemo(() => ({
+    // Cấu hình Toolbar (Dùng chung layout, chỉ khác handler)
+    const toolbarContainer = [
+        [{ 'header': [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+        [{ 'align': [] }],
+        ['image', 'link'], 
+        ['clean']
+    ];
+
+    const formats = [
+        'header', 'bold', 'italic', 'underline', 'strike',
+        'list', 'bullet', 'align', 'image', 'link'
+    ];
+
+    // Tạo module riêng cho từng ô để gắn đúng handler
+    const modulesShort = useMemo(() => ({
         toolbar: {
-            container: [
-                [{ 'header': [1, 2, 3, false] }],
-                ['bold', 'italic', 'underline', 'strike'],
-                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                [{ 'align': [] }],
-                ['image', 'link'], // Bỏ video nếu không cần thiết
-                ['clean']
-            ],
-            handlers: { image: imageHandler }
+            container: toolbarContainer,
+            handlers: { image: createImageHandler(shortQuillRef) } // Gắn với Ref ngắn
         }
     }), []);
 
-    const formats = [
-        'header',
-        'bold', 'italic', 'underline', 'strike',
-        'list', 'bullet',
-        'align',
-        'image', 'link'
-    ];
+    const modulesDetail = useMemo(() => ({
+        toolbar: {
+            container: toolbarContainer,
+            handlers: { image: createImageHandler(detailQuillRef) } // Gắn với Ref chi tiết
+        }
+    }), []);
+    // -----------------------------------------------------------
 
-    // --- Logic cũ giữ nguyên ---
     const formatDateForInput = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -102,16 +117,17 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
         if (initialData) {
             setCode(initialData.productCode);
             setName(initialData.productName);
-            setCatId(initialData.categoryId);
+            setCatId(initialData.categoryId || '');
             setOriginalPrice(initialData.originalPrice);
             setSalePrice(initialData.salePrice || 0);
             setStock(initialData.stockQuantity || 0);
             setMinStock(initialData.minStockAlert || 5);
             setSaleStart(formatDateForInput(initialData.saleStartDate));
             setSaleEnd(formatDateForInput(initialData.saleEndDate));
-            setShortDesc(initialData.shortDescription || '');
             
-            setDetailDesc(initialData.detailDescription || ''); // Load nội dung HTML vào đây
+            // Load nội dung HTML vào cả 2 state
+            setShortDesc(initialData.shortDescription || '');
+            setDetailDesc(initialData.detailDescription || '');
 
             setSize(initialData.size || '');
             setCharacteristics(initialData.characteristics || '');
@@ -120,59 +136,34 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
             if (initialData.tblProductImages) {
                 setImages(initialData.tblProductImages);
             }
-            setCatId(initialData.categoryId || '');
         } else {
-            setCode('');
-            setName('');
-            setCatId(categories.length > 0 ? categories[0].categoryId : '');
-            setOriginalPrice(0);
-            setSalePrice(0);
-            setStock(0);
-            setMinStock(5);
-            setSaleStart('');
-            setSaleEnd('');
-            setShortDesc('');
-            setDetailDesc('');
-            setSize('');
-            setCharacteristics('');
-            setFengShui('');
-            setActive(true);
-            setImages([]);
-            setCatId(categories.length > 0 ? categories[0].categoryId : '');
+            // Reset form
+            setCode(''); setName(''); setCatId(categories.length > 0 ? categories[0].categoryId : '');
+            setOriginalPrice(0); setSalePrice(0); setStock(0); setMinStock(5);
+            setSaleStart(''); setSaleEnd('');
+            setShortDesc(''); setDetailDesc('');
+            setSize(''); setCharacteristics(''); setFengShui('');
+            setActive(true); setImages([]);
         }
     }, [initialData, isOpen, categories]);
 
     const handleFileChange = async (e) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
-
         setUploading(true);
         const newImages = [];
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             const formData = new FormData();
             formData.append('file', file);
-
             try {
-                //  Logic upload ảnh sản phẩm (Product Image)
-                const res = await fetch(`${API_BASE}/api/Upload`, {
-                    method: 'POST',
-                    body: formData
-                });
+                const res = await fetch(`${API_BASE}/api/Upload`, { method: 'POST', body: formData });
                 if (res.ok) {
                     const data = await res.json();
                     const isFirst = (images.length + newImages.length) === 0;
-                    
-                    newImages.push({
-                        imageUrl: data.url,
-                        isThumbnail: isFirst, 
-                        displayOrder: 0
-                    });
+                    newImages.push({ imageUrl: data.url, isThumbnail: isFirst, displayOrder: 0 });
                 }
-            } catch (err) {
-                console.error("Upload lỗi:", err);
-                alert("Lỗi upload ảnh!");
-            }
+            } catch (err) { console.error("Upload lỗi:", err); }
         }
         setImages(prev => [...prev, ...newImages]);
         setUploading(false);
@@ -186,10 +177,7 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
     };
 
     const handleSetThumbnail = (index) => {
-        const newArr = images.map((img, idx) => ({
-            ...img,
-            isThumbnail: idx === index 
-        }));
+        const newArr = images.map((img, idx) => ({ ...img, isThumbnail: idx === index }));
         setImages(newArr);
     };
 
@@ -209,9 +197,9 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
             saleEndDate: saleEnd ? new Date(saleEnd) : null,
             stockQuantity: parseInt(stock),
             minStockAlert: parseInt(minStock),
-            shortDescription: shortDesc,
             
-            detailDescription: detailDesc, // Giá trị này giờ là HTML từ Quill
+            shortDescription: shortDesc,   // HTML từ Quill ngắn
+            detailDescription: detailDesc, // HTML từ Quill chi tiết
 
             size: size,
             characteristics: characteristics,
@@ -232,7 +220,7 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
             <div style={{ 
                 backgroundColor: 'white', padding: '20px', 
                 borderRadius: '8px', 
-                width: '900px', // Tăng width lên một chút để editor rộng rãi hơn
+                width: '900px', 
                 maxHeight: '90vh', overflowY: 'auto' 
             }}>
                 <h3>{initialData ? 'Cập Nhật Sản Phẩm' : 'Thêm Sản Phẩm Mới'}</h3>
@@ -252,11 +240,7 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                             <label>Danh mục (*):</label>
                             <select value={catId} onChange={e => setCatId(e.target.value)} style={{ width: '100%', padding: '6px' }}>
                                 <option value="">-- Chọn danh mục --</option>
-                                {categories.map(c => (
-                                    <option key={c.categoryId} value={c.categoryId}>
-                                        {c.categoryName}
-                                    </option>
-                                ))}
+                                {categories.map(c => (<option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>))}
                             </select>
                         </div>
                         <div style={{ marginBottom: '10px' }}>
@@ -304,7 +288,7 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                     </div>
                 </div>
 
-                {/* Phần Hình ảnh sản phẩm (Giữ nguyên) */}
+                {/* Hình ảnh */}
                 <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '10px' }}>
                     <h4>Hình ảnh sản phẩm</h4>
                     <div style={{ marginBottom: '10px' }}>
@@ -314,47 +298,43 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                         {images.map((img, idx) => (
                             <div key={idx} style={{ position: 'relative', border: img.isThumbnail ? '2px solid green' : '1px solid #ddd', padding: '2px' }}>
-                                <img 
-                                    src={`${API_BASE}${img.imageUrl}`} // Dùng API_BASE thay vì hardcode
-                                    alt="product" 
-                                    style={{ width: '80px', height: '80px', objectFit: 'cover' }} 
-                                />
-                                <button 
-                                    onClick={() => handleRemoveImage(idx)}
-                                    style={{ position: 'absolute', top: 0, right: 0, background: 'red', color: 'white', border: 'none', cursor: 'pointer', fontSize:'10px' }}
-                                >X</button>
+                                <img src={`${API_BASE}${img.imageUrl}`} alt="product" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                                <button onClick={() => handleRemoveImage(idx)} style={{ position: 'absolute', top: 0, right: 0, background: 'red', color: 'white', border: 'none', cursor: 'pointer', fontSize:'10px' }}>X</button>
                                 <div style={{ textAlign: 'center', fontSize: '11px', marginTop: '2px' }}>
-                                    <input 
-                                        type="radio" 
-                                        name="thumb" 
-                                        checked={img.isThumbnail} 
-                                        onChange={() => handleSetThumbnail(idx)} 
-                                    /> Đại diện
+                                    <input type="radio" name="thumb" checked={img.isThumbnail} onChange={() => handleSetThumbnail(idx)} /> Đại diện
                                 </div>
                             </div>
                         ))}
                     </div>
                 </div>
                 
-                <div style={{ marginBottom: '10px', marginTop: '10px' }}>
-                    <label>Mô tả ngắn:</label>
-                    <textarea value={shortDesc} onChange={e => setShortDesc(e.target.value)} style={{ width: '100%', height: '50px', padding:'5px' }} />
+                {/* --- 1. MÔ TẢ NGẮN (Đã chuyển sang Quill) --- */}
+                <div style={{ marginBottom: '60px', marginTop: '10px' }}>
+                    <label style={{display: 'block', marginBottom: '5px'}}>Mô tả ngắn:</label>
+                    <ReactQuill 
+                        ref={shortQuillRef} // Gắn Ref ngắn
+                        theme="snow" 
+                        value={shortDesc} 
+                        onChange={setShortDesc} 
+                        modules={modulesShort} // Dùng Modules ngắn
+                        formats={formats}
+                        style={{ height: '150px' }} // Chiều cao nhỏ hơn xíu
+                    />
                 </div>
                 
-                {/* --- PHẦN THAY ĐỔI CHÍNH: Thay Textarea bằng ReactQuill --- */}
+                {/* --- 2. MÔ TẢ CHI TIẾT --- */}
                 <div style={{ marginBottom: '60px' }}> 
                     <label style={{display: 'block', marginBottom: '5px'}}>Mô tả chi tiết:</label>
                     <ReactQuill 
-                        ref={quillRef}
+                        ref={detailQuillRef} // Gắn Ref chi tiết
                         theme="snow" 
                         value={detailDesc} 
                         onChange={setDetailDesc} 
-                        modules={modules}
+                        modules={modulesDetail} // Dùng Modules chi tiết
                         formats={formats}
-                        style={{ height: '200px' }} // Chiều cao cho vùng soạn thảo
+                        style={{ height: '200px' }} 
                     />
                 </div>
-                {/* -------------------------------------------------------- */}
 
                 <div style={{ marginBottom: '10px' }}>
                     <label>Đặc điểm (JSON/Text):</label>
