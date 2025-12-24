@@ -6,8 +6,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using back_end.Models;
-using System.IO;                // Thêm thư viện này để thao tác file
+using System.IO;                // Thư viện thao tác file
 using Microsoft.AspNetCore.Hosting;
+
 namespace back_end.Controllers
 {
     [Route("api/[controller]")]
@@ -15,8 +16,7 @@ namespace back_end.Controllers
     public class TblProductsController : ControllerBase
     {
         private readonly DbplantShopThuanCuongContext _context;
-
-        private readonly IWebHostEnvironment _environment; // 1. Khai báo biến môi trường
+        private readonly IWebHostEnvironment _environment; // Khai báo biến môi trường
 
         // Inject IWebHostEnvironment vào constructor
         public TblProductsController(DbplantShopThuanCuongContext context, IWebHostEnvironment environment)
@@ -29,10 +29,9 @@ namespace back_end.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TblProduct>>> GetTblProducts()
         {
-
             return await _context.TblProducts
-                                 .Include(p => p.Category)       
-                                 .Include(p => p.TblProductImages) 
+                                 .Include(p => p.Category)
+                                 .Include(p => p.TblProductImages)
                                  .OrderByDescending(p => p.CreatedAt)
                                  .ToListAsync();
         }
@@ -41,13 +40,9 @@ namespace back_end.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<TblProduct>> GetTblProduct(int id)
         {
-            // CŨ (Bị lỗi thiếu ảnh): 
-            // var tblProduct = await _context.TblProducts.FindAsync(id);
-
-            // MỚI (Sửa lại để lấy kèm ảnh và danh mục):
             var tblProduct = await _context.TblProducts
                                            .Include(p => p.TblProductImages) // Quan trọng: Load kèm ảnh
-                                           .Include(p => p.Category)         // Load kèm tên danh mục (nếu cần hiển thị)
+                                           .Include(p => p.Category)         // Load kèm tên danh mục
                                            .FirstOrDefaultAsync(p => p.ProductId == id);
 
             if (tblProduct == null)
@@ -62,47 +57,50 @@ namespace back_end.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTblProduct(int id, TblProduct tblProduct)
         {
-            if (id != tblProduct.ProductId)
-            {
-                return BadRequest();
-            }
+            if (id != tblProduct.ProductId) return BadRequest();
 
-            // BƯỚC 1: Lấy sản phẩm cũ từ DB, BẮT BUỘC phải Include ảnh cũ để xử lý
+            // BƯỚC 1: Lấy sản phẩm cũ từ DB kèm ảnh
             var existingProduct = await _context.TblProducts
                 .Include(p => p.TblProductImages)
                 .FirstOrDefaultAsync(p => p.ProductId == id);
 
-            if (existingProduct == null)
-            {
-                return NotFound();
-            }
+            if (existingProduct == null) return NotFound();
 
-            // BƯỚC 2: Cập nhật thông tin cơ bản (Text, số...)
-            // Cách này copy giá trị từ tblProduct (gửi lên) sang existingProduct (trong DB)
+            // BƯỚC 2: Cập nhật thông tin cơ bản
             _context.Entry(existingProduct).CurrentValues.SetValues(tblProduct);
 
-            // Giữ nguyên ngày tạo, cập nhật ngày sửa
+            // Cập nhật ngày sửa, giữ nguyên ngày tạo
             existingProduct.UpdatedAt = DateTime.Now;
-            // Đảm bảo CreatedAt không bị ghi đè bởi null hoặc giá trị sai (dù SetValues đã copy, nhưng an toàn thì giữ lại cái cũ)
             _context.Entry(existingProduct).Property(x => x.CreatedAt).IsModified = false;
 
-            // BƯỚC 3: Xử lý hình ảnh
-            // 3.1. Xóa toàn bộ ảnh cũ của sản phẩm này trong Database
+            // BƯỚC 3: Xử lý hình ảnh cũ
             if (existingProduct.TblProductImages != null && existingProduct.TblProductImages.Any())
             {
+                // 3.1. Xóa file vật lý trong thư mục wwwroot trước
+                foreach (var item in existingProduct.TblProductImages)
+                {
+                    if (!string.IsNullOrEmpty(item.ImageUrl))
+                    {
+                        var relativePath = item.ImageUrl.TrimStart('/');
+                        var filePath = Path.Combine(_environment.WebRootPath, relativePath);
+
+                        if (System.IO.File.Exists(filePath))
+                        {
+                            try { System.IO.File.Delete(filePath); } catch { }
+                        }
+                    }
+                }
+                // 3.2. Xóa record trong Database
                 _context.TblProductImages.RemoveRange(existingProduct.TblProductImages);
             }
 
-            // 3.2. Thêm lại danh sách ảnh mới từ Frontend gửi lên
+            // BƯỚC 4: Thêm ảnh mới từ client gửi lên
             if (tblProduct.TblProductImages != null && tblProduct.TblProductImages.Any())
             {
                 foreach (var img in tblProduct.TblProductImages)
                 {
-                    // Quan trọng: Gán ImageId = 0 để EF hiểu đây là dữ liệu mới cần Insert
-                    img.ImageId = 0;
-                    img.ProductId = id; // Gắn lại ID sản phẩm cho chắc chắn
-
-                    // Thêm vào danh sách ảnh của sản phẩm
+                    img.ImageId = 0; // Đánh dấu là mới để EF tự sinh ID
+                    img.ProductId = id;
                     _context.TblProductImages.Add(img);
                 }
             }
@@ -113,24 +111,50 @@ namespace back_end.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!TblProductExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                if (!TblProductExists(id)) return NotFound();
+                else throw;
             }
 
             return NoContent();
         }
 
+        // --- ĐÂY LÀ HÀM BẠN ĐANG THIẾU ---
+        // GET: api/TblProducts/shop
+        [HttpGet("shop")]
+        public async Task<ActionResult<IEnumerable<object>>> GetProductsForShop(int? categoryId)
+        {
+            var query = _context.TblProducts
+                .Include(p => p.TblProductImages)
+                .Where(p => p.IsActive == true && p.IsDeleted == false);
+
+            if (categoryId.HasValue)
+            {
+                query = query.Where(p => p.CategoryId == categoryId.Value);
+            }
+
+            var products = await query.Select(p => new
+            {
+                p.ProductId,
+                p.ProductName,
+                p.OriginalPrice,
+                p.SalePrice,
+                Thumbnail = p.TblProductImages
+                            .Where(img => img.IsThumbnail == true)
+                            .Select(img => img.ImageUrl)
+                            .FirstOrDefault()
+                            ?? p.TblProductImages.Select(img => img.ImageUrl).FirstOrDefault(),
+                p.CategoryId
+            }).ToListAsync();
+
+            return Ok(products);
+        }
+        // ----------------------------------
+
         // POST: api/TblProducts
         [HttpPost]
         public async Task<ActionResult<TblProduct>> PostTblProduct(TblProduct tblProduct)
         {
-            tblProduct.CreatedAt = DateTime.Now; 
+            tblProduct.CreatedAt = DateTime.Now;
             tblProduct.UpdatedAt = DateTime.Now;
             _context.TblProducts.Add(tblProduct);
             await _context.SaveChangesAsync();
@@ -138,12 +162,13 @@ namespace back_end.Controllers
             return CreatedAtAction("GetTblProduct", new { id = tblProduct.ProductId }, tblProduct);
         }
 
+        // DELETE: api/TblProducts/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTblProduct(int id)
         {
-            // BƯỚC 1: Tìm sản phẩm và KÈM THEO DANH SÁCH ẢNH (Include)
+            // BƯỚC 1: Tìm sản phẩm và KÈM THEO DANH SÁCH ẢNH
             var tblProduct = await _context.TblProducts
-                .Include(p => p.TblProductImages) // Quan trọng: Phải load ảnh ra mới biết đường dẫn mà xóa
+                .Include(p => p.TblProductImages)
                 .FirstOrDefaultAsync(p => p.ProductId == id);
 
             if (tblProduct == null)
@@ -156,25 +181,14 @@ namespace back_end.Controllers
             {
                 foreach (var image in tblProduct.TblProductImages)
                 {
-                    // Giả sử property lưu đường dẫn ảnh trong DB là 'ImageUrl' (hoặc bạn sửa lại theo tên cột thực tế của bạn)
-                    // Đường dẫn trong DB thường dạng: /images/abc.jpg -> cần xóa dấu / ở đầu
                     if (!string.IsNullOrEmpty(image.ImageUrl))
                     {
                         var relativePath = image.ImageUrl.TrimStart('/');
                         var fullPath = Path.Combine(_environment.WebRootPath, relativePath);
 
-                        // Kiểm tra file có tồn tại không thì mới xóa
                         if (System.IO.File.Exists(fullPath))
                         {
-                            try
-                            {
-                                System.IO.File.Delete(fullPath);
-                            }
-                            catch (Exception ex)
-                            {
-                                // Có thể log lỗi nếu cần, nhưng thường ta sẽ bỏ qua để đảm bảo DB vẫn được xóa
-                                // Console.WriteLine("Lỗi xóa ảnh: " + ex.Message);
-                            }
+                            try { System.IO.File.Delete(fullPath); } catch { }
                         }
                     }
                 }

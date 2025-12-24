@@ -176,23 +176,24 @@ const Header = () => {
                     <ul className="nav-list">
                         <li><Link to="/">TRANG CHỦ</Link></li>
                         <li><Link to="/intro">GIỚI THIỆU</Link></li>
+                        
+                        {/* --- MENU CÂY CẢNH CÓ DROPDOWN --- */}
                         <li className="has-dropdown">
-                <Link to="/shop" className="dropdown-toggle" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    CÂY CẢNH <FaChevronDown style={{ fontSize: '10px' }}/>
-                </Link>
-                {/* Menu con xổ xuống */}
-                <ul className="dropdown-menu">
-                    <li><Link to="/shop">Xem tất cả</Link></li>
-                    {categories.map((cate) => (
-                        <li key={cate.categoryId}>
-                            {/* Truyền ID danh mục lên URL */}
-                            <Link to={`/shop?category=${cate.categoryId}`}>
-                                {cate.categoryName}
+                            <Link to="/shop" className="dropdown-toggle" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                CÂY CẢNH <FaChevronDown style={{ fontSize: '10px' }}/>
                             </Link>
+                            {/* Menu con xổ xuống */}
+                            <ul className="dropdown-menu">
+                                <li><Link to="/shop">Xem tất cả</Link></li>
+                                {categories.map((cate) => (
+                                    <li key={cate.categoryId}>
+                                        <Link to={`/shop?category=${cate.categoryId}`}>
+                                            {cate.categoryName}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
                         </li>
-                    ))}
-                </ul>
-            </li>
                         <li><Link to="/guide">HƯỚNG DẪN</Link></li>
                         <li><Link to="/blog">BÀI ĐĂNG</Link></li>
                         <li><Link to="/contact">LIÊN HỆ</Link></li>
