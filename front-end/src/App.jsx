@@ -48,6 +48,9 @@ import Contacts from './pages/admin/Contacts';
 import BlogPage from './pages/client/BlogPage';     // <-- Thêm dòng này
 import BlogDetail from './pages/client/BlogDetail';
 import GuidePage from './pages/client/GuidePage';
+import { ROLES } from './constants/roles'; 
+import ProtectedRoute from './components/common/ProtectedRoute';
+import Testimonials from './pages/admin/Testimonials';
 function App() {
   useEffect(() => {
     const fetchSystemConfig = async () => {
@@ -113,24 +116,46 @@ function App() {
 
       {/* --- NHÓM 2: DÀNH CHO ADMIN (Dùng AdminLayout) --- */}
       <Route path="/admin" element={<AdminLayout />}>
-        {/* Lưu ý: path ở đây là tương đối so với /admin */}
-        <Route path="products" element={<AdminProducts />} />
-        <Route path="categories" element={<Categories />} />
-        <Route path="post-categories" element={<PostCategories />} />
-        <Route path="posts" element={<AdminPosts/>} />
-        <Route path="suppliers" element={<Suppliers/>} />
-        <Route path="imports" element={<CreateImportReceipt/>} />
-        <Route path="import-history" element={<ImportReceiptList/>} /> 
-        <Route path="inventory-adjustment" element={<InventoryAdjustment />} />
-        <Route path="orders" element={<AdminOrders />} />
-        <Route path="users" element={<Users />} />
-        <Route path="backup" element={<SystemBackup />} />
-        <Route path="vouchers" element={<Vouchers />} />
-        <Route path="banners" element={<AdminBanners />} />
-        <Route path="system-config" element={<SystemConfigPage />} />
-        <Route path="statistics" element={<RevenueStats />} />
-        <Route path="statistics/products" element={<ProductStats />} />
-        <Route path="contacts" element={<Contacts />} />
+        
+        {/* === NHÓM CHUNG (Admin, Sale, Kho đều vào được) === */}
+        <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SALES, ROLES.WAREHOUSE]} />}>
+             <Route path="products" element={<AdminProducts />} />
+             <Route path="categories" element={<Categories />} />
+             {/* Trang profile cá nhân admin ai cũng cần */}
+             <Route path="profile" element={<ProfilePage />} /> 
+        </Route>
+
+
+        {/* === NHÓM SALES & ADMIN === */}
+        <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.SALES]} />}>
+             <Route path="orders" element={<AdminOrders />} />
+             <Route path="vouchers" element={<Vouchers />} />
+             <Route path="contacts" element={<Contacts />} />
+             <Route path="posts" element={<AdminPosts/>} />
+             <Route path="post-categories" element={<PostCategories />} />
+             <Route path="banners" element={<AdminBanners />} />
+             <Route path="statistics" element={<RevenueStats />} />
+             <Route path="statistics/products" element={<ProductStats />} />
+             <Route path="testimonial" element={<Testimonials />} />
+        </Route>
+
+
+        {/* === NHÓM KHO (WAREHOUSE) & ADMIN === */}
+        <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.WAREHOUSE]} />}>
+             <Route path="suppliers" element={<Suppliers/>} />
+             <Route path="imports" element={<CreateImportReceipt/>} />
+             <Route path="import-history" element={<ImportReceiptList/>} /> 
+             <Route path="inventory-adjustment" element={<InventoryAdjustment />} />
+        </Route>
+
+
+        {/* === NHÓM SUPER ADMIN (CHỈ ADMIN) === */}
+        <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
+             <Route path="users" element={<Users />} />
+             <Route path="backup" element={<SystemBackup />} />
+             <Route path="system-config" element={<SystemConfigPage />} />
+        </Route>
+
       </Route>
 
       {/* --- NHÓM 3: AUTH (Login/Register thường không có Layout) --- */}

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting; // Đảm bảo có namespace này cho IWebHostEnvironment
+using Microsoft.AspNetCore.Hosting;
 
 namespace back_end.Controllers
 {
@@ -18,12 +18,7 @@ namespace back_end.Controllers
             _environment = environment;
         }
 
-        // URL gọi API: 
-        // 1. Upload sản phẩm: POST api/upload/images (hoặc không truyền type)
-        // 2. Upload bài viết: POST api/upload/posts
-        // 3. Upload user:     POST api/upload/users
-        // 4. Upload banner:   POST api/upload/banners
-        // 5. Upload config:   POST api/upload/configs  <-- MỚI (Lưu Logo/Favicon)
+        // URL gọi: POST api/upload/testimonials
         [HttpPost("{type?}")]
         public async Task<IActionResult> Upload(IFormFile file, string type = "images")
         {
@@ -35,8 +30,7 @@ namespace back_end.Controllers
 
             string subFolder;
 
-            // Dùng hàm ToLower() để tránh lỗi nếu lỡ nhập chữ hoa
-            switch (type?.ToLower()) // Thêm dấu ? để an toàn nếu type null
+            switch (type?.ToLower())
             {
                 case "posts":
                     subFolder = "posts";
@@ -47,17 +41,20 @@ namespace back_end.Controllers
                 case "banners":
                     subFolder = "banners";
                     break;
-                case "configs": // <-- ĐÃ THÊM MỚI CHO BẠN
+                case "configs":
                     subFolder = "configs";
                     break;
+                case "testimonials": // <--- THÊM MỚI: Lưu ảnh đánh giá vào đây
+                    subFolder = "testimonials";
+                    break;
                 default:
-                    subFolder = "images"; // Mặc định là thư mục chứa ảnh sản phẩm
+                    subFolder = "images";
                     break;
             }
 
             var uploadFolder = Path.Combine(_environment.WebRootPath, subFolder);
 
-            // Tự động tạo thư mục configs nếu chưa có
+            // ĐÂY LÀ ĐOẠN TỰ TẠO FOLDER NẾU CHƯA CÓ
             if (!Directory.Exists(uploadFolder))
             {
                 Directory.CreateDirectory(uploadFolder);
@@ -70,7 +67,7 @@ namespace back_end.Controllers
                 await file.CopyToAsync(stream);
             }
 
-            // Trả về đường dẫn tương đối: /configs/ten-file-ngau-nhien.jpg
+            // Trả về: /testimonials/ten-file.jpg
             var url = $"/{subFolder}/{uniqueFileName}";
 
             return Ok(new { url = url });

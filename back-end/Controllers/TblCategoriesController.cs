@@ -122,7 +122,16 @@ namespace back_end.Controllers
 
             return NoContent();
         }
-
+        [HttpGet("get-featured")]
+        public async Task<ActionResult<IEnumerable<TblCategory>>> GetFeaturedCategories()
+        {
+            return await _context.TblCategories
+                // Chỉ lấy danh mục đang hoạt động và chưa bị xóa (nếu logic của bạn cần)
+                .Where(c => c.IsActive == true && c.IsDeleted == false)
+                .OrderBy(c => c.DisplayOrder) 
+                .Take(4) // Chỉ lấy 4 cái
+                .ToListAsync();
+        }
         private bool TblCategoryExists(int id)
         {
             return _context.TblCategories.Any(e => e.CategoryId == id);
