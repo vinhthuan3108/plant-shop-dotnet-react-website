@@ -279,7 +279,21 @@ function Products() {
                     </tbody>
                 </table>
             </div>
-            <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleSaveFromModal} initialData={editingItem} categories={categories} />
+            {isModalOpen && (
+    <ProductModal 
+        /* Thêm thuộc tính key: 
+           Khi key thay đổi, React sẽ hủy component cũ và tạo mới.
+           Dùng productId nếu đang sửa, dùng chuỗi 'new' nếu đang thêm mới.
+        */
+        key={editingItem ? editingItem.productId : 'new'} 
+        
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSubmit={handleSaveFromModal} 
+        initialData={editingItem} 
+        categories={categories} 
+    />
+)}
         </div>
     );
 }

@@ -47,8 +47,11 @@ namespace back_end.Controllers
                 case "testimonials": // <--- THÊM MỚI: Lưu ảnh đánh giá vào đây
                     subFolder = "testimonials";
                     break;
-                default:
-                    subFolder = "images";
+                case "products":       // Thêm case này để nếu gọi ?type=products thì cũng vào đây
+                    subFolder = "products";
+                    break;
+                default:               // Nếu không truyền type, hoặc type lạ
+                    subFolder = "products"; // <--- Đã đổi từ "images" thành "products"
                     break;
             }
 

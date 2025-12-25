@@ -3,34 +3,55 @@ import React, { createContext, useState, useEffect } from 'react';
 export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-    // Luôn khởi tạo là mảng rỗng [] để tránh lỗi .reduce
     const [cartItems, setCartItems] = useState([]);
     
     const BASE_URL = 'https://localhost:7298'; 
 
-    // Hàm lấy userId an toàn
-    const getUserId = () => {
-        const id = localStorage.getItem('userId');
-        // Kiểm tra kỹ: phải tồn tại, không phải null, không phải chuỗi "undefined"
-        if (id && id !== 'null' && id !== 'undefined') {
-            return id;
+    // Hàm lấy User từ localStorage
+    const getUser = () => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            try {
+                return JSON.parse(userStr);
+            } catch (e) {
+                return null;
+            }
         }
         return null;
     };
 
+    // Hàm kiểm tra xem user có phải là Khách hàng không
+    // (Giả sử RoleId = 2 là khách hàng, các role khác là admin/staff)
+    // Bạn cần check lại DB xem RoleId của khách hàng là mấy. Thường là 2 hoặc null.
+    const isCustomer = (user) => {
+        if (!user) return true; // Chưa đăng nhập -> Coi là khách vãng lai
+        // Nếu roleId = 2 là khách hàng. Các role 1,3,4 là quản trị
+        return user.roleId === 2; 
+    };
+
     // 1. Load giỏ hàng
     useEffect(() => {
-        const userId = getUserId();
+        const user = getUser();
+        
+        // Nếu là Admin/Nhân viên -> Không load giỏ hàng, return luôn để tránh lỗi API
+        if (user && !isCustomer(user)) {
+            setCartItems([]);
+            return;
+        }
+
+        const userId = user?.userId;
 
         if (userId) {
-            // NẾU CÓ USER ID -> Gọi API
+            // NẾU CÓ USER ID (Và là khách hàng) -> Gọi API
             fetch(`${BASE_URL}/api/Cart/get-cart/${userId}`)
                 .then(res => {
-                    if (!res.ok) throw new Error("Lỗi API");
+                    // Nếu lỗi 404 (chưa có giỏ) hoặc 401/403 -> Không throw lỗi để tránh crash
+                    if (!res.ok) {
+                        return []; 
+                    }
                     return res.json();
                 })
                 .then(data => {
-                    // Kiểm tra nếu data là mảng thì mới set, không thì set rỗng
                     if (Array.isArray(data)) {
                         setCartItems(data);
                     } else {
@@ -39,10 +60,10 @@ export const CartProvider = ({ children }) => {
                 })
                 .catch(err => {
                     console.error("Lỗi load cart:", err);
-                    setCartItems([]); // Nếu lỗi, set về mảng rỗng để không bị crash trang
+                    setCartItems([]);
                 });
         } else {
-            // NẾU KHÔNG CÓ USER ID -> Dùng LocalStorage
+            // NẾU KHÔNG CÓ USER ID -> Dùng LocalStorage (Khách vãng lai)
             const storedCart = localStorage.getItem('shoppingCart');
             if (storedCart) {
                 try {
@@ -55,42 +76,64 @@ export const CartProvider = ({ children }) => {
         }
     }, []);
 
-    // Helper: Sync LocalStorage (Chỉ dùng cho khách)
+    // Helper: Sync LocalStorage (Chỉ dùng cho khách vãng lai)
     const syncLocalStorage = (items) => {
-        if (!getUserId()) {
+        const user = getUser();
+        if (!user) { // Chỉ lưu local nếu chưa đăng nhập
             localStorage.setItem('shoppingCart', JSON.stringify(items));
         }
     };
+
     const refreshCart = async () => {
-        const userId = getUserId(); // Kiểm tra lại userId sau khi đã login/logout
+        const user = getUser();
+        
+        // Nếu là Admin -> Dừng luôn
+        if (user && !isCustomer(user)) {
+            setCartItems([]);
+            return;
+        }
+
+        const userId = user?.userId;
 
         if (userId) {
-            // Nếu vừa đăng nhập -> Lấy giỏ từ DB
             try {
-                const res = await fetch(`https://localhost:7298/api/Cart/get-cart/${userId}`);
-                const data = await res.json();
-                setCartItems(Array.isArray(data) ? data : []);
+                const res = await fetch(`${BASE_URL}/api/Cart/get-cart/${userId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setCartItems(Array.isArray(data) ? data : []);
+                } else {
+                    setCartItems([]);
+                }
             } catch (err) {
                 setCartItems([]);
             }
         } else {
-            // Nếu vừa đăng xuất -> Lấy lại giỏ hàng của khách (từ LocalStorage) hoặc rỗng
+            // Khách vãng lai
             const storedCart = localStorage.getItem('shoppingCart');
             if (storedCart) {
                 setCartItems(JSON.parse(storedCart));
             } else {
-                setCartItems([]); // Về 0
+                setCartItems([]);
             }
         }
     };
+
     // 2. Thêm vào giỏ
     const addToCart = async (product) => {
-        const userId = getUserId();
+        const user = getUser();
+
+        // CHẶN ADMIN MUA HÀNG (Nếu muốn)
+        if (user && !isCustomer(user)) {
+            alert("Tài khoản quản trị không thể mua hàng!");
+            return;
+        }
+
+        const userId = user?.userId;
 
         if (userId) {
             // --- CÓ MẠNG (DB) ---
             try {
-                await fetch(`${BASE_URL}/api/Cart/add-to-cart`, {
+                const res = await fetch(`${BASE_URL}/api/Cart/add-to-cart`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -100,13 +143,12 @@ export const CartProvider = ({ children }) => {
                     })
                 });
                 
-                // Gọi lại API lấy giỏ hàng mới nhất để đồng bộ
-                const res = await fetch(`${BASE_URL}/api/Cart/get-cart/${userId}`);
                 if (res.ok) {
-                    const data = await res.json();
-                    if (Array.isArray(data)) setCartItems(data);
+                    refreshCart(); // Tải lại giỏ hàng
+                    alert("Đã thêm vào giỏ!");
+                } else {
+                    alert("Lỗi khi thêm vào giỏ hàng");
                 }
-                alert("Đã thêm vào giỏ (DB)!");
             } catch (error) {
                 console.error("Lỗi thêm giỏ hàng DB", error);
                 alert("Lỗi kết nối server!");
@@ -114,12 +156,15 @@ export const CartProvider = ({ children }) => {
         } else {
             // --- KHÁCH VÃNG LAI (Local) ---
             setCartItems(prev => {
-                const exist = prev.find(x => x.productId === product.productId);
+                // Kiểm tra prev có phải mảng không trước khi find
+                const safePrev = Array.isArray(prev) ? prev : [];
+                const exist = safePrev.find(x => x.productId === product.productId);
                 let newCart;
+                
                 if (exist) {
-                    newCart = prev.map(x => x.productId === product.productId ? { ...x, quantity: x.quantity + 1 } : x);
+                    newCart = safePrev.map(x => x.productId === product.productId ? { ...x, quantity: x.quantity + 1 } : x);
                 } else {
-                    newCart = [...prev, { 
+                    newCart = [...safePrev, { 
                         productId: product.productId, 
                         productName: product.productName, 
                         price: product.salePrice || product.originalPrice, 
@@ -136,13 +181,16 @@ export const CartProvider = ({ children }) => {
 
     // 3. Xóa sản phẩm
     const removeFromCart = async (productId) => {
-        const userId = getUserId();
+        const user = getUser();
+        const userId = user?.userId;
+
         if (userId) {
             await fetch(`${BASE_URL}/api/Cart/remove-item?userId=${userId}&productId=${productId}`, { method: 'DELETE' });
         }
         
         setCartItems(prev => {
-            const newCart = prev.filter(item => item.productId !== productId);
+            const safePrev = Array.isArray(prev) ? prev : [];
+            const newCart = safePrev.filter(item => item.productId !== productId);
             syncLocalStorage(newCart);
             return newCart;
         });
@@ -152,7 +200,9 @@ export const CartProvider = ({ children }) => {
     const updateQuantity = async (productId, newQuantity) => {
         if (newQuantity < 1) return;
 
-        const userId = getUserId();
+        const user = getUser();
+        const userId = user?.userId;
+
         if (userId) {
             await fetch(`${BASE_URL}/api/Cart/update-quantity`, {
                 method: 'PUT',
@@ -162,7 +212,8 @@ export const CartProvider = ({ children }) => {
         }
 
         setCartItems(prev => {
-            const newCart = prev.map(item => 
+            const safePrev = Array.isArray(prev) ? prev : [];
+            const newCart = safePrev.map(item => 
                 item.productId === productId ? { ...item, quantity: newQuantity } : item
             );
             syncLocalStorage(newCart);
@@ -170,10 +221,7 @@ export const CartProvider = ({ children }) => {
         });
     };
 
-    // TÍNH TOÁN AN TOÀN (Tránh lỗi .reduce)
-    // Dùng toán tử ?. hoặc kiểm tra Array.isArray để chắc chắn không crash
     const validItems = Array.isArray(cartItems) ? cartItems : [];
-    
     const cartCount = validItems.reduce((total, item) => total + (item.quantity || 0), 0);
     const cartTotal = validItems.reduce((total, item) => total + ((item.price || 0) * (item.quantity || 0)), 0);
 
@@ -185,7 +233,7 @@ export const CartProvider = ({ children }) => {
             updateQuantity, 
             cartCount, 
             cartTotal,
-            refreshCart // <--- Nhớ thêm cái này vào đây
+            refreshCart
         }}>
             {children}
         </CartContext.Provider>

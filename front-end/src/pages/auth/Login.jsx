@@ -18,36 +18,26 @@ function Login() {
                 body: JSON.stringify({ email, password })
             });
 
-            // Nếu server trả về lỗi text thay vì json thì phải handle kỹ hơn
-            // Nhưng giả sử API chuẩn trả về JSON
             const data = await res.json();
 
             if (res.ok) {
-                // --- QUAN TRỌNG: SỬA ĐOẠN LƯU LOCALSTORAGE ---
-                // Phải gom thành object 'user' để Sidebar và ProtectedRoute đọc được
                 const userSave = {
                     userId: data.userId,
                     email: email,
                     fullName: data.fullName,
-                    roleId: data.role, // Sidebar tìm cái này
+                    roleId: data.role,
                     token: data.token
                 };
 
                 localStorage.setItem('user', JSON.stringify(userSave));
-                
-                // Lưu token riêng nếu cần cho các request API khác
                 localStorage.setItem('token', data.token);
 
-                // Cập nhật giỏ hàng (chỉ cần thiết với khách hàng)
                 await refreshCart(); 
 
-                // --- ĐIỀU HƯỚNG MƯỢT MÀ ---
-                // Dùng navigate thay vì window.location.reload()
-                // Vì dữ liệu 'user' đã chuẩn, Sidebar sẽ tự nhận diện khi chuyển trang
                 if (data.role === 1 || data.role === 3 || data.role === 4) {
                     navigate('/admin/products');
                 } else {
-                    navigate('/'); // Về trang chủ cho khách hàng
+                    navigate('/'); 
                 }
             } else {
                 alert(data.message || "Đăng nhập thất bại"); 
@@ -64,11 +54,6 @@ function Login() {
             <form onSubmit={handleLogin}>
                 <div style={{ marginBottom: '15px' }}>
                     <label>Email:</label>
-                    <div></div>
-                    <label>c3lttrong.2a2.vthuan@gmail.com</label>
-                    <div></div>
-                    <label>vinhthuan9@gmail.com</label>
-
                     <input 
                         type="email" 
                         value={email} 
@@ -109,6 +94,22 @@ function Login() {
                         style={{ color: '#007bff', cursor: 'pointer', fontWeight: 'bold', marginLeft: '5px' }}
                     >
                         Đăng ký ngay
+                    </span>
+                </div>
+
+                {/* --- MỚI THÊM: Tiếp tục mà không đăng nhập --- */}
+                <div style={{ marginTop: '15px', textAlign: 'center', borderTop: '1px solid #eee', paddingTop: '15px' }}>
+                    <span 
+                        onClick={() => navigate('/')} 
+                        style={{ 
+                            color: '#6c757d', // Màu xám nhẹ để không nổi bật bằng nút Đăng nhập
+                            cursor: 'pointer', 
+                            fontSize: '14px',
+                            textDecoration: 'underline'
+                        }}
+                        title="Về trang chủ với tư cách khách"
+                    >
+                        ← Tiếp tục mà không đăng nhập
                     </span>
                 </div>
 
