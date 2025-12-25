@@ -4,9 +4,29 @@ import { useNavigate } from 'react-router-dom';
 import './ProfilePage.css'; 
 
 const ProfilePage = () => {
+    // 1. CẤU HÌNH URL BACKEND
+    // Lưu ý: Đảm bảo không có khoảng trắng thừa
     const API_BASE_URL = "https://localhost:7298"; 
+
     const navigate = useNavigate();
-    const userId = localStorage.getItem('userId'); 
+
+    // 2. SỬA LỖI LẤY USER ID
+    // Code cũ: const userId = localStorage.getItem('userId'); (Sai vì login mới lưu dạng object)
+    // Code mới: Lấy từ object 'user'
+    const getUserData = () => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            try {
+                return JSON.parse(userStr);
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
+    };
+    
+    const currentUser = getUserData();
+    const userId = currentUser?.userId;
 
     // Thêm tab 'password' vào state activeTab
     const [activeTab, setActiveTab] = useState('info'); 
@@ -55,11 +75,18 @@ const ProfilePage = () => {
 
     // --- LOAD DATA ---
     useEffect(() => {
+        // Kiểm tra userId, nếu không có thì đá về trang login
         if (!userId) {
-            alert("Vui lòng đăng nhập!");
-            navigate('/login');
-            return;
+            // Kiểm tra thêm một lần nữa fallback code cũ (nếu lỡ user cũ chưa clear cache)
+            const oldUserId = localStorage.getItem('userId');
+            if(!oldUserId) {
+                alert("Vui lòng đăng nhập để xem hồ sơ!");
+                navigate('/login');
+                return;
+            }
         }
+        
+        // Nếu có ID thì gọi API
         fetchProfile();
         fetchAddresses();
         fetchOrders();
@@ -67,8 +94,10 @@ const ProfilePage = () => {
     }, [userId]);
 
     const fetchProfile = async () => {
+        // Sử dụng userId từ state hoặc fallback cũ
+        const effectiveId = userId || localStorage.getItem('userId');
         try {
-            const res = await axios.get(`${API_BASE_URL}/api/Profile/${userId}`);
+            const res = await axios.get(`${API_BASE_URL}/api/Profile/${effectiveId}`);
             let formattedDob = '';
             if (res.data.dateofBirth) {
                 formattedDob = res.data.dateofBirth.split('T')[0];
@@ -80,8 +109,9 @@ const ProfilePage = () => {
     };
 
     const fetchAddresses = async () => {
+        const effectiveId = userId || localStorage.getItem('userId');
         try {
-            const res = await axios.get(`${API_BASE_URL}/api/Profile/${userId}/addresses`);
+            const res = await axios.get(`${API_BASE_URL}/api/Profile/${effectiveId}/addresses`);
             setAddresses(res.data);
         } catch (err) {
             console.error(err);
@@ -89,8 +119,9 @@ const ProfilePage = () => {
     };
 
     const fetchOrders = async () => {
+        const effectiveId = userId || localStorage.getItem('userId');
         try {
-            const res = await axios.get(`${API_BASE_URL}/api/Orders/user/${userId}`);
+            const res = await axios.get(`${API_BASE_URL}/api/Orders/user/${effectiveId}`);
             setOrders(res.data);
         } catch (err) {
             console.error("Lỗi lấy đơn hàng:", err);
@@ -98,8 +129,12 @@ const ProfilePage = () => {
     };
 
     const fetchLocationProvinces = async () => {
-        const res = await axios.get('https://provinces.open-api.vn/api/?depth=1');
-        setProvinces(res.data);
+        try {
+            const res = await axios.get('https://provinces.open-api.vn/api/?depth=1');
+            setProvinces(res.data);
+        } catch (err) {
+            console.error("Lỗi lấy tỉnh thành:", err);
+        }
     };
 
     // --- HELPER FUNCTIONS ---
@@ -114,9 +149,14 @@ const ProfilePage = () => {
         }
     };
 
+    // 3. SỬA LỖI ẢNH AVATAR (Fix ERR_NAME_NOT_RESOLVED)
     const getAvatarSrc = (url) => {
-        if (!url) return "https://via.placeholder.com/150";
+        // Dùng ảnh từ server khác ổn định hơn thay vì via.placeholder.com
+        if (!url) return "https://cdn-icons-png.flaticon.com/512/149/149071.png"; 
+        
         if (url.startsWith('http')) return url;
+        
+        // Đảm bảo đường dẫn đúng
         return `${API_BASE_URL}${url}`;
     };
 
@@ -126,16 +166,20 @@ const ProfilePage = () => {
         const code = e.target.value;
         setAddressForm({...addressForm, province: provinceName, district: '', ward: ''});
         setDistricts([]); setWards([]);
-        const res = await axios.get(`https://provinces.open-api.vn/api/p/${code}?depth=2`);
-        setDistricts(res.data.districts);
+        if(code) {
+             const res = await axios.get(`https://provinces.open-api.vn/api/p/${code}?depth=2`);
+             setDistricts(res.data.districts);
+        }
     };
 
     const handleDistrictChange = async (e) => {
         const districtName = e.target.options[e.target.selectedIndex].text;
         const code = e.target.value;
         setAddressForm({...addressForm, district: districtName, ward: ''});
-        const res = await axios.get(`https://provinces.open-api.vn/api/d/${code}?depth=2`);
-        setWards(res.data.wards);
+        if(code) {
+            const res = await axios.get(`https://provinces.open-api.vn/api/d/${code}?depth=2`);
+            setWards(res.data.wards);
+        }
     };
 
     const handleWardChange = (e) => {
@@ -144,30 +188,31 @@ const ProfilePage = () => {
     };
 
     // --- ACTIONS: PROFILE ---
-    // --- ACTIONS: PROFILE ---
     const handleUpdateProfile = async () => {
+        const effectiveId = userId || localStorage.getItem('userId');
         try {
-            // 1. Tạo payload (dữ liệu) chuẩn để gửi đi
             const payload = {
                 fullName: profile.fullName,
                 phoneNumber: profile.phoneNumber,
                 gender: profile.gender,
                 avatarUrl: profile.avatarUrl,
-                // Xử lý quan trọng: Nếu ngày sinh rỗng thì gửi null, ngược lại gửi nguyên chuỗi YYYY-MM-DD
                 dateofBirth: profile.dateofBirth ? profile.dateofBirth : null
             };
 
-            // Lưu ý: Không gửi email và userId vì backend không dùng để update
-
-            // 2. Gửi request
-            await axios.put(`${API_BASE_URL}/api/Profile/${userId}`, payload);
+            await axios.put(`${API_BASE_URL}/api/Profile/${effectiveId}`, payload);
             alert("Cập nhật hồ sơ thành công!");
-        } catch (err) {
-            console.error("Lỗi update:", err); // Log lỗi ra console để dễ debug
             
-            // Hiển thị thông báo lỗi chi tiết từ Backend nếu có
+            // Cập nhật lại thông tin hiển thị trên Header bằng cách update localStorage
+            if(currentUser) {
+                currentUser.fullName = profile.fullName;
+                localStorage.setItem('user', JSON.stringify(currentUser));
+                // Reload trang để Header cập nhật tên mới
+                window.location.reload(); 
+            }
+            
+        } catch (err) {
+            console.error("Lỗi update:", err);
             if (err.response && err.response.data && err.response.data.errors) {
-                 // Lấy lỗi validation cụ thể (ví dụ: "DateofBirth is invalid")
                  const errorMsg = JSON.stringify(err.response.data.errors);
                  alert("Lỗi dữ liệu: " + errorMsg);
             } else {
@@ -208,6 +253,7 @@ const ProfilePage = () => {
     };
 
     const handleSaveAddress = async () => {
+        const effectiveId = userId || localStorage.getItem('userId');
         if (!addressForm.recipientName || !addressForm.addressDetail || !addressForm.province) {
             alert("Vui lòng điền đầy đủ thông tin!");
             return;
@@ -216,7 +262,7 @@ const ProfilePage = () => {
             if (isEditingAddress) {
                 await axios.put(`${API_BASE_URL}/api/Profile/addresses/${addressForm.addressId}`, addressForm);
             } else {
-                await axios.post(`${API_BASE_URL}/api/Profile/${userId}/addresses`, addressForm);
+                await axios.post(`${API_BASE_URL}/api/Profile/${effectiveId}/addresses`, addressForm);
             }
             alert("Thao tác thành công!");
             setShowAddressForm(false);
@@ -241,15 +287,15 @@ const ProfilePage = () => {
         }
     };
 
-    // --- ACTIONS: CHANGE PASSWORD (MỚI) ---
+    // --- ACTIONS: CHANGE PASSWORD ---
     const handleChangePassword = async () => {
-        // 1. Validate Client
+        const effectiveId = userId || localStorage.getItem('userId');
+        
         if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
             alert("Vui lòng nhập đầy đủ thông tin!");
             return;
         }
 
-        // Kiểm tra độ mạnh mật khẩu (>=8 ký tự và có ký tự đặc biệt)
         const isValidPassword = (pass) => {
             const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
             return pass.length >= 8 && hasSpecialChar;
@@ -265,11 +311,9 @@ const ProfilePage = () => {
             return;
         }
 
-        // 2. Call API
         try {
-            // Giả sử API endpoint là /api/Auth/change-password
             const payload = {
-                userId: parseInt(userId),
+                userId: parseInt(effectiveId),
                 currentPassword: passwordForm.currentPassword,
                 newPassword: passwordForm.newPassword
             };
@@ -277,13 +321,11 @@ const ProfilePage = () => {
             await axios.post(`${API_BASE_URL}/api/Auth/change-password`, payload);
             
             alert("Đổi mật khẩu thành công!");
-            // Reset form
             setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
         } catch (err) {
             console.error(err);
-            // Xử lý lỗi trả về từ Backend (VD: Mật khẩu cũ không đúng)
             if (err.response && err.response.data) {
-                alert(err.response.data);
+                alert(typeof err.response.data === 'string' ? err.response.data : "Lỗi đổi mật khẩu");
             } else {
                 alert("Lỗi đổi mật khẩu! Vui lòng kiểm tra lại.");
             }
@@ -324,7 +366,6 @@ const ProfilePage = () => {
                     >
                         Đơn mua
                     </li>
-                    {/* --- MỤC MỚI: ĐỔI MẬT KHẨU --- */}
                     <li 
                         style={{ padding: '10px', cursor: 'pointer', background: activeTab === 'password' ? '#e0f2f1' : 'transparent', color: activeTab === 'password' ? '#00796b' : '#333' }}
                         onClick={() => setActiveTab('password')}

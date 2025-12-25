@@ -88,7 +88,7 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
 
     const formats = [
         'header', 'bold', 'italic', 'underline', 'strike',
-        'list', 'bullet', 'align', 'image', 'link'
+        'list', 'align', 'image', 'link'
     ];
 
     // Tạo module riêng cho từng ô để gắn đúng handler
@@ -238,7 +238,7 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                         </div>
                         <div style={{ marginBottom: '10px' }}>
                             <label>Danh mục (*):</label>
-                            <select value={catId} onChange={e => setCatId(e.target.value)} style={{ width: '100%', padding: '6px' }}>
+                            <select value={catId} onChange={e => setCatId(e.target.value)} style={{ width: '100%', padding: '8.5px' }}>
                                 <option value="">-- Chọn danh mục --</option>
                                 {categories.map(c => (<option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>))}
                             </select>
@@ -247,14 +247,13 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                             <label>Kích thước (Size):</label>
                             <input type="text" value={size} onChange={e => setSize(e.target.value)} style={{ width: '100%', padding: '6px' }} />
                         </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Tags Phong thủy:</label>
-                            <input type="text" value={fengShui} onChange={e => setFengShui(e.target.value)} style={{ width: '100%', padding: '6px' }} />
-                        </div>
+                        
                     </div>
 
                     {/* Cột Phải */}
+                    {/* Cột Phải */}
                     <div>
+                        {/* Hàng 1: Giá (Giữ nguyên) */}
                         <div style={{ display:'flex', gap:'10px' }}>
                             <div style={{ marginBottom: '10px', flex:1 }}>
                                 <label>Giá gốc (*):</label>
@@ -266,24 +265,44 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                             </div>
                         </div>
 
+                        {/* Hàng 2: Ngày Khuyến Mãi (Được đảo lên đây) */}
                         <div style={{ display:'flex', gap:'10px' }}>
                             <div style={{ marginBottom: '10px', flex:1 }}>
-                                <label>Tồn kho:</label>
-                                <input type="number" value={stock} onChange={e => setStock(e.target.value)} style={{ width: '100%', padding: '6px' }} />
+                                <label>Ngày bắt đầu KM:</label>
+                                <input type="datetime-local" value={saleStart} onChange={e => setSaleStart(e.target.value)} style={{ width: '100%', padding: '6px' }} />
+                            </div>
+                            <div style={{ marginBottom: '10px', flex:1 }}>
+                                <label>Ngày kết thúc KM:</label>
+                                <input type="datetime-local" value={saleEnd} onChange={e => setSaleEnd(e.target.value)} style={{ width: '100%', padding: '6px' }} />
+                            </div>
+                        </div>
+
+                        {/* Hàng 3: Tồn kho & Cảnh báo Min (Được đảo xuống đây) */}
+                        <div style={{ display:'flex', gap:'10px' }}>
+                            <div style={{ marginBottom: '10px', flex:1 }}>
+                                <label>Tồn kho (Hiện có):</label>
+                                <input 
+                                    type="number" 
+                                    value={stock} 
+                                    readOnly // Chỉ cho xem
+                                    // Bỏ onChange để không cho sửa
+                                    style={{ 
+                                        width: '100%', 
+                                        padding: '6px', 
+                                        backgroundColor: '#e9ecef', // Màu xám báo hiệu readonly
+                                        cursor: 'not-allowed',
+                                        color: '#495057'
+                                    }} 
+                                />
                             </div>
                             <div style={{ marginBottom: '10px', flex:1 }}>
                                 <label>Cảnh báo min:</label>
                                 <input type="number" value={minStock} onChange={e => setMinStock(e.target.value)} style={{ width: '100%', padding: '6px' }} />
                             </div>
                         </div>
-
                         <div style={{ marginBottom: '10px' }}>
-                            <label>Ngày bắt đầu KM:</label>
-                            <input type="datetime-local" value={saleStart} onChange={e => setSaleStart(e.target.value)} style={{ width: '100%', padding: '6px' }} />
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Ngày kết thúc KM:</label>
-                            <input type="datetime-local" value={saleEnd} onChange={e => setSaleEnd(e.target.value)} style={{ width: '100%', padding: '6px' }} />
+                            <label>Tags Phong thủy:</label>
+                            <input type="text" value={fengShui} onChange={e => setFengShui(e.target.value)} style={{ width: '100%', padding: '6px' }} />
                         </div>
                     </div>
                 </div>

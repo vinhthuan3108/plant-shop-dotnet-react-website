@@ -121,7 +121,6 @@ namespace back_end.Controllers
 
             // --- SỬA LỖI MẤT SẢN PHẨM ---
             // Lưu lại trạng thái Active/Deleted cũ trước khi update
-            var oldIsActive = existingProduct.IsActive;
             var oldIsDeleted = existingProduct.IsDeleted;
             var oldCreatedAt = existingProduct.CreatedAt;
 
@@ -131,7 +130,6 @@ namespace back_end.Controllers
             // 3. KHÔI PHỤC LẠI CÁC TRƯỜNG QUAN TRỌNG
             // Nếu frontend không gửi IsActive (hoặc gửi false do lỗi), ta ép nó về trạng thái cũ
             // Dòng này đảm bảo sửa ảnh không làm ẩn sản phẩm
-            existingProduct.IsActive = oldIsActive;
             existingProduct.IsDeleted = oldIsDeleted;
             existingProduct.CreatedAt = oldCreatedAt;
             existingProduct.UpdatedAt = DateTime.Now;

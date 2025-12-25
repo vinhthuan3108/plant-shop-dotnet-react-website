@@ -1,12 +1,29 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; // Dùng axios cho tiện
+import axios from 'axios'; 
 import { CartContext } from '../../context/CartContext';
 
 const Checkout = () => {
     const { cartItems, cartTotal, refreshCart } = useContext(CartContext);
     const navigate = useNavigate();
+    
+    // Config URL Backend
     const BASE_URL = 'https://localhost:7298';
+
+    // --- HELPER: LẤY USER TỪ LOCALSTORAGE (MỚI) ---
+    const getUserData = () => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            try {
+                return JSON.parse(userStr);
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
+    };
+
+    const currentUser = getUserData();
 
     // --- STATE FORM DATA ---
     const [formData, setFormData] = useState({
@@ -15,7 +32,7 @@ const Checkout = () => {
         addressDetail: '',
         province: '', 
         district: '', 
-        ward: '', // Thêm phường/xã
+        ward: '', 
         note: '',
         paymentMethod: 'COD'
     });
@@ -42,9 +59,9 @@ const Checkout = () => {
                 setProvinces(provinceRes.data);
                 const provinceList = provinceRes.data;
 
-                // 1.2 Sau đó load địa chỉ mặc định của User
-                const userId = localStorage.getItem('userId');
-                const storedName = localStorage.getItem('userName');
+                // 1.2 Sau đó load địa chỉ mặc định của User (Nếu đã đăng nhập)
+                const userId = currentUser?.userId; // Lấy ID chuẩn từ object user
+                const storedName = currentUser?.fullName; // Lấy tên chuẩn
                 
                 if (userId) {
                     const addrRes = await axios.get(`${BASE_URL}/api/Profile/${userId}/addresses`);
@@ -63,8 +80,7 @@ const Checkout = () => {
                             ward: defaultAddr.ward || '',
                         }));
 
-                        // --- LOGIC PHỨC TẠP: AUTO-LOAD HUYỆN/XÃ DỰA TRÊN TÊN ---
-                        // Vì DB lưu "Tên" (Hà Nội), nhưng API cần "Code" (1) để load huyện
+                        // --- LOGIC AUTO-LOAD HUYỆN/XÃ ---
                         if (defaultAddr.province) {
                             const selectedProv = provinceList.find(p => p.name === defaultAddr.province);
                             if (selectedProv) {
@@ -83,7 +99,7 @@ const Checkout = () => {
                             }
                         }
                     } else {
-                        // Không có địa chỉ mặc định -> Chỉ điền tên
+                        // Không có địa chỉ mặc định -> Chỉ điền tên lấy từ tài khoản
                         setFormData(prev => ({ ...prev, recipientName: storedName || '' }));
                     }
                 }
@@ -93,10 +109,9 @@ const Checkout = () => {
         };
 
         fetchData();
-    }, []);
+    }, []); // Chỉ chạy 1 lần khi mount
 
 
-    
     // Chọn Tỉnh -> Load Huyện
     const handleProvinceChange = async (e) => {
         const index = e.target.selectedIndex;
@@ -140,7 +155,7 @@ const Checkout = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-
+    // Tính phí ship giả lập
     useEffect(() => {
         const p = formData.province ? formData.province.toLowerCase() : '';
         if (!p) {
@@ -174,18 +189,16 @@ const Checkout = () => {
         }
 
         setLoading(true);
-        const userId = localStorage.getItem('userId');
+        // LẤY USER ID CHUẨN ĐỂ GỬI ĐƠN HÀNG
+        const userId = currentUser?.userId;
 
-        // Gộp Phường/Xã vào địa chỉ chi tiết hoặc District để gửi xuống Backend
-        // Backend hiện tại có: ShippingAddress, District, Province.
-        // Ta sẽ nối: ShippingAddress = "Số nhà..., Phường X"
         const finalAddressDetail = `${formData.addressDetail}, ${formData.ward}`;
 
         const payload = {
             userId: userId ? parseInt(userId) : null,
             recipientName: formData.recipientName,
             recipientPhone: formData.recipientPhone,
-            shippingAddress: finalAddressDetail, // Đã gộp ward vào đây
+            shippingAddress: finalAddressDetail, 
             province: formData.province,
             district: formData.district,
             voucherCode: voucherCode || null,
@@ -243,10 +256,6 @@ const Checkout = () => {
                         <select 
                             style={inputStyle} 
                             onChange={handleProvinceChange}
-                            /* Value ở đây hơi trick: Nếu đang load dữ liệu tự động thì phải hiển thị đúng.
-                               Tuy nhiên select cần value là CODE để match với option.
-                               Do đó ta dùng find để tìm code dựa trên tên đang lưu trong formData
-                            */
                             value={provinces.find(p => p.name === formData.province)?.code || ""}
                         >
                             <option value="">-- Chọn Tỉnh/Thành --</option>
@@ -290,7 +299,7 @@ const Checkout = () => {
                 </div>
             </div>
 
-            {/* CỘT PHẢI: TÓM TẮT ĐƠN HÀNG (Giữ nguyên giao diện) */}
+            {/* CỘT PHẢI: TÓM TẮT ĐƠN HÀNG */}
             <div style={{ flex: 1, minWidth: '350px', backgroundColor: '#f9f9f9', padding: '25px', borderRadius: '8px', height: 'fit-content' }}>
                 <h3 style={{ marginBottom: '15px' }}>Đơn hàng ({cartItems.length} sản phẩm)</h3>
                 
