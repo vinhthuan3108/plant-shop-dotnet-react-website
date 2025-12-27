@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; 
+import axios from 'axios';
 import { CartContext } from '../../context/CartContext';
 
 const Checkout = () => {
@@ -10,15 +10,11 @@ const Checkout = () => {
     // Config URL Backend
     const BASE_URL = 'https://localhost:7298';
 
-    // --- HELPER: LẤY USER TỪ LOCALSTORAGE (MỚI) ---
+    // --- HELPER: LẤY USER TỪ LOCALSTORAGE ---
     const getUserData = () => {
         const userStr = localStorage.getItem('user');
         if (userStr) {
-            try {
-                return JSON.parse(userStr);
-            } catch (e) {
-                return null;
-            }
+            try { return JSON.parse(userStr); } catch (e) { return null; }
         }
         return null;
     };
@@ -49,19 +45,19 @@ const Checkout = () => {
     const [loading, setLoading] = useState(false);
 
     // =========================================================================
-    // 1. LOAD DỮ LIỆU BAN ĐẦU (TỈNH THÀNH & ĐỊA CHỈ MẶC ĐỊNH)
+    // 1. LOAD DỮ LIỆU BAN ĐẦU
     // =========================================================================
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 1.1 Load danh sách Tỉnh/Thành trước
+                // 1.1 Load danh sách Tỉnh/Thành
                 const provinceRes = await axios.get('https://provinces.open-api.vn/api/?depth=1');
                 setProvinces(provinceRes.data);
                 const provinceList = provinceRes.data;
 
-                // 1.2 Sau đó load địa chỉ mặc định của User (Nếu đã đăng nhập)
-                const userId = currentUser?.userId; // Lấy ID chuẩn từ object user
-                const storedName = currentUser?.fullName; // Lấy tên chuẩn
+                // 1.2 Load địa chỉ mặc định của User
+                const userId = currentUser?.userId; 
+                const storedName = currentUser?.fullName; 
                 
                 if (userId) {
                     const addrRes = await axios.get(`${BASE_URL}/api/Profile/${userId}/addresses`);
@@ -69,7 +65,6 @@ const Checkout = () => {
                     const defaultAddr = addresses.find(a => a.isDefault === true);
 
                     if (defaultAddr) {
-                        // Fill thông tin cơ bản
                         setFormData(prev => ({
                             ...prev,
                             recipientName: defaultAddr.recipientName || storedName,
@@ -80,15 +75,13 @@ const Checkout = () => {
                             ward: defaultAddr.ward || '',
                         }));
 
-                        // --- LOGIC AUTO-LOAD HUYỆN/XÃ ---
+                        // Auto-load Huyện/Xã
                         if (defaultAddr.province) {
                             const selectedProv = provinceList.find(p => p.name === defaultAddr.province);
                             if (selectedProv) {
-                                // Load Quận/Huyện của Tỉnh mặc định
                                 const distRes = await axios.get(`https://provinces.open-api.vn/api/p/${selectedProv.code}?depth=2`);
                                 setDistricts(distRes.data.districts);
 
-                                // Nếu có District -> Load Xã
                                 if (defaultAddr.district) {
                                     const selectedDist = distRes.data.districts.find(d => d.name === defaultAddr.district);
                                     if (selectedDist) {
@@ -99,7 +92,6 @@ const Checkout = () => {
                             }
                         }
                     } else {
-                        // Không có địa chỉ mặc định -> Chỉ điền tên lấy từ tài khoản
                         setFormData(prev => ({ ...prev, recipientName: storedName || '' }));
                     }
                 }
@@ -109,26 +101,23 @@ const Checkout = () => {
         };
 
         fetchData();
-    }, []); // Chỉ chạy 1 lần khi mount
+    }, []);
 
-
-    // Chọn Tỉnh -> Load Huyện
+    // --- CÁC HÀM XỬ LÝ LOCATION ---
     const handleProvinceChange = async (e) => {
         const index = e.target.selectedIndex;
         const provinceName = e.target.options[index].text;
         const provinceCode = e.target.value; 
 
         setFormData({ ...formData, province: provinceName, district: '', ward: '' });
-        setDistricts([]); 
-        setWards([]);
-
+        setDistricts([]); setWards([]);
+        
         if (provinceCode) {
             const res = await axios.get(`https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`);
             setDistricts(res.data.districts);
         }
     };
 
-    // Chọn Huyện -> Load Xã
     const handleDistrictChange = async (e) => {
         const index = e.target.selectedIndex;
         const districtName = e.target.options[index].text;
@@ -143,32 +132,29 @@ const Checkout = () => {
         }
     };
 
-    // Chọn Xã
     const handleWardChange = (e) => {
         const index = e.target.selectedIndex;
         const wardName = e.target.options[index].text;
         setFormData({ ...formData, ward: wardName });
     };
 
-
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // Tính phí ship giả lập
+    // Tính phí ship
     useEffect(() => {
         const p = formData.province ? formData.province.toLowerCase() : '';
         if (!p) {
             setShippingFee(0);
         } else if (p.includes('hồ chí minh') || p.includes('sài gòn')) {
-            setShippingFee(30000); 
+            setShippingFee(15000); 
         } else if (p.includes('bình dương') || p.includes('đồng nai') || p.includes('long an')) {
-            setShippingFee(40000);
+            setShippingFee(30000);
         } else {
-            setShippingFee(50000);
+            setShippingFee(30000);
         }
     }, [formData.province]);
-
 
     const handleApplyVoucher = async () => {
         if (!voucherCode.trim()) return alert("Vui lòng nhập mã!");
@@ -182,6 +168,7 @@ const Checkout = () => {
         }
     };
 
+    // --- HÀM ĐẶT HÀNG (QUAN TRỌNG: SỬA MAPPING ITEM) ---
     const handlePlaceOrder = async () => {
         if (cartItems.length === 0) return alert("Giỏ hàng trống!");
         if (!formData.recipientName || !formData.recipientPhone || !formData.addressDetail || !formData.province || !formData.district || !formData.ward) {
@@ -189,9 +176,7 @@ const Checkout = () => {
         }
 
         setLoading(true);
-        // LẤY USER ID CHUẨN ĐỂ GỬI ĐƠN HÀNG
         const userId = currentUser?.userId;
-
         const finalAddressDetail = `${formData.addressDetail}, ${formData.ward}`;
 
         const payload = {
@@ -204,8 +189,10 @@ const Checkout = () => {
             voucherCode: voucherCode || null,
             paymentMethod: formData.paymentMethod,
             note: formData.note,
+            
+            // --- SỬA LỖI TẠI ĐÂY: Gửi variantId thay vì productId ---
             items: cartItems.map(item => ({
-                productId: item.productId,
+                variantId: item.variantId, // Backend cần VariantId
                 quantity: item.quantity
             }))
         };
@@ -225,10 +212,12 @@ const Checkout = () => {
                 }
             } else {
                 alert("Đặt hàng thành công!");
-                await refreshCart();
+                await refreshCart(); // Làm mới giỏ hàng
                 navigate('/order-success', { state: { orderId: newOrderId } });
             }
         } catch (error) {
+            console.error("Lỗi đặt hàng:", error);
+            // Hiển thị thông báo lỗi chi tiết từ backend trả về
             alert("Lỗi đặt hàng: " + (error.response?.data?.message || "Có lỗi xảy ra"));
         } finally {
             setLoading(false);
@@ -244,56 +233,28 @@ const Checkout = () => {
             <div style={{ flex: 1, minWidth: '350px' }}>
                 <h2 style={{ color: '#2e7d32', marginBottom: '20px' }}>Thông tin giao hàng</h2>
                 <div style={{ display: 'grid', gap: '15px' }}>
-                    
-                    {/* HỌ TÊN & SĐT */}
                     <input type="text" name="recipientName" placeholder="Họ tên người nhận (*)" value={formData.recipientName} onChange={handleChange} style={inputStyle} />
                     <input type="text" name="recipientPhone" placeholder="Số điện thoại (*)" value={formData.recipientPhone} onChange={handleChange} style={inputStyle} />
                     
-                    {/* DROPDOWN LOCATION (FULL 3 CẤP) */}
                     <div style={{ display: 'grid', gap: '10px' }}>
-                        
-                        {/* 1. Tỉnh / Thành */}
-                        <select 
-                            style={inputStyle} 
-                            onChange={handleProvinceChange}
-                            value={provinces.find(p => p.name === formData.province)?.code || ""}
-                        >
+                        <select style={inputStyle} onChange={handleProvinceChange} value={provinces.find(p => p.name === formData.province)?.code || ""}>
                             <option value="">-- Chọn Tỉnh/Thành --</option>
-                            {provinces.map(p => (
-                                <option key={p.code} value={p.code}>{p.name}</option>
-                            ))}
+                            {provinces.map(p => (<option key={p.code} value={p.code}>{p.name}</option>))}
                         </select>
 
-                        {/* 2. Quận / Huyện */}
                         <div style={{display: 'flex', gap: '10px'}}>
-                            <select 
-                                style={{...inputStyle, flex: 1}} 
-                                onChange={handleDistrictChange}
-                                disabled={!formData.province}
-                                value={districts.find(d => d.name === formData.district)?.code || ""}
-                            >
+                            <select style={{...inputStyle, flex: 1}} onChange={handleDistrictChange} disabled={!formData.province} value={districts.find(d => d.name === formData.district)?.code || ""}>
                                 <option value="">-- Chọn Quận/Huyện --</option>
-                                {districts.map(d => (
-                                    <option key={d.code} value={d.code}>{d.name}</option>
-                                ))}
+                                {districts.map(d => (<option key={d.code} value={d.code}>{d.name}</option>))}
                             </select>
 
-                        {/* 3. Phường / Xã */}
-                            <select 
-                                style={{...inputStyle, flex: 1}} 
-                                onChange={handleWardChange}
-                                disabled={!formData.district}
-                                value={wards.find(w => w.name === formData.ward)?.code || ""}
-                            >
+                            <select style={{...inputStyle, flex: 1}} onChange={handleWardChange} disabled={!formData.district} value={wards.find(w => w.name === formData.ward)?.code || ""}>
                                 <option value="">-- Chọn Phường/Xã --</option>
-                                {wards.map(w => (
-                                    <option key={w.code} value={w.code}>{w.name}</option>
-                                ))}
+                                {wards.map(w => (<option key={w.code} value={w.code}>{w.name}</option>))}
                             </select>
                         </div>
                     </div>
 
-                    {/* ĐỊA CHỈ CHI TIẾT & GHI CHÚ */}
                     <input type="text" name="addressDetail" placeholder="Địa chỉ chi tiết (Số nhà, tên đường...) (*)" value={formData.addressDetail} onChange={handleChange} style={inputStyle} />
                     <textarea name="note" placeholder="Ghi chú đơn hàng (VD: Giao giờ hành chính)" value={formData.note} onChange={handleChange} style={{...inputStyle, height: '80px'}} />
                 </div>
@@ -305,8 +266,13 @@ const Checkout = () => {
                 
                 <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '20px', borderBottom: '1px solid #ddd' }}>
                     {cartItems.map(item => (
-                        <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                            <span>{item.productName} <strong>x {item.quantity}</strong></span>
+                        <div key={item.variantId || item.productId} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                            <div>
+                                <span>{item.productName} <strong>x {item.quantity}</strong></span>
+                                {item.variantName && item.variantName !== 'Tiêu chuẩn' && (
+                                    <div style={{fontSize:'12px', color:'#666'}}>({item.variantName})</div>
+                                )}
+                            </div>
                             <span>{(item.price * item.quantity).toLocaleString()}đ</span>
                         </div>
                     ))}
@@ -334,7 +300,7 @@ const Checkout = () => {
                     )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: 'bold', marginTop: '10px', borderTop: '1px solid #ddd', paddingTop: '10px' }}>
                         <span>Tổng cộng:</span>
-                        <span style={{ color: '#d32f2f' }}>{finalTotal > 0 ? finalTotal.toLocaleString() : 0}đ</span>
+                        <span style={{ color: '#d32f2f' }}>{(finalTotal > 0 ? finalTotal : 0).toLocaleString()}đ</span>
                     </div>
                 </div>
 

@@ -34,20 +34,21 @@ namespace back_end.DTOs
         public int TotalSold { get; set; }
     }
 
-    // 4. DTO cho Thống kê Tồn kho (MỚI THÊM)
+    // 4. DTO cho Thống kê Tồn kho
+    // Lưu ý: Dữ liệu này đang trả về tồn kho tổng hợp của Sản phẩm cha
     public class InventoryStatDto
     {
         public string ProductName { get; set; } = null!;
         public string CategoryName { get; set; } = null!;
-        public int StockQuantity { get; set; } // Số lượng tồn
-        public decimal Price { get; set; }     // Giá bán hiện tại (để ước tính giá trị tồn)
+        public int StockQuantity { get; set; } // Tổng số lượng tồn (của tất cả variants)
+        public decimal Price { get; set; }     // Giá bán tham khảo (thường là giá min hoặc giá gốc)
     }
 
-    // Object trả về tổng hợp cho trang Sản phẩm
+    // Object trả về tổng hợp cho API /api/Statistics/products
     public class ProductStatsResponse
     {
         public List<TopProductDto> TopProducts { get; set; }
         public List<CategoryShareDto> CategoryShares { get; set; }
-        public List<InventoryStatDto> TopInventory { get; set; } // Danh sách tồn kho nhiều
+        public List<InventoryStatDto> TopInventory { get; set; }
     }
 }

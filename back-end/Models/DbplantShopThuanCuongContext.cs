@@ -42,6 +42,7 @@ public partial class DbplantShopThuanCuongContext : DbContext
     public virtual DbSet<TblProduct> TblProducts { get; set; }
 
     public virtual DbSet<TblProductImage> TblProductImages { get; set; }
+    public virtual DbSet<TblProductVariant> TblProductVariants { get; set; }
 
     public virtual DbSet<TblRole> TblRoles { get; set; }
 
@@ -59,7 +60,7 @@ public partial class DbplantShopThuanCuongContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=LAPTOP-BPFVN8L7\\SQLEXPRESS02;Database=DBPlantShopThuanCuong;Trusted_Connection=True;TrustServerCertificate=True;");
+        => optionsBuilder.UseSqlServer("Server=LAPTOP-BPFVN8L7\\SQLEXPRESS02;Database=DBPlantShop;Trusted_Connection=True;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -90,16 +91,16 @@ public partial class DbplantShopThuanCuongContext : DbContext
         modelBuilder.Entity<TblCartItem>(entity =>
         {
             entity.HasKey(e => e.CartItemId).HasName("PK__TblCartI__488B0B0ABD011A1A");
-
             entity.Property(e => e.Quantity).HasDefaultValue(1);
 
             entity.HasOne(d => d.Cart).WithMany(p => p.TblCartItems)
                 .HasForeignKey(d => d.CartId)
                 .HasConstraintName("FK__TblCartIt__CartI__03F0984C");
 
-            entity.HasOne(d => d.Product).WithMany(p => p.TblCartItems)
-                .HasForeignKey(d => d.ProductId)
-                .HasConstraintName("FK__TblCartIt__Produ__04E4BC85");
+            // SỬA: Trỏ về Variant
+            entity.HasOne(d => d.Variant).WithMany(p => p.TblCartItems)
+                .HasForeignKey(d => d.VariantId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<TblCategory>(entity =>
@@ -156,13 +157,12 @@ public partial class DbplantShopThuanCuongContext : DbContext
         modelBuilder.Entity<TblImportReceiptDetail>(entity =>
         {
             entity.HasKey(e => e.DetailId).HasName("PK__TblImpor__135C316DF56D9E1E");
-
             entity.Property(e => e.ImportPrice).HasColumnType("decimal(18, 2)");
 
-            entity.HasOne(d => d.Product).WithMany(p => p.TblImportReceiptDetails)
-                .HasForeignKey(d => d.ProductId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__TblImport__Produ__6383C8BA");
+            // SỬA: Trỏ về Variant
+            entity.HasOne(d => d.Variant).WithMany(p => p.TblImportReceiptDetails)
+                .HasForeignKey(d => d.VariantId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasOne(d => d.Receipt).WithMany(p => p.TblImportReceiptDetails)
                 .HasForeignKey(d => d.ReceiptId)
@@ -172,16 +172,13 @@ public partial class DbplantShopThuanCuongContext : DbContext
         modelBuilder.Entity<TblInventoryAdjustment>(entity =>
         {
             entity.HasKey(e => e.AdjustmentId).HasName("PK__TblInven__E60DB893C96B386D");
-
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())").HasColumnType("datetime");
             entity.Property(e => e.Reason).HasMaxLength(200);
 
-            entity.HasOne(d => d.Product).WithMany(p => p.TblInventoryAdjustments)
-                .HasForeignKey(d => d.ProductId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__TblInvent__Produ__6754599E");
+            // SỬA: Trỏ về Variant
+            entity.HasOne(d => d.Variant).WithMany(p => p.TblInventoryAdjustments)
+                .HasForeignKey(d => d.VariantId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasOne(d => d.User).WithMany(p => p.TblInventoryAdjustments)
                 .HasForeignKey(d => d.UserId)
@@ -228,14 +225,18 @@ public partial class DbplantShopThuanCuongContext : DbContext
             entity.Property(e => e.CostPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.PriceAtTime).HasColumnType("decimal(18, 2)");
 
+            // Thêm mapping cột tên lưu trữ
+            entity.Property(e => e.ProductName).HasMaxLength(200);
+            entity.Property(e => e.VariantName).HasMaxLength(200);
+
             entity.HasOne(d => d.Order).WithMany(p => p.TblOrderDetails)
                 .HasForeignKey(d => d.OrderId)
                 .HasConstraintName("FK__TblOrderD__Order__7A672E12");
 
-            entity.HasOne(d => d.Product).WithMany(p => p.TblOrderDetails)
-                .HasForeignKey(d => d.ProductId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__TblOrderD__Produ__7B5B524B");
+            // SỬA: Trỏ về Variant
+            entity.HasOne(d => d.Variant).WithMany(p => p.TblOrderDetails)
+                .HasForeignKey(d => d.VariantId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<TblPost>(entity =>
@@ -276,28 +277,18 @@ public partial class DbplantShopThuanCuongContext : DbContext
         modelBuilder.Entity<TblProduct>(entity =>
         {
             entity.HasKey(e => e.ProductId).HasName("PK__TblProdu__B40CC6CD4267F477");
-
             entity.HasIndex(e => e.ProductCode, "UQ__TblProdu__2F4E024FE41FB400").IsUnique();
 
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())").HasColumnType("datetime");
             entity.Property(e => e.DeletedAt).HasColumnType("datetime");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.IsDeleted).HasDefaultValue(false);
-            entity.Property(e => e.MinStockAlert).HasDefaultValue(5);
-            entity.Property(e => e.OriginalPrice).HasColumnType("decimal(18, 2)");
+
+            // Đã xóa mapping của Price, Stock, Size...
             entity.Property(e => e.ProductCode).HasMaxLength(50);
             entity.Property(e => e.ProductName).HasMaxLength(200);
-            entity.Property(e => e.SaleEndDate).HasColumnType("datetime");
-            entity.Property(e => e.SalePrice).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.SaleStartDate).HasColumnType("datetime");
             entity.Property(e => e.ShortDescription).HasMaxLength(500);
-            entity.Property(e => e.Size).HasMaxLength(100);
-            entity.Property(e => e.StockQuantity).HasDefaultValue(0);
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getdate())").HasColumnType("datetime");
 
             entity.HasOne(d => d.Category).WithMany(p => p.TblProducts)
                 .HasForeignKey(d => d.CategoryId)
@@ -315,6 +306,28 @@ public partial class DbplantShopThuanCuongContext : DbContext
             entity.HasOne(d => d.Product).WithMany(p => p.TblProductImages)
                 .HasForeignKey(d => d.ProductId)
                 .HasConstraintName("FK__TblProduc__Produ__5629CD9C");
+        });
+
+        modelBuilder.Entity<TblProductVariant>(entity =>
+        {
+            entity.HasKey(e => e.VariantId);
+
+            entity.Property(e => e.VariantName).HasMaxLength(200);
+            entity.Property(e => e.OriginalPrice).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SalePrice).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.StockQuantity).HasDefaultValue(0);
+
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+
+            // Khóa ngoại trỏ về Product
+            entity.HasOne(d => d.Product).WithMany(p => p.TblProductVariants)
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Cascade); // Xóa Product thì xóa luôn Variant
+
+            // Khóa ngoại trỏ về Image (Ảnh đại diện cho variant)
+            entity.HasOne(d => d.Image).WithMany(p => p.TblProductVariants)
+                .HasForeignKey(d => d.ImageId);
         });
 
         modelBuilder.Entity<TblRole>(entity =>

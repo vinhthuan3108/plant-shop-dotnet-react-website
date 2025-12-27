@@ -12,7 +12,7 @@ const Cart = () => {
         return (
             <div style={{ textAlign: 'center', padding: '50px' }}>
                 <h2>Giỏ hàng của bạn đang trống</h2>
-                <Link to="/products" style={{ color: '#2e7d32', fontWeight: 'bold' }}>Quay lại mua sắm</Link>
+                <Link to="/shop" style={{ color: '#2e7d32', fontWeight: 'bold' }}>Quay lại mua sắm</Link>
             </div>
         );
     }
@@ -36,29 +36,38 @@ const Cart = () => {
                         </thead>
                         <tbody>
                             {cartItems.map((item) => (
-                                <tr key={item.productId} style={{ borderBottom: '1px solid #eee' }}>
+                                // QUAN TRỌNG: Key phải là variantId (vì 1 sp có thể có nhiều size)
+                                <tr key={item.variantId} style={{ borderBottom: '1px solid #eee' }}>
                                     <td style={{ padding: '15px 10px', display: 'flex', alignItems: 'center', gap: '15px' }}>
                                         <img 
-                                            src={item.imageUrl ? `${BASE_URL}${item.imageUrl}` : 'https://via.placeholder.com/80'} 
+                                            src={item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${BASE_URL}${item.imageUrl}`) : 'https://via.placeholder.com/80'} 
                                             alt={item.productName} 
                                             style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px' }}
                                         />
                                         <div>
-                                            <strong>{item.productName}</strong>
+                                            <div style={{ fontWeight: 'bold' }}>{item.productName}</div>
+                                            {/* Hiển thị phân loại hàng (Size/Màu) */}
+                                            {item.variantName && item.variantName !== 'Tiêu chuẩn' && (
+                                                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                                    Phân loại: {item.variantName}
+                                                </div>
+                                            )}
                                         </div>
                                     </td>
                                     <td style={{ padding: '10px' }}>{item.price.toLocaleString()} đ</td>
                                     <td style={{ padding: '10px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #ddd', width: 'fit-content', borderRadius: '4px' }}>
                                             <button 
-                                                onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                                                // Sửa: Dùng variantId
+                                                onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
                                                 style={{ padding: '5px 10px', background: 'none', border: 'none', cursor: 'pointer' }}
                                             >
                                                 <FaMinus size={10} />
                                             </button>
                                             <span style={{ padding: '0 10px' }}>{item.quantity}</span>
                                             <button 
-                                                onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                                                // Sửa: Dùng variantId
+                                                onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
                                                 style={{ padding: '5px 10px', background: 'none', border: 'none', cursor: 'pointer' }}
                                             >
                                                 <FaPlus size={10} />
@@ -70,7 +79,8 @@ const Cart = () => {
                                     </td>
                                     <td style={{ padding: '10px' }}>
                                         <button 
-                                            onClick={() => removeFromCart(item.productId)}
+                                            // Sửa: Dùng variantId
+                                            onClick={() => removeFromCart(item.variantId)}
                                             style={{ color: '#999', background: 'none', border: 'none', cursor: 'pointer' }}
                                             title="Xóa"
                                         >
@@ -97,7 +107,7 @@ const Cart = () => {
                         <span style={{ color: '#d32f2f' }}>{cartTotal.toLocaleString()} đ</span>
                     </div>
                     <button 
-                        onClick={() => navigate('/checkout')} // Chuyển hướng sang trang Checkout
+                        onClick={() => navigate('/checkout')} 
                         style={{ width: '100%', padding: '15px', backgroundColor: '#2e7d32', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}
                     >
                         TIẾN HÀNH THANH TOÁN

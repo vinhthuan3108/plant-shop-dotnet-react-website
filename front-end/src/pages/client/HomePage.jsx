@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom';
 import { FaTree, FaMedal, FaHandshake, FaChevronLeft, FaChevronRight, FaStar, FaCalendarAlt } from 'react-icons/fa'; 
 import { CartContext } from '../../context/CartContext';
 import './HomePage.css';
-
-// 1. IMPORT COMPONENT CARD TỪ FILE RIÊNG (QUAN TRỌNG)
 import HomeProductCard from '../../components/client/HomeProductCard'; 
 
 // Import ảnh tĩnh
@@ -14,7 +12,7 @@ import thachBichImg from '../../assets/images/senthachbich.png';
 
 function HomePage() {
   const { addToCart } = useContext(CartContext);
-
+  
   // --- STATE DỮ LIỆU ---
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [banners, setBanners] = useState([]);
@@ -53,14 +51,18 @@ function HomePage() {
   const nextSlide = () => setCurrentBanner(prev => (prev === banners.length - 1 ? 0 : prev + 1));
   const prevSlide = () => setCurrentBanner(prev => (prev === 0 ? banners.length - 1 : prev - 1));
 
-  // --- 2. GỌI API SẢN PHẨM ---
+  // --- 2. GỌI API SẢN PHẨM (ĐÃ SỬA LẠI LOGIC) ---
   useEffect(() => {
-    fetch(`${BASE_URL}/api/TblProducts`)
+    // SỬA: Gọi endpoint /shop thay vì gọi endpoint gốc (vì endpoint gốc giờ dành cho Admin)
+    // pageSize=8: Lấy 8 sản phẩm mới nhất
+    fetch(`${BASE_URL}/api/TblProducts/shop?page=1&pageSize=8`)
       .then(res => res.json())
-      .then(data => {
-        const activeProducts = data.filter(p => p.isActive === true);
-        const sortedProducts = activeProducts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setFeaturedProducts(sortedProducts.slice(0, 8));
+      .then(response => {
+        // API /shop trả về object { data: [...], totalItems: ... }
+        if (response && response.data) {
+             // Backend đã tự sắp xếp giảm dần theo ngày tạo và lọc active rồi, không cần sort lại ở đây
+             setFeaturedProducts(response.data);
+        }
       })
       .catch(err => console.error("Lỗi fetch sản phẩm:", err));
   }, []);
@@ -90,14 +92,9 @@ function HomePage() {
       .catch(err => console.error("Lỗi fetch tin tức:", err));
   }, []);
 
-  const nextTestimonialSlide = () => {
-      setTestimonialStartIndex(prev => (prev + 2) % testimonials.length);
-  };
-
-  const prevTestimonialSlide = () => {
-      setTestimonialStartIndex(prev => (prev - 2 + testimonials.length) % testimonials.length);
-  };
-
+  // ... (Phần logic slider Testimonials và Blog giữ nguyên không đổi) ...
+  const nextTestimonialSlide = () => { setTestimonialStartIndex(prev => (prev + 2) % testimonials.length); };
+  const prevTestimonialSlide = () => { setTestimonialStartIndex(prev => (prev - 2 + testimonials.length) % testimonials.length); };
   const getVisibleTestimonials = () => {
       if (testimonials.length === 0) return [];
       if (testimonials.length <= 2) return testimonials;
@@ -108,21 +105,13 @@ function HomePage() {
       }
       return visible;
   };
-
   const getAvatarUrl = (url) => {
       if (!url) return 'https://via.placeholder.com/150'; 
-      if (url.startsWith('http')) return url; 
+      if (url.startsWith('http')) return url;
       return `${BASE_URL}${url}`; 
   };
-
-  const nextBlogSlide = () => {
-      setBlogStartIndex(prev => (prev + 3) % blogPosts.length);
-  };
-
-  const prevBlogSlide = () => {
-      setBlogStartIndex(prev => (prev - 3 + blogPosts.length) % blogPosts.length);
-  };
-
+  const nextBlogSlide = () => { setBlogStartIndex(prev => (prev + 3) % blogPosts.length); };
+  const prevBlogSlide = () => { setBlogStartIndex(prev => (prev - 3 + blogPosts.length) % blogPosts.length); };
   const getVisibleBlogs = () => {
       if (blogPosts.length === 0) return [];
       if (blogPosts.length <= 3) return blogPosts;
@@ -215,7 +204,7 @@ function HomePage() {
         </div>
       </section>
 
-      {/* 5. KHÁCH HÀNG & 6. TIN TỨC: Giữ nguyên phần còn lại */}
+      {/* 5. KHÁCH HÀNG */}
       <section className="section-container" style={{ backgroundColor: '#fff' }}>
         <h2 className="section-title">KHÁCH HÀNG NÓI VỀ PLANT SHOP</h2>
         <div style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto' }}>
@@ -243,6 +232,7 @@ function HomePage() {
         </div>
       </section>
 
+      {/* 6. TIN TỨC */}
       <section className="section-container" style={{ backgroundColor: '#f9f9f9' }}>
         <h2 className="section-title">KIẾN THỨC CÂY CẢNH</h2>
         <div style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto' }}>
@@ -275,7 +265,5 @@ function HomePage() {
     </div>
   );
 }
-
-// !!! QUAN TRỌNG: ĐÃ XÓA COMPONENT CON Ở ĐÂY ĐỂ DÙNG COMPONENT IMPORT !!!
 
 export default HomePage;

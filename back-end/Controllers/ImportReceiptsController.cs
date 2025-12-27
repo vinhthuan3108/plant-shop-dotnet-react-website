@@ -2,8 +2,9 @@
 using back_end.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authorization; // Thêm dòng này
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+
 [Route("api/[controller]")]
 [ApiController]
 public class ImportReceiptsController : ControllerBase
@@ -14,6 +15,7 @@ public class ImportReceiptsController : ControllerBase
     {
         _context = context;
     }
+
     // GET: api/ImportReceipts
     [HttpGet]
     public async Task<ActionResult> GetReceipts(DateTime? fromDate, DateTime? toDate, int? supplierId)
@@ -23,18 +25,17 @@ public class ImportReceiptsController : ControllerBase
             .Include(r => r.Creator)
             .AsQueryable();
 
-
         if (fromDate.HasValue) query = query.Where(r => r.ImportDate >= fromDate);
         if (toDate.HasValue) query = query.Where(r => r.ImportDate <= toDate);
-
         if (supplierId.HasValue) query = query.Where(r => r.SupplierId == supplierId);
 
-        var result = await query.OrderByDescending(r => r.ImportDate).Select(r => new {
+        var result = await query.OrderByDescending(r => r.ImportDate).Select(r => new
+        {
             r.ReceiptId,
             SupplierName = r.Supplier.SupplierName,
             r.TotalAmount,
             r.ImportDate,
-            CreatorName = r.Creator.FullName, 
+            CreatorName = r.Creator.FullName,
             r.Note
         }).ToListAsync();
 
@@ -45,12 +46,18 @@ public class ImportReceiptsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult> GetReceiptDetail(int id)
     {
+        // 
         var detail = await _context.TblImportReceiptDetails
-            .Include(d => d.Product)
+            .Include(d => d.Variant)          // Link tới Variant
+                .ThenInclude(v => v.Product)  // Từ Variant lấy thông tin Product
             .Where(d => d.ReceiptId == id)
-            .Select(d => new {
-                d.ProductId,
-                ProductName = d.Product.ProductName,
+            .Select(d => new
+            {
+                d.VariantId, // Trả về VariantId
+                // Lấy tên sản phẩm + tên biến thể
+                ProductName = d.Variant.Product.ProductName,
+                VariantName = d.Variant.VariantName,
+
                 d.Quantity,
                 d.ImportPrice,
                 SubTotal = d.Quantity * d.ImportPrice
@@ -58,18 +65,15 @@ public class ImportReceiptsController : ControllerBase
 
         return Ok(detail);
     }
+
     [HttpPost]
-    [Authorize] // <--- 1. Bắt buộc phải đăng nhập mới tạo được phiếu
+    [Authorize]
     public async Task<IActionResult> CreateReceipt(ImportReceiptCreateDto dto)
     {
-        // --- 2. Lấy UserId từ Token ---
-        var userIdClaim = User.FindFirst("UserId");
-        if (userIdClaim == null)
-        {
-            return Unauthorized(new { message = "Không tìm thấy thông tin người dùng." });
-        }
+        var userIdClaim = User.FindFirst("UserId"); // Hoặc ClaimTypes.NameIdentifier tùy cấu hình
+        if (userIdClaim == null) return Unauthorized(new { message = "Không tìm thấy thông tin người dùng." });
+
         int loggedInUserId = int.Parse(userIdClaim.Value);
-        // ------------------------------
 
         if (dto.Details == null || !dto.Details.Any())
             return BadRequest("Phải chọn ít nhất 1 sản phẩm để nhập kho.");
@@ -82,36 +86,44 @@ public class ImportReceiptsController : ControllerBase
                 SupplierId = dto.SupplierId,
                 ImportDate = dto.ImportDate,
                 Note = dto.Note,
-
-                // --- 3. Gán ID lấy từ Token vào đây ---
                 CreatorId = loggedInUserId,
-                // (Không dùng dto.CreatorId nữa)
-
                 TotalAmount = dto.Details.Sum(d => d.Quantity * d.ImportPrice)
             };
 
             _context.TblImportReceipts.Add(receipt);
             await _context.SaveChangesAsync();
 
-            // ... (Phần xử lý Details giữ nguyên như cũ) ...
             foreach (var item in dto.Details)
             {
                 var detail = new TblImportReceiptDetail
                 {
                     ReceiptId = receipt.ReceiptId,
-                    ProductId = item.ProductId,
+                    VariantId = item.VariantId, // Sửa ProductId -> VariantId
                     Quantity = item.Quantity,
                     ImportPrice = item.ImportPrice
                 };
                 _context.TblImportReceiptDetails.Add(detail);
 
-                var product = await _context.TblProducts.FindAsync(item.ProductId);
-                if (product != null)
+                // Cập nhật kho trong bảng Variant
+                var variant = await _context.TblProductVariants.FindAsync(item.VariantId);
+                if (variant != null)
                 {
-                    product.StockQuantity = (product.StockQuantity ?? 0) + item.Quantity;
-                    product.UpdatedAt = DateTime.Now;
+                    variant.StockQuantity = (variant.StockQuantity ?? 0) + item.Quantity;
+                    // Nếu muốn cập nhật giá gốc theo giá nhập mới (tùy logic):
+                    // variant.OriginalPrice = item.ImportPrice; 
                 }
             }
+
+            // Cập nhật UpdatedAt của sản phẩm cha (để biết mới có thay đổi)
+            // Logic này tùy chọn, nhưng tốt cho việc tracking
+            var variantIds = dto.Details.Select(d => d.VariantId).Distinct().ToList();
+            var productsToUpdate = await _context.TblProductVariants
+                .Where(v => variantIds.Contains(v.VariantId))
+                .Select(v => v.Product)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var p in productsToUpdate) p.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -121,8 +133,6 @@ public class ImportReceiptsController : ControllerBase
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            // Log lỗi ra console để debug nếu cần
-            Console.WriteLine(ex.ToString());
             return StatusCode(500, $"Lỗi hệ thống: {ex.Message}");
         }
     }

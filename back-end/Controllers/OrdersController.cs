@@ -20,68 +20,74 @@ namespace back_end.Controllers
         [HttpPost("checkout")]
         public async Task<IActionResult> Checkout([FromBody] CheckoutRequest request)
         {
-            // 1. Validate cơ bản
+            // 1. Validate đầu vào
             if (request.Items == null || request.Items.Count == 0)
             {
                 return BadRequest(new { message = "Giỏ hàng trống." });
             }
 
-            // Sử dụng Transaction để đảm bảo tính toàn vẹn dữ liệu (Lỗi ở bước nào là rollback hết)
             using var transaction = await _context.Database.BeginTransactionAsync();
-
             try
             {
                 // ---------------------------------------------------------
-                // BƯỚC 1: KIỂM TRA TỒN KHO (FINAL CHECK) & TÍNH TỔNG TIỀN HÀNG
+                // BƯỚC 1: XỬ LÝ SẢN PHẨM & TÍNH TỔNG TIỀN (LOGIC VARIANTS)
                 // ---------------------------------------------------------
                 decimal subTotal = 0;
                 var orderDetailsList = new List<TblOrderDetail>();
 
                 foreach (var item in request.Items)
                 {
-                    var product = await _context.TblProducts.FindAsync(item.ProductId);
+                    // Lấy thông tin Biến thể + Sản phẩm cha
+                    var variant = await _context.TblProductVariants
+                        .Include(v => v.Product)
+                        .FirstOrDefaultAsync(v => v.VariantId == item.VariantId);
 
-                    if (product == null)
+                    if (variant == null)
                     {
-                        return BadRequest(new { message = $"Sản phẩm ID {item.ProductId} không tồn tại." });
+                        return BadRequest(new { message = $"Sản phẩm (Mã loại: {item.VariantId}) không tồn tại." });
                     }
 
-                    // Kiểm tra tồn kho (Đây là chỗ gây ra lỗi hiện tại của bạn)
-                    if (product.StockQuantity < item.Quantity)
+                    // Kiểm tra trạng thái sản phẩm cha (Ngừng kinh doanh?)
+                    if (variant.Product.IsActive != true || variant.Product.IsDeleted == true)
                     {
-                        return BadRequest(new { message = $"Sản phẩm '{product.ProductName}' không đủ hàng. Còn lại: {product.StockQuantity}." });
+                        return BadRequest(new { message = $"Sản phẩm '{variant.Product.ProductName}' đang tạm ngưng bán." });
                     }
 
-                    if (product.IsActive != true || product.IsDeleted == true)
+                    // Kiểm tra tồn kho của Biến thể
+                    if ((variant.StockQuantity ?? 0) < item.Quantity)
                     {
-                        return BadRequest(new { message = $"Sản phẩm '{product.ProductName}' đã ngừng kinh doanh." });
+                        return BadRequest(new { message = $"Phân loại '{variant.VariantName}' của '{variant.Product.ProductName}' không đủ hàng. Còn lại: {variant.StockQuantity}." });
                     }
 
-                    // Lấy giá bán hiện tại (Ưu tiên giá Sale nếu có)
-                    decimal price = product.SalePrice ?? product.OriginalPrice;
+                    // Lấy giá: Ưu tiên giá Sale của biến thể -> Giá gốc biến thể
+                    decimal price = variant.SalePrice ?? variant.OriginalPrice;
 
                     subTotal += price * item.Quantity;
 
-                    // Chuẩn bị dữ liệu chi tiết đơn hàng
+                    // Tạo chi tiết đơn hàng
                     orderDetailsList.Add(new TblOrderDetail
                     {
-                        ProductId = item.ProductId,
+                        VariantId = item.VariantId, // Lưu VariantId
+                        // Lưu Snapshot Tên để giữ lịch sử nếu Admin đổi tên sau này
+                        ProductName = variant.Product.ProductName,
+                        VariantName = variant.VariantName,
+
                         Quantity = item.Quantity,
-                        PriceAtTime = price, // Giá bán tại thời điểm mua
-                        CostPrice = product.OriginalPrice // Giá gốc (để tính lãi lỗ sau này)
+                        PriceAtTime = price,
+                        CostPrice = variant.OriginalPrice // Lưu giá vốn (nếu cần tính lãi)
                     });
 
-                    // TRỪ TỒN KHO NGAY LẬP TỨC
-                    product.StockQuantity -= item.Quantity;
+                    // TRỪ TỒN KHO BIẾN THỂ
+                    variant.StockQuantity -= item.Quantity;
                 }
 
                 // ---------------------------------------------------------
-                // BƯỚC 2: TÍNH PHÍ VẬN CHUYỂN (Logic 2.2.2.2)
+                // BƯỚC 2: TÍNH PHÍ VẬN CHUYỂN
                 // ---------------------------------------------------------
                 decimal shippingFee = CalculateShippingFee(request.Province);
 
                 // ---------------------------------------------------------
-                // BƯỚC 3: ÁP DỤNG VOUCHER (Logic 2.2.2.3)
+                // BƯỚC 3: ÁP DỤNG VOUCHER
                 // ---------------------------------------------------------
                 decimal discountAmount = 0;
                 int? voucherId = null;
@@ -91,50 +97,42 @@ namespace back_end.Controllers
                     var voucher = await _context.TblVouchers
                         .FirstOrDefaultAsync(v => v.Code == request.VoucherCode && v.IsActive == true);
 
-                    if (voucher == null) return BadRequest(new { message = "Mã giảm giá không tồn tại." });
-
-                    if (DateTime.Now < voucher.StartDate || DateTime.Now > voucher.EndDate)
-                        return BadRequest("Mã giảm giá đã hết hạn.");
-
-                    if (voucher.UsageLimit.HasValue && voucher.UsageCount >= voucher.UsageLimit)
-                        return BadRequest("Mã giảm giá đã hết lượt sử dụng.");
-
-                    if (subTotal < (voucher.MinOrderValue ?? 0))
-                        return BadRequest($"Đơn hàng chưa đạt giá trị tối thiểu {voucher.MinOrderValue:N0}đ để dùng mã này.");
-
-                    // Tính tiền giảm
-                    if (voucher.DiscountType == "PERCENT") // Giảm theo %
+                    // Logic check voucher (Hạn sử dụng, Số lượng, Giá trị tối thiểu...)
+                    if (voucher != null && DateTime.Now >= voucher.StartDate && DateTime.Now <= voucher.EndDate)
                     {
-                        discountAmount = subTotal * (voucher.DiscountValue / 100);
-                        // Kiểm tra giảm tối đa
-                        if (voucher.MaxDiscountAmount.HasValue && discountAmount > voucher.MaxDiscountAmount)
+                        if (subTotal >= (voucher.MinOrderValue ?? 0))
                         {
-                            discountAmount = voucher.MaxDiscountAmount.Value;
+                            if (voucher.DiscountType == "PERCENT")
+                            {
+                                discountAmount = subTotal * (voucher.DiscountValue / 100);
+                                if (voucher.MaxDiscountAmount.HasValue && discountAmount > voucher.MaxDiscountAmount)
+                                    discountAmount = voucher.MaxDiscountAmount.Value;
+                            }
+                            else // Fixed amount
+                            {
+                                discountAmount = voucher.DiscountValue;
+                            }
+
+                            // Cập nhật số lần dùng
+                            voucher.UsageCount = (voucher.UsageCount ?? 0) + 1;
+                            voucherId = voucher.VoucherId;
                         }
                     }
-                    else // Giảm tiền mặt (FIXED)
-                    {
-                        discountAmount = voucher.DiscountValue;
-                    }
-
-                    // Cập nhật lượt dùng voucher
-                    voucher.UsageCount = (voucher.UsageCount ?? 0) + 1;
-                    voucherId = voucher.VoucherId;
                 }
 
                 // ---------------------------------------------------------
-                // BƯỚC 4: TẠO ĐƠN HÀNG (Logic 2.2.2.5)
+                // BƯỚC 4: TẠO ĐƠN HÀNG (TBLORDERS)
                 // ---------------------------------------------------------
                 decimal totalAmount = subTotal + shippingFee - discountAmount;
                 if (totalAmount < 0) totalAmount = 0;
 
                 var order = new TblOrder
                 {
-                    UserId = request.UserId, // Null nếu khách vãng lai
+                    UserId = request.UserId,
                     OrderDate = DateTime.Now,
                     RecipientName = request.RecipientName,
                     RecipientPhone = request.RecipientPhone,
-                    ShippingAddress = request.ShippingAddress + ", " + request.District + ", " + request.Province,
+                    ShippingAddress = $"{request.ShippingAddress}, {request.District}, {request.Province}",
 
                     SubTotal = subTotal,
                     ShippingFee = shippingFee,
@@ -144,9 +142,8 @@ namespace back_end.Controllers
                     VoucherId = voucherId,
                     Note = request.Note,
 
-                    // Trạng thái ban đầu
-                    OrderStatus = "Pending", // Chờ xác nhận
-                    PaymentStatus = "Unpaid" // Chưa thanh toán
+                    OrderStatus = "Pending",
+                    PaymentStatus = "Unpaid"
                 };
 
                 _context.TblOrders.Add(order);
@@ -160,13 +157,14 @@ namespace back_end.Controllers
                 }
 
                 // ---------------------------------------------------------
-                // BƯỚC 5: DỌN DẸP GIỎ HÀNG (Nếu là thành viên)
+                // BƯỚC 5: XÓA GIỎ HÀNG (Nếu user đã đăng nhập)
                 // ---------------------------------------------------------
                 if (request.UserId.HasValue)
                 {
                     var cart = await _context.TblCarts.FirstOrDefaultAsync(c => c.UserId == request.UserId);
                     if (cart != null)
                     {
+                        // Xóa các item trong giỏ tương ứng với user
                         var cartItemsToRemove = _context.TblCartItems.Where(ci => ci.CartId == cart.CartId);
                         _context.TblCartItems.RemoveRange(cartItemsToRemove);
                     }
@@ -175,14 +173,12 @@ namespace back_end.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // Trả về kết quả
                 return Ok(new
                 {
                     Message = "Đặt hàng thành công",
                     OrderId = order.OrderId,
                     TotalAmount = totalAmount,
                     PaymentMethod = request.PaymentMethod
-                    // Ở phần sau: Nếu PaymentMethod = "PAYOS", Frontend sẽ dùng OrderId này để gọi API lấy mã QR
                 });
             }
             catch (Exception ex)
@@ -192,163 +188,64 @@ namespace back_end.Controllers
             }
         }
 
-        // Hàm phụ trợ tính phí ship (Logic 2.2.2.2)
         private decimal CalculateShippingFee(string province)
         {
-            // Logic đơn giản demo. Thực tế có thể lưu bảng cấu hình phí ship trong DB.
-            if (string.IsNullOrEmpty(province)) return 5000; // Mặc định
-
+            if (string.IsNullOrEmpty(province)) return 30000;
             string p = province.ToLower();
-            if (p.Contains("hồ chí minh") || p.Contains("sài gòn"))
-            {
-                return 3000; // Nội thành (Giả sử Shop ở HCM)
-            }
-            // Các tỉnh lân cận
-            if (p.Contains("bình dương") || p.Contains("đồng nai") || p.Contains("long an"))
-            {
-                return 4000;
-            }
-
-            return 5000; // Các tỉnh còn lại
+            if (p.Contains("hồ chí minh") || p.Contains("sài gòn")) return 15000;
+            return 30000;
         }
 
-        // API phụ: Validate Voucher (Để Frontend gọi check trước khi bấm Đặt hàng - Logic 2.2.2.3)
-        [HttpGet("validate-voucher")]
-        public async Task<IActionResult> ValidateVoucher(string code, decimal orderValue)
-        {
-            var voucher = await _context.TblVouchers
-                       .FirstOrDefaultAsync(v => v.Code == code && v.IsActive == true);
+        // --- CÁC API KHÁC CHO ADMIN & USER ---
 
-            if (voucher == null) return BadRequest("Mã không tồn tại.");
-            if (DateTime.Now < voucher.StartDate || DateTime.Now > voucher.EndDate) return BadRequest("Mã hết hạn.");
-            if (voucher.UsageLimit.HasValue && voucher.UsageCount >= voucher.UsageLimit) return BadRequest("Mã hết lượt dùng.");
-            if (orderValue < (voucher.MinOrderValue ?? 0)) return BadRequest($"Đơn hàng cần tối thiểu {voucher.MinOrderValue:N0}đ.");
-
-            // Tính thử số tiền giảm
-            decimal discount = 0;
-            if (voucher.DiscountType == "PERCENT")
-            {
-                discount = orderValue * (voucher.DiscountValue / 100);
-                if (voucher.MaxDiscountAmount.HasValue && discount > voucher.MaxDiscountAmount)
-                    discount = voucher.MaxDiscountAmount.Value;
-            }
-            else
-            {
-                discount = voucher.DiscountValue;
-            }
-
-            return Ok(new
-            {
-                Valid = true,
-                DiscountAmount = discount,
-                Code = code
-            });
-        }
+        // GET: api/Orders/admin/list
         [HttpGet("admin/list")]
-        public async Task<IActionResult> GetOrdersAdmin(
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10,
-            [FromQuery] string? search = null, // Tìm theo Tên, SĐT, Mã đơn
-            [FromQuery] string? status = null, // Filter theo trạng thái
-            [FromQuery] DateTime? fromDate = null,
-            [FromQuery] DateTime? toDate = null)
+        public async Task<IActionResult> GetOrdersAdmin([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var query = _context.TblOrders.AsQueryable();
-
-            // Lọc theo từ khóa (Mã đơn OR Tên OR SĐT)
-            if (!string.IsNullOrEmpty(search))
-            {
-                // Thử parse search sang int để tìm theo ID
-                bool isNumber = int.TryParse(search, out int orderId);
-                if (isNumber)
-                {
-                    query = query.Where(o => o.OrderId == orderId || o.RecipientPhone.Contains(search));
-                }
-                else
-                {
-                    query = query.Where(o => o.RecipientName.Contains(search) || o.RecipientPhone.Contains(search));
-                }
-            }
-
-            // Lọc theo trạng thái
-            if (!string.IsNullOrEmpty(status) && status != "All")
-            {
-                query = query.Where(o => o.OrderStatus == status);
-            }
-
-            // Lọc theo ngày
-            if (fromDate.HasValue)
-                query = query.Where(o => o.OrderDate >= fromDate.Value);
-            if (toDate.HasValue)
-                query = query.Where(o => o.OrderDate <= toDate.Value.AddDays(1)); // +1 để lấy hết ngày cuối
-
-            // Sắp xếp mới nhất lên đầu
+            var query = _context.TblOrders.OrderByDescending(o => o.OrderDate).AsQueryable();
             var totalItems = await query.CountAsync();
-            var orders = await query
-                .OrderByDescending(o => o.OrderDate)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(o => new OrderAdminListDto
-                {
-                    OrderId = o.OrderId,
-                    CustomerName = o.RecipientName,
-                    Phone = o.RecipientPhone,
-                    OrderDate = o.OrderDate,
-                    TotalAmount = o.TotalAmount ?? 0,
-                    OrderStatus = o.OrderStatus,
-                    PaymentStatus = o.PaymentStatus
-                })
-                .ToListAsync();
+            var orders = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-            return Ok(new
-            {
-                Data = orders,
-                TotalItems = totalItems,
-                Page = page,
-                PageSize = pageSize,
-                TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
-            });
+            return Ok(new { Data = orders, TotalItems = totalItems, TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize) });
         }
 
-        // 2. Lấy chi tiết đơn hàng
+        // GET: api/Orders/admin/detail/5
         [HttpGet("admin/detail/{id}")]
         public async Task<IActionResult> GetOrderDetailAdmin(int id)
         {
             var order = await _context.TblOrders
                 .Include(o => o.TblOrderDetails)
-                    .ThenInclude(od => od.Product) // Join bảng Product để lấy tên
+                    .ThenInclude(od => od.Variant) // Include Variant
+                        .ThenInclude(v => v.Product) // Include Product cha
                 .FirstOrDefaultAsync(o => o.OrderId == id);
 
             if (order == null) return NotFound("Không tìm thấy đơn hàng");
 
-            var result = new OrderAdminDetailDto
+            // Map data trả về
+            var result = new
             {
-                OrderId = order.OrderId,
-                OrderDate = order.OrderDate,
-                OrderStatus = order.OrderStatus,
-                PaymentStatus = order.PaymentStatus,
-                RecipientName = order.RecipientName,
-                RecipientPhone = order.RecipientPhone,
-                ShippingAddress = order.ShippingAddress,
-                Note = order.Note,
-                SubTotal = order.SubTotal,
-                ShippingFee = order.ShippingFee,
-                DiscountAmount = order.DiscountAmount,
-                TotalAmount = order.TotalAmount,
-                Items = order.TblOrderDetails.Select(d => new OrderDetailDto
+                order.OrderId,
+                order.OrderDate,
+                order.OrderStatus,
+                order.RecipientName,
+                order.RecipientPhone,
+                order.ShippingAddress,
+                order.TotalAmount,
+                Items = order.TblOrderDetails.Select(d => new
                 {
-                    ProductName = d.Product.ProductName,
-                    Size = d.Product.Size, // Lấy size từ Product
+                    // Lấy tên từ snapshot nếu có, nếu không lấy từ quan hệ
+                    ProductName = d.ProductName ?? d.Variant.Product.ProductName,
+                    VariantName = d.VariantName ?? d.Variant.VariantName,
                     Quantity = d.Quantity,
                     Price = d.PriceAtTime,
                     Total = d.Quantity * d.PriceAtTime
-                }).ToList()
+                })
             };
 
             return Ok(result);
         }
 
-        // 3. Cập nhật trạng thái đơn hàng (QUAN TRỌNG: Logic hoàn kho)
+        // PUT: api/Orders/admin/update-status/5
         [HttpPut("admin/update-status/{id}")]
         public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateStatusRequest req)
         {
@@ -356,102 +253,80 @@ namespace back_end.Controllers
             try
             {
                 var order = await _context.TblOrders
-                    .Include(o => o.TblOrderDetails) // Phải include để lấy list sản phẩm nếu cần hoàn kho
+                    .Include(o => o.TblOrderDetails)
                     .FirstOrDefaultAsync(o => o.OrderId == id);
 
-                if (order == null) return NotFound("Đơn hàng không tồn tại");
+                if (order == null) return NotFound();
 
-                string oldStatus = order.OrderStatus;
-                string newStatus = req.NewStatus;
-
-                // Không cho phép đổi nếu đơn đã Hoàn thành hoặc Đã hủy (Tùy nghiệp vụ, ở đây làm chặt chẽ)
-                if (oldStatus == "Cancelled" || oldStatus == "Completed")
+                // Logic Hoàn kho khi Hủy đơn
+                if (req.NewStatus == "Cancelled" && order.OrderStatus != "Cancelled")
                 {
-                    // return BadRequest("Không thể thay đổi trạng thái của đơn đã Hoàn thành hoặc Đã hủy.");
-                    // Mở rộng: Admin có thể reopen đơn hủy, nhưng logic sẽ phức tạp hơn. Tạm thời chặn.
-                }
-
-                // LOGIC HOÀN KHO KHI HỦY ĐƠN
-                if (newStatus == "Cancelled" && oldStatus != "Cancelled")
-                {
-                    // Cộng lại kho (Logic cũ của bạn)
                     foreach (var item in order.TblOrderDetails)
                     {
-                        var product = await _context.TblProducts.FindAsync(item.ProductId);
-                        if (product != null)
+                        var variant = await _context.TblProductVariants.FindAsync(item.VariantId);
+                        if (variant != null)
                         {
-                            // Cộng lại số lượng tồn kho
-                            product.StockQuantity = (product.StockQuantity ?? 0) + item.Quantity;
-                        }
-                    }
-                }
-                else if (oldStatus == "Cancelled" && newStatus != "Cancelled")
-                {
-                    // --- BỔ SUNG: Logic Trừ lại kho khi khôi phục đơn hủy ---
-                    foreach (var item in order.TblOrderDetails)
-                    {
-                        var product = await _context.TblProducts.FindAsync(item.ProductId);
-                        if (product != null)
-                        {
-                            // Kiểm tra xem còn đủ hàng để khôi phục không?
-                            if (product.StockQuantity < item.Quantity)
-                            {
-                                // Nếu muốn chặn, throw exception hoặc return BadRequest
-                                // return BadRequest($"Sản phẩm {product.ProductName} không đủ hàng để khôi phục.");
-                                // Hoặc cho phép âm kho tùy nghiệp vụ
-                            }
-                            product.StockQuantity -= item.Quantity;
+                            variant.StockQuantity = (variant.StockQuantity ?? 0) + item.Quantity; // Cộng lại kho cho Variant
                         }
                     }
                 }
 
-                // Cập nhật trạng thái mới
-                order.OrderStatus = newStatus;
-
-                // Nếu Completed thì set PaymentStatus = Paid (Nếu chưa)
-                if (newStatus == "Completed" && order.PaymentStatus == "Unpaid")
-                {
-                    order.PaymentStatus = "Paid";
-                }
+                order.OrderStatus = req.NewStatus;
+                if (req.NewStatus == "Completed") order.PaymentStatus = "Paid";
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
-
-                return Ok(new { Message = $"Đã cập nhật trạng thái từ {oldStatus} sang {newStatus}" });
+                return Ok(new { Message = "Cập nhật thành công" });
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                return StatusCode(500, "Lỗi cập nhật: " + ex.Message);
+                return StatusCode(500, ex.Message);
             }
         }
+
+        // GET: api/Orders/user/1
+        // GET: api/Orders/user/{userId}
         [HttpGet("user/{userId}")]
         public async Task<IActionResult> GetOrdersByUser(int userId)
         {
             var orders = await _context.TblOrders
                 .Where(o => o.UserId == userId)
                 .Include(o => o.TblOrderDetails)
-                    .ThenInclude(od => od.Product) // Include để lấy tên & ảnh sản phẩm
-                .OrderByDescending(o => o.OrderDate) // Đơn mới nhất lên đầu
+                    .ThenInclude(od => od.Variant)
+                        .ThenInclude(v => v.Product)
+                            .ThenInclude(p => p.TblProductImages)
+                .Include(o => o.TblOrderDetails)
+                    .ThenInclude(od => od.Variant)
+                        .ThenInclude(v => v.Image)
+                .OrderByDescending(o => o.OrderDate)
                 .Select(o => new
                 {
                     o.OrderId,
                     o.OrderDate,
-                    o.OrderStatus, // Trạng thái: Pending, Processing, Shipped...
-                    o.TotalAmount,
+                    o.OrderStatus,
                     o.PaymentStatus,
-                    // Lấy danh sách sản phẩm tóm tắt
+                    o.TotalAmount,
+
+                    // --- THÊM CÁC TRƯỜNG CHI TIẾT CHO MODAL ---
+                    o.RecipientName,
+                    o.RecipientPhone,
+                    o.ShippingAddress,
+                    o.Note,
+                    SubTotal = o.SubTotal ?? 0,
+                    ShippingFee = o.ShippingFee ?? 0,
+                    DiscountAmount = o.DiscountAmount ?? 0,
+                    // ------------------------------------------
+
                     Items = o.TblOrderDetails.Select(od => new
                     {
-                        ProductName = od.Product.ProductName,
+                        ProductName = od.ProductName ?? od.Variant.Product.ProductName,
+                        VariantName = od.VariantName ?? od.Variant.VariantName, // Lấy tên phân loại
 
-                        // 2. Logic lấy ảnh: Vào bảng ảnh, tìm cái nào là Thumbnail = true, lấy ra Url
-                        ProductImage = od.Product.TblProductImages
-                                .Where(img => img.IsThumbnail == true)
-                                .Select(img => img.ImageUrl)
-                                .FirstOrDefault() // Lấy cái đầu tiên tìm được
-                                                  // Nếu không có thumbnail thì lấy ảnh bất kỳ (fallback)
-                                ?? od.Product.TblProductImages.Select(img => img.ImageUrl).FirstOrDefault(),
+                        ProductImage = od.Variant.Image != null ? od.Variant.Image.ImageUrl :
+                                       (od.Variant.Product.TblProductImages.FirstOrDefault(x => x.IsThumbnail == true) != null
+                                       ? od.Variant.Product.TblProductImages.FirstOrDefault(x => x.IsThumbnail == true).ImageUrl
+                                       : od.Variant.Product.TblProductImages.FirstOrDefault().ImageUrl),
 
                         Quantity = od.Quantity,
                         Price = od.PriceAtTime
@@ -461,45 +336,19 @@ namespace back_end.Controllers
 
             return Ok(orders);
         }
+
+        // DELETE: api/Orders/admin/delete/5
         [HttpDelete("admin/delete/{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
-            try
-            {
-                // Tìm đơn hàng và bao gồm cả chi tiết đơn hàng để xóa sạch
-                var order = await _context.TblOrders
-                    .Include(o => o.TblOrderDetails)
-                    .FirstOrDefaultAsync(o => o.OrderId == id);
+            var order = await _context.TblOrders.FindAsync(id);
+            if (order == null) return NotFound();
 
-                if (order == null)
-                {
-                    return NotFound(new { message = "Đơn hàng không tồn tại." });
-                }
-
-                // Kiểm tra an toàn (Tùy chọn): Chỉ cho xóa đơn Đã hủy hoặc Chờ xác nhận
-                // Nếu muốn xóa thoải mái thì comment dòng if dưới này lại
-                if (order.OrderStatus == "Processing" || order.OrderStatus == "Shipping" || order.OrderStatus == "Completed")
-                {
-                    return BadRequest(new { message = "Chỉ có thể xóa đơn hàng 'Đã hủy' hoặc 'Chờ xác nhận'." });
-                }
-
-                // 1. Xóa các chi tiết đơn hàng trước (do khóa ngoại)
-                if (order.TblOrderDetails.Any())
-                {
-                    _context.TblOrderDetails.RemoveRange(order.TblOrderDetails);
-                }
-
-                // 2. Xóa đơn hàng chính
-                _context.TblOrders.Remove(order);
-
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Xóa đơn hàng thành công." });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lỗi server: " + ex.Message });
-            }
+            // Xóa cứng (Cascade sẽ tự xóa OrderDetails nếu DB cấu hình đúng,
+            // hoặc EF Core tự xử lý nếu load order kèm details)
+            _context.TblOrders.Remove(order);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Đã xóa đơn hàng" });
         }
     }
 }
