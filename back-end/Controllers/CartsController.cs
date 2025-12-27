@@ -15,93 +15,95 @@ namespace back_end.Controllers
             _context = context;
         }
 
-        // 1. Lấy giỏ hàng của User
+        // 1. Lấy giỏ hàng (GET)
         [HttpGet("get-cart/{userId}")]
         public async Task<IActionResult> GetCart(int userId)
         {
-            // Tìm giỏ hàng của user
             var cart = await _context.TblCarts
                 .Include(c => c.TblCartItems)
-                .ThenInclude(ci => ci.Product)
-                .ThenInclude(p => p.TblProductImages) // Để lấy ảnh
+                    .ThenInclude(ci => ci.Variant) // Link tới Variant
+                        .ThenInclude(v => v.Product) // Từ Variant lên Product lấy tên/ảnh chung
+                            .ThenInclude(p => p.TblProductImages)
+                .Include(c => c.TblCartItems)
+                    .ThenInclude(ci => ci.Variant)
+                        .ThenInclude(v => v.Image) // Lấy ảnh riêng của Variant (nếu có)
                 .FirstOrDefaultAsync(c => c.UserId == userId);
 
-            if (cart == null)
-            {
-                return Ok(new List<object>()); // Chưa có giỏ thì trả về rỗng
-            }
+            if (cart == null) return Ok(new List<object>());
 
-            // Map dữ liệu để trả về format giống LocalStorage phía React
             var result = cart.TblCartItems.Select(item => new
             {
-                productId = item.ProductId,
-                productName = item.Product.ProductName,
-                price = item.Product.SalePrice ?? item.Product.OriginalPrice, // Ưu tiên giá Sale
-                originalPrice = item.Product.OriginalPrice,
-                salePrice = item.Product.SalePrice,
+                // Thông tin cần thiết cho giỏ hàng
+                cartItemId = item.CartItemId,
+                variantId = item.VariantId,
+                productId = item.Variant.ProductId,
+
+                // Tên hiển thị: Tên cây + Tên biến thể (VD: Cây Bàng - Size Nhỏ)
+                productName = item.Variant.Product.ProductName,
+                variantName = item.Variant.VariantName,
+
+                // Giá lấy từ Variant
+                price = item.Variant.SalePrice ?? item.Variant.OriginalPrice,
+                originalPrice = item.Variant.OriginalPrice,
+
                 quantity = item.Quantity,
-                // Lấy ảnh thumbnail hoặc ảnh đầu tiên
-                imageUrl = item.Product.TblProductImages.FirstOrDefault(x => x.IsThumbnail == true)?.ImageUrl
-                           ?? item.Product.TblProductImages.FirstOrDefault()?.ImageUrl
+
+                // Logic ảnh: Ưu tiên ảnh của Variant -> Ảnh thumbnail Product -> Ảnh đầu tiên
+                imageUrl = item.Variant.Image?.ImageUrl
+                           ?? item.Variant.Product.TblProductImages.FirstOrDefault(x => x.IsThumbnail == true)?.ImageUrl
+                           ?? item.Variant.Product.TblProductImages.FirstOrDefault()?.ImageUrl
             });
 
             return Ok(result);
         }
 
-        // 2. Thêm vào giỏ hàng (DB)
+        // 2. Thêm vào giỏ (POST)
         [HttpPost("add-to-cart")]
         public async Task<IActionResult> AddToCart([FromBody] AddCartRequest req)
         {
-            // Kiểm tra xem User đã có giỏ hàng chưa
+            // Tìm hoặc tạo giỏ hàng
             var cart = await _context.TblCarts.FirstOrDefaultAsync(c => c.UserId == req.UserId);
-
             if (cart == null)
             {
-                // Chưa có thì tạo mới
-                cart = new TblCart
-                {
-                    UserId = req.UserId,
-                    UpdatedAt = DateTime.Now
-                };
+                cart = new TblCart { UserId = req.UserId, UpdatedAt = DateTime.Now };
                 _context.TblCarts.Add(cart);
                 await _context.SaveChangesAsync();
             }
 
-            // Kiểm tra xem sản phẩm đã có trong giỏ chưa
+            // Kiểm tra sản phẩm (Variant) đã có trong giỏ chưa
             var cartItem = await _context.TblCartItems
-                .FirstOrDefaultAsync(ci => ci.CartId == cart.CartId && ci.ProductId == req.ProductId);
+                .FirstOrDefaultAsync(ci => ci.CartId == cart.CartId && ci.VariantId == req.VariantId);
 
             if (cartItem != null)
             {
-                // Có rồi thì tăng số lượng
                 cartItem.Quantity += req.Quantity;
             }
             else
             {
-                // Chưa có thì thêm mới
                 cartItem = new TblCartItem
                 {
                     CartId = cart.CartId,
-                    ProductId = req.ProductId,
+                    VariantId = req.VariantId, // Lưu VariantId
                     Quantity = req.Quantity
                 };
                 _context.TblCartItems.Add(cartItem);
             }
 
-            cart.UpdatedAt = DateTime.Now; // Cập nhật thời gian sửa giỏ
+            cart.UpdatedAt = DateTime.Now;
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Thêm thành công" });
         }
-        // 3. Xóa sản phẩm khỏi giỏ
+
+        // 3. Xóa sản phẩm (DELETE)
         [HttpDelete("remove-item")]
-        public async Task<IActionResult> RemoveItem(int userId, int productId)
+        public async Task<IActionResult> RemoveItem(int userId, int variantId)
         {
             var cart = await _context.TblCarts.FirstOrDefaultAsync(c => c.UserId == userId);
             if (cart == null) return NotFound();
 
             var cartItem = await _context.TblCartItems
-                .FirstOrDefaultAsync(ci => ci.CartId == cart.CartId && ci.ProductId == productId);
+                .FirstOrDefaultAsync(ci => ci.CartId == cart.CartId && ci.VariantId == variantId);
 
             if (cartItem != null)
             {
@@ -111,7 +113,7 @@ namespace back_end.Controllers
             return Ok(new { message = "Đã xóa sản phẩm" });
         }
 
-        // 4. Cập nhật số lượng
+        // 4. Cập nhật số lượng (PUT)
         [HttpPut("update-quantity")]
         public async Task<IActionResult> UpdateQuantity([FromBody] UpdateCartRequest req)
         {
@@ -119,35 +121,30 @@ namespace back_end.Controllers
             if (cart == null) return NotFound();
 
             var cartItem = await _context.TblCartItems
-                .FirstOrDefaultAsync(ci => ci.CartId == cart.CartId && ci.ProductId == req.ProductId);
+                .FirstOrDefaultAsync(ci => ci.CartId == cart.CartId && ci.VariantId == req.VariantId);
 
             if (cartItem != null)
             {
                 cartItem.Quantity = req.Quantity;
-                if (cartItem.Quantity <= 0)
-                {
-                    // Nếu số lượng <= 0 thì xóa luôn
-                    _context.TblCartItems.Remove(cartItem);
-                }
+                if (cartItem.Quantity <= 0) _context.TblCartItems.Remove(cartItem);
                 await _context.SaveChangesAsync();
             }
             return Ok(new { message = "Cập nhật thành công" });
         }
     }
 
-    // Class DTO nhận dữ liệu update
-    public class UpdateCartRequest
-    {
-        public int UserId { get; set; }
-        public int ProductId { get; set; }
-        public int Quantity { get; set; }
-    }
-}
-
-    // Class để nhận dữ liệu từ Frontend gửi lên
+    // DTOs cập nhật theo VariantId
     public class AddCartRequest
     {
         public int UserId { get; set; }
-        public int ProductId { get; set; }
+        public int VariantId { get; set; } // Đổi ProductId -> VariantId
         public int Quantity { get; set; }
     }
+
+    public class UpdateCartRequest
+    {
+        public int UserId { get; set; }
+        public int VariantId { get; set; }
+        public int Quantity { get; set; }
+    }
+}

@@ -17,45 +17,37 @@ namespace back_end.Controllers
             _context = context;
         }
 
+        // 1. Thống kê Doanh thu & Lợi nhuận (Theo thời gian)
         [HttpGet("revenue")]
         public async Task<ActionResult<StatisticsResponse>> GetRevenueStats(DateTime startDate, DateTime endDate)
         {
-            // --- BƯỚC 1: XỬ LÝ LẠI THỜI GIAN (QUAN TRỌNG) ---
-            // Đảm bảo lấy từ đầu ngày (00:00:00)
+            // Xử lý thời gian: Đầu ngày start -> Cuối ngày end
             var fromDate = startDate.Date;
-
-            // Đảm bảo lấy đến hết cuối ngày (23:59:59)
-            // Logic: Cộng thêm 1 ngày rồi lùi lại 1 tích tắc
             var toDate = endDate.Date.AddDays(1).AddTicks(-1);
 
-            // --- BƯỚC 2: TRUY VẤN DỮ LIỆU ---
+            // Lấy đơn hàng trong khoảng thời gian (Không lấy đơn hủy)
             var orders = await _context.TblOrders
                 .Include(o => o.TblOrderDetails)
-                // Sử dụng biến fromDate và toDate mới tạo ở trên
                 .Where(o => o.OrderDate >= fromDate && o.OrderDate <= toDate)
-
-                // Lọc đơn hàng: Bỏ đơn đã hủy. 
-                // Lưu ý: Kiểm tra kỹ trong Database xem trạng thái lưu là "Cancelled" hay "Đã hủy"
-                // Nếu chưa chắc chắn, bạn có thể tạm thời comment dòng này lại để test xem dữ liệu có lên không
                 .Where(o => o.OrderStatus != "Cancelled")
                 .ToListAsync();
 
-            // --- BƯỚC 3: TÍNH TOÁN CHI TIẾT ---
+            // Tính toán chi tiết theo ngày
             var dailyStats = orders
-                .GroupBy(o => o.OrderDate.Value.Date) // Nhóm theo ngày
+                .GroupBy(o => o.OrderDate.Value.Date)
                 .Select(g => new RevenueStatDto
                 {
                     Date = g.Key,
-                    // Tổng doanh thu
+                    // Tổng doanh thu (Giá bán thực tế)
                     Revenue = g.Sum(o => o.TotalAmount ?? 0),
 
-                    // Lợi nhuận = Tổng doanh thu - Tổng giá vốn
+                    // Lợi nhuận = Tổng thu - Tổng giá vốn
+                    // Giá vốn (CostPrice) đã được lưu trong OrderDetail lúc mua
                     Profit = g.Sum(o => o.TotalAmount ?? 0) - g.Sum(o => o.TblOrderDetails.Sum(d => d.CostPrice * d.Quantity))
                 })
                 .OrderBy(s => s.Date)
                 .ToList();
 
-            // --- BƯỚC 4: TỔNG HỢP KẾT QUẢ ---
             var response = new StatisticsResponse
             {
                 TotalOrders = orders.Count,
@@ -66,37 +58,44 @@ namespace back_end.Controllers
 
             return Ok(response);
         }
+
+        // 2. Thống kê Sản phẩm (Bán chạy & Tồn kho)
         [HttpGet("products")]
         public async Task<ActionResult<ProductStatsResponse>> GetProductStats(DateTime startDate, DateTime endDate)
         {
-            // 1. Xử lý thời gian
             var fromDate = startDate.Date;
             var toDate = endDate.Date.AddDays(1).AddTicks(-1);
 
-            // 2. Lấy danh sách đơn hàng để tính bán chạy
+            // A. LẤY TOP SẢN PHẨM BÁN CHẠY (Dựa vào OrderDetails)
+            // Vì OrderDetail giờ trỏ vào Variant, ta cần Group theo ProductId cha
             var orderDetails = await _context.TblOrderDetails
                 .Include(d => d.Order)
-                .Include(d => d.Product)
-                .ThenInclude(p => p.Category)
+                .Include(d => d.Variant)
+                    .ThenInclude(v => v.Product) // Lấy thông tin sản phẩm cha
+                        .ThenInclude(p => p.Category)
                 .Where(d => d.Order.OrderDate >= fromDate && d.Order.OrderDate <= toDate)
                 .Where(d => d.Order.OrderStatus != "Cancelled")
                 .ToListAsync();
 
-            // --- TÍNH TOÁN BÁN CHẠY ---
+            // Nhóm theo ProductId (Gộp các variant lại thành 1 sản phẩm chung)
             var topProducts = orderDetails
-                .GroupBy(d => d.ProductId)
+                .GroupBy(d => d.Variant.ProductId)
                 .Select(g => new TopProductDto
                 {
-                    ProductName = g.First().Product.ProductName,
+                    // Lấy tên sản phẩm cha
+                    ProductName = g.First().Variant.Product.ProductName,
+                    // Tổng số lượng bán (tất cả các size)
                     QuantitySold = g.Sum(d => d.Quantity),
+                    // Tổng doanh thu từ sản phẩm này
                     TotalRevenue = g.Sum(d => d.Quantity * d.PriceAtTime)
                 })
                 .OrderByDescending(x => x.QuantitySold)
                 .Take(5)
                 .ToList();
 
+            // Thống kê theo Danh mục
             var categoryShares = orderDetails
-                .GroupBy(d => d.Product.Category.CategoryName)
+                .GroupBy(d => d.Variant.Product.Category.CategoryName)
                 .Select(g => new CategoryShareDto
                 {
                     CategoryName = g.Key,
@@ -104,37 +103,37 @@ namespace back_end.Controllers
                 })
                 .ToList();
 
-            // --- TÍNH TOÁN TỒN KHO (MỚI) ---
-            // Lấy 10 sản phẩm có số lượng tồn lớn nhất
-            var topInventory = await _context.TblProducts
+            // B. TÍNH TOÁN TỒN KHO (LOGIC MỚI: Dựa vào bảng Variants)
+            // Lấy danh sách sản phẩm và tính tổng tồn kho từ các biến thể con
+            var allProducts = await _context.TblProducts
                 .Include(p => p.Category)
-                .Where(p => p.StockQuantity > 0) // Chỉ lấy sp còn hàng
-                .OrderByDescending(p => p.StockQuantity) // Tồn nhiều nhất lên đầu
-                .Take(10)
+                .Include(p => p.TblProductVariants) // Include để tính tổng
+                .ToListAsync();
+
+            // Lọc và sắp xếp trong bộ nhớ (Client-side evaluation) vì EF Core khó GroupBy phức tạp
+            var topInventory = allProducts
                 .Select(p => new InventoryStatDto
                 {
                     ProductName = p.ProductName,
                     CategoryName = p.Category.CategoryName,
-                    StockQuantity = p.StockQuantity ?? 0,
-                    Price = p.OriginalPrice
+
+                    // Tổng tồn kho = Tổng stock của các biến thể
+                    StockQuantity = p.TblProductVariants.Sum(v => v.StockQuantity ?? 0),
+
+                    // Giá hiển thị: Lấy giá thấp nhất của biến thể
+                    Price = p.TblProductVariants.OrderBy(v => v.OriginalPrice).Select(v => v.OriginalPrice).FirstOrDefault()
                 })
-                .ToListAsync();
+                .Where(p => p.StockQuantity > 0) // Chỉ lấy sp còn hàng
+                .OrderByDescending(p => p.StockQuantity) // Tồn nhiều nhất lên đầu
+                .Take(10)
+                .ToList();
 
             return Ok(new ProductStatsResponse
             {
                 TopProducts = topProducts,
                 CategoryShares = categoryShares,
-                TopInventory = topInventory // Trả về dữ liệu tồn kho
+                TopInventory = topInventory
             });
         }
     }
-
 }
-
-//Logic tính toán:
-
-//Doanh thu: Lấy từ TotalAmount trong bảng TblOrder.
-
-//Lợi nhuận: (Giá bán - Giá vốn) * Số lượng. Cần join bảng Order với OrderDetail.
-
-//Điều kiện: Chỉ lấy đơn hàng đã hoàn thành (hoặc không bị hủy).

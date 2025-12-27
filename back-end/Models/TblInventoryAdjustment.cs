@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace back_end.Models;
 
@@ -7,7 +8,7 @@ public partial class TblInventoryAdjustment
 {
     public int AdjustmentId { get; set; }
 
-    public int ProductId { get; set; }
+    public int VariantId { get; set; } // Kiểm kê theo biến thể
 
     public int UserId { get; set; }
 
@@ -17,7 +18,8 @@ public partial class TblInventoryAdjustment
 
     public DateTime? CreatedAt { get; set; }
 
-    public virtual TblProduct Product { get; set; } = null!;
+    public virtual TblProductVariant Variant { get; set; } = null!;
 
+    [JsonIgnore]
     public virtual TblUser User { get; set; } = null!;
 }

@@ -58,8 +58,12 @@ function Products() {
                     const prices = data.map(p => p.salePrice || p.originalPrice);
                     const minVal = Math.min(...prices);
                     const maxVal = Math.max(...prices);
-                    setPriceBounds({ min: minVal, max: maxVal });
-                    setFilters(prev => ({ ...prev, minPrice: minVal, maxPrice: maxVal }));
+                    // setPriceBounds({ min: minVal, max: maxVal });
+                    // setFilters(prev => ({ ...prev, minPrice: minVal, maxPrice: maxVal }));
+                    setPriceBounds({ min: 0, max: maxVal }); 
+                    
+                    // Cập nhật bộ lọc hiện tại theo bounds mới
+                    setFilters(prev => ({ ...prev, minPrice: 0, maxPrice: maxVal }));
                     isFirstLoad.current = false;
                 }
             })

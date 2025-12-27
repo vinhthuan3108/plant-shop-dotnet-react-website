@@ -1,60 +1,46 @@
-import { useState, useEffect, useMemo, useRef } from 'react'; // Thêm useMemo, useRef
+import { useState, useEffect, useMemo, useRef } from 'react';
 import ReactQuill from 'react-quill-new'; 
 import 'react-quill-new/dist/quill.snow.css';
+import { FaTrash, FaPlus } from 'react-icons/fa'; 
 
 function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
-    // --- Các State dữ liệu ---
+    // --- STATE CHUNG ---
     const [code, setCode] = useState('');
     const [name, setName] = useState('');
     const [catId, setCatId] = useState(''); 
-    
-    const [originalPrice, setOriginalPrice] = useState(0);
-    const [salePrice, setSalePrice] = useState(0);
-    const [stock, setStock] = useState(0);
-    const [minStock, setMinStock] = useState(5);
-
-    const [saleStart, setSaleStart] = useState('');
-    const [saleEnd, setSaleEnd] = useState('');
-    
-    // State cho 2 ô soạn thảo
-    const [shortDesc, setShortDesc] = useState('');
-    const [detailDesc, setDetailDesc] = useState(''); 
-    
-    const [size, setSize] = useState('');
-    const [characteristics, setCharacteristics] = useState('');
-    const [fengShui, setFengShui] = useState('');
-
     const [active, setActive] = useState(true);
+    
+    // --- STATE NGÀY SALE & MÔ TẢ ---
+    const [saleStart, setSaleStart] = useState(''); // Chuỗi rỗng mặc định
+    const [saleEnd, setSaleEnd] = useState('');     // Chuỗi rỗng mặc định
+    
+    const [shortDesc, setShortDesc] = useState('');
+    const [detailDesc, setDetailDesc] = useState('');
+    const [fengShui, setFengShui] = useState('');
     const [images, setImages] = useState([]); 
     const [uploading, setUploading] = useState(false);
 
-    // --- CẤU HÌNH REACT QUILL (Nâng cấp hỗ trợ 2 Editor) ---
-    const shortQuillRef = useRef(null);  // Ref cho Mô tả ngắn
-    const detailQuillRef = useRef(null); // Ref cho Mô tả chi tiết (đổi tên từ quillRef cũ)
-    
+    // --- STATE BIẾN THỂ (VARIANTS) ---
+    // FIX LỖI 1: Khởi tạo minStockAlert = 5 ngay từ đầu để không bị undefined
+    const [variants, setVariants] = useState([
+        { variantName: '', originalPrice: 0, salePrice: 0, stockQuantity: 0, minStockAlert: 5 }
+    ]);
+
+    // --- CẤU HÌNH EDITOR (Giữ nguyên) ---
+    const shortQuillRef = useRef(null);
+    const detailQuillRef = useRef(null);
     const API_BASE = 'https://localhost:7298';
 
-    // Hàm upload file lên server (dùng chung)
     const uploadFileForEditor = async (file) => {
         const formData = new FormData();
         formData.append('file', file);
         try {
-            const res = await fetch(`${API_BASE}/api/Upload`, {
-                method: 'POST',
-                body: formData
-            });
-            if (res.ok) {
-                const data = await res.json();
-                return data.url; 
-            }
-        } catch (err) {
-            console.error("Upload ảnh editor lỗi:", err);
-        }
+            const res = await fetch(`${API_BASE}/api/Upload`, { method: 'POST', body: formData });
+            if (res.ok) { const data = await res.json(); return data.url; }
+        } catch (err) { console.error("Upload ảnh editor lỗi:", err); }
         return null;
     };
 
-    // Hàm tạo Image Handler riêng cho từng Editor
-    // editorRef: Tham chiếu đến Editor nào đang được thao tác
     const createImageHandler = (editorRef) => {
         return () => {
             const input = document.createElement('input');
@@ -66,7 +52,6 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                 if (file) {
                     const url = await uploadFileForEditor(file);
                     if (url) {
-                        // Lấy đúng instance của editor dựa trên Ref truyền vào
                         const quill = editorRef.current.getEditor();
                         const range = quill.getSelection();
                         quill.insertEmbed(range ? range.index : 0, 'image', `${API_BASE}${url}`);
@@ -76,77 +61,71 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
         };
     };
 
-    // Cấu hình Toolbar (Dùng chung layout, chỉ khác handler)
     const toolbarContainer = [
         [{ 'header': [1, 2, 3, false] }],
         ['bold', 'italic', 'underline', 'strike'],
         [{ 'list': 'ordered' }, { 'list': 'bullet' }],
         [{ 'align': [] }],
-        ['image', 'link'], 
-        ['clean']
+        ['image', 'link'], ['clean']
     ];
+    const formats = ['header', 'bold', 'italic', 'underline', 'strike', 'list', 'align', 'image', 'link'];
+    
+    const modulesShort = useMemo(() => ({ toolbar: { container: toolbarContainer, handlers: { image: createImageHandler(shortQuillRef) } } }), []);
+    const modulesDetail = useMemo(() => ({ toolbar: { container: toolbarContainer, handlers: { image: createImageHandler(detailQuillRef) } } }), []);
 
-    const formats = [
-        'header', 'bold', 'italic', 'underline', 'strike',
-        'list', 'align', 'image', 'link'
-    ];
-
-    // Tạo module riêng cho từng ô để gắn đúng handler
-    const modulesShort = useMemo(() => ({
-        toolbar: {
-            container: toolbarContainer,
-            handlers: { image: createImageHandler(shortQuillRef) } // Gắn với Ref ngắn
-        }
-    }), []);
-
-    const modulesDetail = useMemo(() => ({
-        toolbar: {
-            container: toolbarContainer,
-            handlers: { image: createImageHandler(detailQuillRef) } // Gắn với Ref chi tiết
-        }
-    }), []);
-    // -----------------------------------------------------------
-
+    // Helper format ngày cho input datetime-local
     const formatDateForInput = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
+        // Chỉnh lại múi giờ hoặc lấy chuỗi ISO cắt gọn
+        // Cách đơn giản nhất để hiện lên input: YYYY-MM-DDTHH:mm
         return date.toISOString().slice(0, 16); 
     };
 
+    // --- LOAD DỮ LIỆU KHI EDIT ---
     useEffect(() => {
         if (initialData) {
-            setCode(initialData.productCode);
-            setName(initialData.productName);
+            setCode(initialData.productCode || '');
+            setName(initialData.productName || '');
             setCatId(initialData.categoryId || '');
-            setOriginalPrice(initialData.originalPrice);
-            setSalePrice(initialData.salePrice || 0);
-            setStock(initialData.stockQuantity || 0);
-            setMinStock(initialData.minStockAlert || 5);
-            setSaleStart(formatDateForInput(initialData.saleStartDate));
-            setSaleEnd(formatDateForInput(initialData.saleEndDate));
-            
-            // Load nội dung HTML vào cả 2 state
             setShortDesc(initialData.shortDescription || '');
             setDetailDesc(initialData.detailDescription || '');
-
-            setSize(initialData.size || '');
-            setCharacteristics(initialData.characteristics || '');
             setFengShui(initialData.fengShuiTags || '');
             setActive(initialData.isActive ?? true);
-            if (initialData.tblProductImages) {
-                setImages(initialData.tblProductImages);
+            
+            // Load ngày sale
+            setSaleStart(formatDateForInput(initialData.saleStartDate));
+            setSaleEnd(formatDateForInput(initialData.saleEndDate));
+
+            if (initialData.tblProductImages) setImages(initialData.tblProductImages);
+
+            // Load Variants
+            if (initialData.tblProductVariants && initialData.tblProductVariants.length > 0) {
+                // Map lại để đảm bảo không field nào bị null/undefined
+                setVariants(initialData.tblProductVariants.map(v => ({
+                    variantId: v.variantId,
+                    variantName: v.variantName,
+                    originalPrice: v.originalPrice,
+                    salePrice: v.salePrice || 0,
+                    stockQuantity: v.stockQuantity || 0,
+                    minStockAlert: v.minStockAlert || 5 // Fallback nếu db null
+                })));
+            } else {
+                setVariants([{ variantName: 'Tiêu chuẩn', originalPrice: 0, salePrice: 0, stockQuantity: 0, minStockAlert: 5 }]);
             }
+
         } else {
-            // Reset form
-            setCode(''); setName(''); setCatId(categories.length > 0 ? categories[0].categoryId : '');
-            setOriginalPrice(0); setSalePrice(0); setStock(0); setMinStock(5);
+            // Reset form (Thêm mới)
+            setCode(''); setName(''); 
+            setCatId(categories.length > 0 ? categories[0].categoryId : '');
+            setShortDesc(''); setDetailDesc(''); setFengShui('');
             setSaleStart(''); setSaleEnd('');
-            setShortDesc(''); setDetailDesc('');
-            setSize(''); setCharacteristics(''); setFengShui('');
             setActive(true); setImages([]);
+            setVariants([{ variantName: '', originalPrice: 0, salePrice: 0, stockQuantity: 0, minStockAlert: 5 }]);
         }
     }, [initialData, isOpen, categories]);
 
+    // --- XỬ LÝ ẢNH (Giữ nguyên) ---
     const handleFileChange = async (e) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
@@ -163,7 +142,7 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                     const isFirst = (images.length + newImages.length) === 0;
                     newImages.push({ imageUrl: data.url, isThumbnail: isFirst, displayOrder: 0 });
                 }
-            } catch (err) { console.error("Upload lỗi:", err); }
+            } catch (err) { console.error(err); }
         }
         setImages(prev => [...prev, ...newImages]);
         setUploading(false);
@@ -181,32 +160,80 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
         setImages(newArr);
     };
 
+    // --- XỬ LÝ VARIANTS ---
+    const handleVariantChange = (index, field, value) => {
+        const newVariants = [...variants];
+        newVariants[index][field] = value;
+        setVariants(newVariants);
+    };
+
+    // FIX LỖI 1: Khi thêm mới, phải set minStockAlert = 5
+    const addVariant = () => {
+        setVariants([...variants, { variantName: '', originalPrice: 0, salePrice: 0, stockQuantity: 0, minStockAlert: 5 }]);
+    };
+
+    const removeVariant = (index) => {
+        if (variants.length === 1) return alert("Phải có ít nhất 1 phân loại hàng!");
+        const newVariants = [...variants];
+        newVariants.splice(index, 1);
+        setVariants(newVariants);
+    };
+
+    // --- SUBMIT (FIX LỖI 400) ---
+    // --- SUBMIT (ĐÃ FIX LỖI 400 BAD REQUEST) ---
     const handleSubmit = () => {
+        // 1. Validate cơ bản
         if (!code.trim()) return alert("Mã sản phẩm không được trống");
         if (!name.trim()) return alert("Tên sản phẩm không được trống");
         if (!catId) return alert("Vui lòng chọn danh mục");
-        if (originalPrice < 0) return alert("Giá gốc không hợp lệ");
         
-        const formData = {
-            productCode: code,
-            productName: name,
-            categoryId: parseInt(catId), 
-            originalPrice: parseFloat(originalPrice),
-            salePrice: parseFloat(salePrice) || null,
-            saleStartDate: saleStart ? new Date(saleStart) : null,
-            saleEndDate: saleEnd ? new Date(saleEnd) : null,
-            stockQuantity: parseInt(stock),
-            minStockAlert: parseInt(minStock),
-            
-            shortDescription: shortDesc,   // HTML từ Quill ngắn
-            detailDescription: detailDesc, // HTML từ Quill chi tiết
+        // 2. Validate Variants
+        for(let v of variants) {
+            if(!v.variantName.trim()) return alert("Tên phân loại không được để trống");
+            // Kiểm tra giá trị nhập vào có phải số không (tránh trường hợp parse ra NaN)
+            if(isNaN(parseFloat(v.originalPrice)) || parseFloat(v.originalPrice) < 0) 
+                return alert("Giá gốc không hợp lệ");
+        }
 
-            size: size,
-            characteristics: characteristics,
+        // 3. Chuẩn hóa dữ liệu trước khi gửi
+        const formData = {
+            productId: initialData ? initialData.productId : 0,
+            productCode: code.trim(),
+            productName: name.trim(),
+            categoryId: parseInt(catId) || 0, // Đảm bảo luôn là int
+            
+            // --- FIX NGÀY THÁNG ---
+            // Chuyển sang ISO String để Server C# đọc chính xác
+            saleStartDate: saleStart ? new Date(saleStart).toISOString() : null,
+            saleEndDate: saleEnd ? new Date(saleEnd).toISOString() : null,
+
+            shortDescription: shortDesc,
+            detailDescription: detailDesc,
             fengShuiTags: fengShui,
             isActive: active,
-            tblProductImages: images
+            
+            // Map ảnh (giữ nguyên)
+            tblProductImages: images.map(img => ({
+                imageId: img.imageId || 0,
+                imageUrl: img.imageUrl,
+                isThumbnail: img.isThumbnail,
+                displayOrder: img.displayOrder || 0
+            })),
+            
+            // --- FIX VARIANTS (QUAN TRỌNG NHẤT) ---
+            tblProductVariants: variants.map(v => ({
+                variantId: v.variantId || 0, 
+                variantName: v.variantName.trim(),
+                
+                // SỬ DỤNG || 0 ĐỂ TRÁNH NaN (Lỗi 400 chết người ở đây)
+                originalPrice: parseFloat(v.originalPrice) || 0,
+                salePrice: parseFloat(v.salePrice) || 0,
+                stockQuantity: parseInt(v.stockQuantity) || 0,
+                minStockAlert: parseInt(v.minStockAlert) || 5, 
+            }))
         };
+        
+        console.log("Dữ liệu gửi đi (Cleaned):", formData);
         onSubmit(formData);
     };
 
@@ -215,160 +242,147 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999
         }}>
             <div style={{ 
-                backgroundColor: 'white', padding: '20px', 
-                borderRadius: '8px', 
-                width: '900px', 
-                maxHeight: '90vh', overflowY: 'auto' 
+                backgroundColor: 'white', padding: '20px', borderRadius: '8px', 
+                width: '950px', maxHeight: '95vh', overflowY: 'auto', display: 'flex', flexDirection: 'column'
             }}>
-                <h3>{initialData ? 'Cập Nhật Sản Phẩm' : 'Thêm Sản Phẩm Mới'}</h3>
+                <h3 style={{marginBottom:'15px', borderBottom:'1px solid #ddd', paddingBottom:'10px'}}>
+                    {initialData ? 'Cập Nhật Sản Phẩm' : 'Thêm Sản Phẩm Mới'}
+                </h3>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                    {/* Cột Trái */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
+                    {/* CỘT TRÁI */}
                     <div>
                         <div style={{ marginBottom: '10px' }}>
                             <label>Mã sản phẩm (*):</label>
-                            <input type="text" value={code} onChange={e => setCode(e.target.value)} style={{ width: '100%', padding: '6px' }} />
+                            <input type="text" value={code} onChange={e => setCode(e.target.value)} style={{ width: '100%', padding: '8px', marginTop:'5px' }} />
                         </div>
                         <div style={{ marginBottom: '10px' }}>
                             <label>Tên sản phẩm (*):</label>
-                            <input type="text" value={name} onChange={e => setName(e.target.value)} style={{ width: '100%', padding: '6px' }} />
+                            <input type="text" value={name} onChange={e => setName(e.target.value)} style={{ width: '100%', padding: '8px', marginTop:'5px' }} />
                         </div>
                         <div style={{ marginBottom: '10px' }}>
                             <label>Danh mục (*):</label>
-                            <select value={catId} onChange={e => setCatId(e.target.value)} style={{ width: '100%', padding: '8.5px' }}>
+                            <select value={catId} onChange={e => setCatId(e.target.value)} style={{ width: '100%', padding: '8px', marginTop:'5px' }}>
                                 <option value="">-- Chọn danh mục --</option>
                                 {categories.map(c => (<option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>))}
                             </select>
                         </div>
                         <div style={{ marginBottom: '10px' }}>
-                            <label>Kích thước (Size):</label>
-                            <input type="text" value={size} onChange={e => setSize(e.target.value)} style={{ width: '100%', padding: '6px' }} />
+                            <label>Tags Phong thủy:</label>
+                            <input type="text" value={fengShui} onChange={e => setFengShui(e.target.value)} style={{ width: '100%', padding: '8px', marginTop:'5px' }} />
                         </div>
                         
+                        {/* KHU VỰC NGÀY SALE MỚI */}
+                        <div style={{display:'flex', gap:'10px', marginTop:'10px', background:'#f8f9fa', padding:'10px', borderRadius:'4px'}}>
+                            <div style={{flex:1}}>
+                                <label style={{fontSize:'12px', fontWeight:'bold'}}>Bắt đầu KM:</label>
+                                <input type="datetime-local" value={saleStart} onChange={e => setSaleStart(e.target.value)} style={{width:'100%', padding:'5px', border:'1px solid #ccc', fontSize:'11px'}} />
+                            </div>
+                            <div style={{flex:1}}>
+                                <label style={{fontSize:'12px', fontWeight:'bold'}}>Kết thúc KM:</label>
+                                <input type="datetime-local" value={saleEnd} onChange={e => setSaleEnd(e.target.value)} style={{width:'100%', padding:'5px', border:'1px solid #ccc', fontSize:'11px'}} />
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '10px', marginTop:'10px' }}>
+                            <label style={{ cursor: 'pointer', fontWeight: 'bold', display:'flex', alignItems:'center', gap:'5px' }}>
+                                <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} /> Đang bán (Active)
+                            </label>
+                        </div>
                     </div>
 
-                    {/* Cột Phải */}
-                    {/* Cột Phải */}
+                    {/* CỘT PHẢI: HÌNH ẢNH */}
                     <div>
-                        {/* Hàng 1: Giá (Giữ nguyên) */}
-                        <div style={{ display:'flex', gap:'10px' }}>
-                            <div style={{ marginBottom: '10px', flex:1 }}>
-                                <label>Giá gốc (*):</label>
-                                <input type="number" value={originalPrice} onChange={e => setOriginalPrice(e.target.value)} style={{ width: '100%', padding: '6px' }} />
-                            </div>
-                            <div style={{ marginBottom: '10px', flex:1 }}>
-                                <label>Giá KM:</label>
-                                <input type="number" value={salePrice} onChange={e => setSalePrice(e.target.value)} style={{ width: '100%', padding: '6px' }} />
-                            </div>
+                        <label><strong>Hình ảnh sản phẩm:</strong></label>
+                        <div style={{ marginBottom: '10px', marginTop:'5px' }}>
+                            <input type="file" multiple onChange={handleFileChange} disabled={uploading} />
+                            {uploading && <span> Đang tải lên...</span>}
                         </div>
-
-                        {/* Hàng 2: Ngày Khuyến Mãi (Được đảo lên đây) */}
-                        <div style={{ display:'flex', gap:'10px' }}>
-                            <div style={{ marginBottom: '10px', flex:1 }}>
-                                <label>Ngày bắt đầu KM:</label>
-                                <input type="datetime-local" value={saleStart} onChange={e => setSaleStart(e.target.value)} style={{ width: '100%', padding: '6px' }} />
-                            </div>
-                            <div style={{ marginBottom: '10px', flex:1 }}>
-                                <label>Ngày kết thúc KM:</label>
-                                <input type="datetime-local" value={saleEnd} onChange={e => setSaleEnd(e.target.value)} style={{ width: '100%', padding: '6px' }} />
-                            </div>
-                        </div>
-
-                        {/* Hàng 3: Tồn kho & Cảnh báo Min (Được đảo xuống đây) */}
-                        <div style={{ display:'flex', gap:'10px' }}>
-                            <div style={{ marginBottom: '10px', flex:1 }}>
-                                <label>Tồn kho (Hiện có):</label>
-                                <input 
-                                    type="number" 
-                                    value={stock} 
-                                    readOnly // Chỉ cho xem
-                                    // Bỏ onChange để không cho sửa
-                                    style={{ 
-                                        width: '100%', 
-                                        padding: '6px', 
-                                        backgroundColor: '#e9ecef', // Màu xám báo hiệu readonly
-                                        cursor: 'not-allowed',
-                                        color: '#495057'
-                                    }} 
-                                />
-                            </div>
-                            <div style={{ marginBottom: '10px', flex:1 }}>
-                                <label>Cảnh báo min:</label>
-                                <input type="number" value={minStock} onChange={e => setMinStock(e.target.value)} style={{ width: '100%', padding: '6px' }} />
-                            </div>
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                            <label>Tags Phong thủy:</label>
-                            <input type="text" value={fengShui} onChange={e => setFengShui(e.target.value)} style={{ width: '100%', padding: '6px' }} />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Hình ảnh */}
-                <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '10px' }}>
-                    <h4>Hình ảnh sản phẩm</h4>
-                    <div style={{ marginBottom: '10px' }}>
-                        <input type="file" multiple onChange={handleFileChange} disabled={uploading} />
-                        {uploading && <span> Đang tải lên...</span>}
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                        {images.map((img, idx) => (
-                            <div key={idx} style={{ position: 'relative', border: img.isThumbnail ? '2px solid green' : '1px solid #ddd', padding: '2px' }}>
-                                <img src={`${API_BASE}${img.imageUrl}`} alt="product" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
-                                <button onClick={() => handleRemoveImage(idx)} style={{ position: 'absolute', top: 0, right: 0, background: 'red', color: 'white', border: 'none', cursor: 'pointer', fontSize:'10px' }}>X</button>
-                                <div style={{ textAlign: 'center', fontSize: '11px', marginTop: '2px' }}>
-                                    <input type="radio" name="thumb" checked={img.isThumbnail} onChange={() => handleSetThumbnail(idx)} /> Đại diện
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', minHeight:'100px', border:'1px dashed #ccc', padding:'10px', borderRadius:'4px' }}>
+                            {images.length === 0 && <span style={{color:'#999', fontSize:'13px'}}>Chưa có hình ảnh nào</span>}
+                            {images.map((img, idx) => (
+                                <div key={idx} style={{ position: 'relative', border: img.isThumbnail ? '2px solid #28a745' : '1px solid #ddd', width:'80px', height:'80px' }}>
+                                    <img src={`${API_BASE}${img.imageUrl}`} alt="product" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <button onClick={() => handleRemoveImage(idx)} style={{ position: 'absolute', top: -5, right: -5, background: 'red', color: 'white', border: 'none', borderRadius:'50%', width:'20px', height:'20px', cursor: 'pointer', fontSize:'10px', display:'flex', alignItems:'center', justifyContent:'center' }}>X</button>
+                                    <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'rgba(255,255,255,0.8)', fontSize: '10px', textAlign:'center', padding:'2px' }}>
+                                        <input type="radio" name="thumb" checked={img.isThumbnail} onChange={() => handleSetThumbnail(idx)} /> Đại diện
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 </div>
+
+                {/* KHU VỰC PHÂN LOẠI HÀNG (VARIANTS) */}
+                <div style={{ marginTop: '20px', border: '1px solid #bce8f1', padding: '15px', borderRadius: '5px', backgroundColor: '#f0f9ff' }}>
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px'}}>
+                        <h4 style={{margin:0, color:'#0056b3'}}>Phân loại hàng & Giá bán</h4>
+                        <button type="button" onClick={addVariant} style={{background:'#28a745', color:'white', border:'none', padding:'5px 10px', borderRadius:'4px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px'}}>
+                           <FaPlus /> Thêm loại
+                        </button>
+                    </div>
+                    
+                    <table style={{width:'100%', borderCollapse:'collapse', background:'white'}}>
+                        <thead>
+                            <tr style={{background:'#eee', fontSize:'14px'}}>
+                                <th style={{padding:'8px', border:'1px solid #ddd', textAlign:'left'}}>Tên loại <span style={{color:'red'}}>*</span></th>
+                                <th style={{padding:'8px', border:'1px solid #ddd', width:'130px'}}>Giá gốc</th>
+                                <th style={{padding:'8px', border:'1px solid #ddd', width:'130px'}}>Giá KM</th>
+                                <th style={{padding:'8px', border:'1px solid #ddd', width:'80px'}}>Tồn kho</th>
+                                {/* Cột Min Alert Mới */}
+                                <th style={{padding:'8px', border:'1px solid #ddd', width:'80px'}}>Min Alert</th>
+                                <th style={{padding:'8px', border:'1px solid #ddd', width:'50px'}}>Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {variants.map((v, idx) => (
+                                <tr key={idx}>
+                                    <td style={{padding:'5px', border:'1px solid #ddd'}}>
+                                        <input type="text" value={v.variantName} onChange={e => handleVariantChange(idx, 'variantName', e.target.value)} style={{width:'100%', padding:'5px', border:'1px solid #ccc'}} />
+                                    </td>
+                                    <td style={{padding:'5px', border:'1px solid #ddd'}}>
+                                        <input type="number" value={v.originalPrice} onChange={e => handleVariantChange(idx, 'originalPrice', e.target.value)} style={{width:'100%', padding:'5px', border:'1px solid #ccc', textAlign:'right'}} />
+                                    </td>
+                                    <td style={{padding:'5px', border:'1px solid #ddd'}}>
+                                        <input type="number" value={v.salePrice} onChange={e => handleVariantChange(idx, 'salePrice', e.target.value)} style={{width:'100%', padding:'5px', border:'1px solid #ccc', textAlign:'right'}} />
+                                    </td>
+                                    <td style={{padding:'5px', border:'1px solid #ddd'}}>
+                                        <input type="number" value={v.stockQuantity} onChange={e => handleVariantChange(idx, 'stockQuantity', e.target.value)} style={{width:'100%', padding:'5px', border:'1px solid #ccc', textAlign:'center'}} />
+                                    </td>
+                                    {/* Input Min Alert: Fix lỗi Uncontrolled */}
+                                    <td style={{padding:'5px', border:'1px solid #ddd'}}>
+                                        <input type="number" 
+                                            value={v.minStockAlert || ''} 
+                                            onChange={e => handleVariantChange(idx, 'minStockAlert', e.target.value)} 
+                                            style={{width:'100%', padding:'5px', border:'1px solid #ccc', textAlign:'center'}} 
+                                        />
+                                    </td>
+                                    <td style={{padding:'5px', border:'1px solid #ddd', textAlign:'center'}}>
+                                        <button type="button" onClick={() => removeVariant(idx)} style={{background:'none', border:'none', color:'red', cursor:'pointer'}}><FaTrash /></button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* EDITOR MÔ TẢ */}
+                <div style={{ marginTop: '20px' }}>
+                    <label style={{display: 'block', marginBottom: '5px', fontWeight:'bold'}}>Mô tả ngắn:</label>
+                    <ReactQuill ref={shortQuillRef} theme="snow" value={shortDesc} onChange={setShortDesc} modules={modulesShort} formats={formats} style={{ height: '120px', marginBottom: '50px' }} />
+                </div>
                 
-                {/* --- 1. MÔ TẢ NGẮN (Đã chuyển sang Quill) --- */}
-                <div style={{ marginBottom: '60px', marginTop: '10px' }}>
-                    <label style={{display: 'block', marginBottom: '5px'}}>Mô tả ngắn:</label>
-                    <ReactQuill 
-                        ref={shortQuillRef} // Gắn Ref ngắn
-                        theme="snow" 
-                        value={shortDesc} 
-                        onChange={setShortDesc} 
-                        modules={modulesShort} // Dùng Modules ngắn
-                        formats={formats}
-                        style={{ height: '150px' }} // Chiều cao nhỏ hơn xíu
-                    />
-                </div>
-                
-                {/* --- 2. MÔ TẢ CHI TIẾT --- */}
-                <div style={{ marginBottom: '60px' }}> 
-                    <label style={{display: 'block', marginBottom: '5px'}}>Mô tả chi tiết:</label>
-                    <ReactQuill 
-                        ref={detailQuillRef} // Gắn Ref chi tiết
-                        theme="snow" 
-                        value={detailDesc} 
-                        onChange={setDetailDesc} 
-                        modules={modulesDetail} // Dùng Modules chi tiết
-                        formats={formats}
-                        style={{ height: '200px' }} 
-                    />
+                <div style={{ marginTop: '10px' }}> 
+                    <label style={{display: 'block', marginBottom: '5px', fontWeight:'bold'}}>Mô tả chi tiết:</label>
+                    <ReactQuill ref={detailQuillRef} theme="snow" value={detailDesc} onChange={setDetailDesc} modules={modulesDetail} formats={formats} style={{ height: '200px', marginBottom: '50px' }} />
                 </div>
 
-                <div style={{ marginBottom: '10px' }}>
-                    <label>Đặc điểm (JSON/Text):</label>
-                    <textarea value={characteristics} onChange={e => setCharacteristics(e.target.value)} style={{ width: '100%', height: '50px', padding:'5px' }} />
-                </div>
-
-                <div style={{ marginBottom: '20px' }}>
-                    <label style={{ cursor: 'pointer', fontWeight: 'bold' }}>
-                        <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} /> Đang hoạt động (IsActive)
-                    </label>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                    <button onClick={onClose} style={{ padding: '8px 20px', backgroundColor: '#6c757d', color: 'white', border:'none', borderRadius:'4px', cursor:'pointer' }}>Hủy</button>
-                    <button onClick={handleSubmit} style={{ padding: '8px 20px', backgroundColor: '#007bff', color: 'white', border:'none', borderRadius:'4px', cursor:'pointer' }}>Lưu Sản Phẩm</button>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid #eee' }}>
+                    <button onClick={onClose} style={{ padding: '10px 25px', backgroundColor: '#6c757d', color: 'white', border:'none', borderRadius:'4px', cursor:'pointer' }}>Hủy bỏ</button>
+                    <button onClick={handleSubmit} style={{ padding: '10px 25px', backgroundColor: '#007bff', color: 'white', border:'none', borderRadius:'4px', cursor:'pointer', fontWeight:'bold' }}>LƯU SẢN PHẨM</button>
                 </div>
             </div>
         </div>

@@ -1,124 +1,164 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import defaultImg from '../../assets/images/logo.png'; 
+import VariantSelectionModal from './VariantSelectionModal'; // Import Modal mới tạo
 
 const HomeProductCard = ({ product, addToCart, baseUrl }) => {
-    const [qty, setQty] = useState(1);
-    
-    // --- KIỂM TRA HẾT HÀNG ---
-    // Kiểm tra null, undefined hoặc <= 0
-    const isOutOfStock = !product.stockQuantity || product.stockQuantity <= 0;
+    // --- STATE ---
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [fullProductData, setFullProductData] = useState(null); // Lưu data đầy đủ (kèm variants) khi fetch
 
-    const isSale = product.salePrice && product.salePrice < product.originalPrice;
+    // --- CHUẨN HÓA DỮ LIỆU ---
+    const originalPrice = product.originalPrice ?? product.OriginalPrice ?? 0;
+    const salePrice = product.salePrice ?? product.SalePrice;
+    const stockQuantity = product.stockQuantity ?? product.StockQuantity ?? 0;
+    const productName = product.productName ?? product.ProductName ?? "Sản phẩm";
+    const productId = product.productId ?? product.ProductId;
 
+    // --- LOGIC HIỂN THỊ ---
+    const isOutOfStock = stockQuantity <= 0;
+    const isSale = salePrice && salePrice < originalPrice;
+    const displayPrice = isSale ? salePrice : originalPrice;
+
+    // --- HÀM LẤY ẢNH ---
     const getProductImage = (prod) => {
         let imagePath = null;
-        if (prod.Thumbnail) {
-            imagePath = prod.Thumbnail;
-        } else if (prod.thumbnail) {
-            imagePath = prod.thumbnail;
-        }
+        if (prod.Thumbnail) imagePath = prod.Thumbnail;
+        else if (prod.thumbnail) imagePath = prod.thumbnail;
         else if (prod.tblProductImages && prod.tblProductImages.length > 0) {
             const thumb = prod.tblProductImages.find(img => img.isThumbnail === true);
             imagePath = thumb ? thumb.imageUrl : prod.tblProductImages[0].imageUrl;
         }
 
         if (!imagePath) return defaultImg;
-
         if (imagePath.startsWith('http')) return imagePath;
         
-        const cleanBase = baseUrl.replace(/\/$/, ''); 
+        const cleanBase = baseUrl ? baseUrl.replace(/\/$/, '') : ''; 
         const cleanPath = imagePath.replace(/^\//, '');
         return `${cleanBase}/${cleanPath}`;
     };
 
-    const handleIncrease = () => {
-        // Không cho tăng nếu hết hàng
-        if (!isOutOfStock) setQty(prev => prev + 1);
-    };
-    
-    const handleDecrease = () => {
-        if (!isOutOfStock) setQty(prev => (prev > 1 ? prev - 1 : 1));
-    };
+    // --- XỬ LÝ KHI BẤM "THÊM VÀO GIỎ" ---
+    const handleAddToCartClick = async () => {
+        if (!addToCart || isOutOfStock) return;
 
-    const handleAddToCart = () => {
-        // Chặn click nếu hết hàng
-        if (addToCart && !isOutOfStock) {
-            addToCart({ ...product, quantity: qty });
-            setQty(1); 
+        // 1. Gọi API lấy chi tiết sản phẩm để lấy danh sách Variants mới nhất
+        try {
+            const res = await fetch(`${baseUrl}/api/TblProducts/${productId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setFullProductData(data); // Lưu lại để truyền vào Modal nếu cần
+
+                const variants = data.tblProductVariants || [];
+                
+                if (variants.length === 1) {
+                    // TRƯỜNG HỢP A: Chỉ có 1 loại -> Thêm ngay lập tức
+                    const variant = variants[0];
+                    if (variant.stockQuantity <= 0) {
+                        alert("Sản phẩm này tạm hết hàng.");
+                        return;
+                    }
+
+                    addToCart({
+                        variantId: variant.variantId, // QUAN TRỌNG: Gửi variantId cho Backend
+                        productName: data.productName,
+                        variantName: variant.variantName,
+                        price: variant.salePrice || variant.originalPrice,
+                        imageUrl: getProductImage(product),
+                        quantity: 1
+                    });
+                } else if (variants.length > 1) {
+                    // TRƯỜNG HỢP B: Có nhiều loại -> Mở Modal để khách chọn
+                    setIsModalOpen(true);
+                } else {
+                    alert("Lỗi dữ liệu: Sản phẩm chưa có phân loại hàng.");
+                }
+            } else {
+                console.error("Lỗi fetch chi tiết sản phẩm");
+            }
+        } catch (err) {
+            console.error("Lỗi kết nối:", err);
+            alert("Không thể thêm vào giỏ hàng lúc này.");
         }
     };
 
+    // --- CALLBACK KHI KHÁCH ĐÃ CHỌN XONG TỪ MODAL ---
+    const handleModalConfirm = (variantId, qty, variantData) => {
+        addToCart({
+            variantId: variantId,
+            productName: fullProductData.productName,
+            variantName: variantData.variantName,
+            price: variantData.salePrice || variantData.originalPrice,
+            imageUrl: getProductImage(product),
+            quantity: qty
+        });
+    };
+
     return (
-        <div className={`home-product-card ${isOutOfStock ? 'out-of-stock' : ''}`} style={{ height: '100%' }}>
-            <Link to={`/product/${product.productId}`} style={{ textDecoration: 'none' }}>
-                <div className="product-img-wrap" style={{ position: 'relative' }}>
-                    {/* --- LOGIC HIỂN THỊ NHÃN --- */}
-                    {isOutOfStock ? (
-                        <span className="stock-badge" style={{
-                            position: 'absolute', top: '10px', left: '10px', 
-                            background: '#6c757d', color: 'white', padding: '5px 10px', 
-                            fontSize: '12px', fontWeight: 'bold', borderRadius: '4px', zIndex: 2
-                        }}>
-                            HẾT HÀNG
-                        </span>
-                    ) : (
-                        isSale && <span className="sale-badge">SALE</span>
-                    )}
-                    
-                    {/* Làm mờ ảnh nếu hết hàng */}
-                    <img 
-                        src={getProductImage(product)} 
-                        alt={product.productName} 
-                        className="hp-img"
-                        style={isOutOfStock ? { opacity: 0.6, filter: 'grayscale(100%)' } : {}}
-                        onError={(e) => { 
-                            e.target.onerror = null; 
-                            e.target.src = defaultImg; 
-                        }} 
-                    />
-                </div>
-            </Link>
-            
-            <div className="hp-info">
-                <Link to={`/product/${product.productId}`} style={{ textDecoration: 'none' }}>
-                    <h3 className="hp-name">{product.productName}</h3>
+        <>
+            <div className={`home-product-card ${isOutOfStock ? 'out-of-stock' : ''}`} style={{ height: '100%' }}>
+                <Link to={`/product/${productId}`} style={{ textDecoration: 'none' }}>
+                    <div className="product-img-wrap" style={{ position: 'relative' }}>
+                        {isOutOfStock ? (
+                            <span className="stock-badge" style={{ position: 'absolute', top: '10px', left: '10px', background: '#6c757d', color: 'white', padding: '5px 10px', fontSize: '12px', fontWeight: 'bold', borderRadius: '4px', zIndex: 2 }}>
+                                HẾT HÀNG
+                            </span>
+                        ) : (
+                            isSale && <span className="sale-badge">SALE</span>
+                        )}
+                        
+                        <img 
+                            src={getProductImage(product)} 
+                            alt={productName} 
+                            className="hp-img"
+                            style={isOutOfStock ? { opacity: 0.6, filter: 'grayscale(100%)' } : {}}
+                            onError={(e) => { e.target.onerror = null; e.target.src = defaultImg; }} 
+                        />
+                    </div>
                 </Link>
                 
-                <div className="hp-price-box">
-                    {isSale ? (
-                        <>
-                            <span className="hp-price" style={{marginRight: '10px'}}>
-                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.salePrice)}
+                <div className="hp-info">
+                    <Link to={`/product/${productId}`} style={{ textDecoration: 'none' }}>
+                        <h3 className="hp-name">{productName}</h3>
+                    </Link>
+                    
+                    <div className="hp-price-box">
+                        {isSale ? (
+                            <>
+                                <span className="hp-price" style={{marginRight: '10px'}}>
+                                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(salePrice)}
+                                </span>
+                                <span className="hp-old-price">
+                                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(originalPrice)}
+                                </span>
+                            </>
+                        ) : (
+                            <span className="hp-price">
+                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(originalPrice)}
                             </span>
-                            <span className="hp-old-price">
-                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.originalPrice)}
-                            </span>
-                        </>
-                    ) : (
-                        <span className="hp-price">
-                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.originalPrice)}
-                        </span>
-                    )}
-                </div>
+                        )}
+                    </div>
 
-                <div className="qty-wrapper">
-                    <button className="qty-btn" onClick={handleDecrease} disabled={isOutOfStock}>-</button>
-                    <input type="text" className="qty-input" value={qty} readOnly disabled={isOutOfStock} />
-                    <button className="qty-btn" onClick={handleIncrease} disabled={isOutOfStock}>+</button>
+                    {/* Nút Thêm vào giỏ đã được cập nhật logic */}
+                    <button 
+                        className={`hp-btn-solid ${isOutOfStock ? 'btn-disabled' : ''}`} 
+                        onClick={handleAddToCartClick}
+                        disabled={isOutOfStock}
+                        style={isOutOfStock ? { backgroundColor: '#ccc', cursor: 'not-allowed', borderColor: '#ccc' } : {}}
+                    >
+                        {isOutOfStock ? "TẠM HẾT HÀNG" : "THÊM VÀO GIỎ HÀNG"}
+                    </button>
                 </div>
-
-                {/* --- NÚT MUA HÀNG --- */}
-                <button 
-                    className={`hp-btn-solid ${isOutOfStock ? 'btn-disabled' : ''}`} 
-                    onClick={handleAddToCart}
-                    disabled={isOutOfStock}
-                    style={isOutOfStock ? { backgroundColor: '#ccc', cursor: 'not-allowed', borderColor: '#ccc' } : {}}
-                >
-                    {isOutOfStock ? "TẠM HẾT HÀNG" : "THÊM VÀO GIỎ HÀNG"}
-                </button>
             </div>
-        </div>
+
+            {/* Modal chọn phân loại */}
+            <VariantSelectionModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                product={fullProductData}
+                onConfirm={handleModalConfirm}
+            />
+        </>
     );
 };
 

@@ -4,95 +4,59 @@ export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
     const [cartItems, setCartItems] = useState([]);
-    
     const BASE_URL = 'https://localhost:7298'; 
 
-    // Hàm lấy User từ localStorage
+    // --- CÁC HÀM HELPER ---
     const getUser = () => {
         const userStr = localStorage.getItem('user');
         if (userStr) {
-            try {
-                return JSON.parse(userStr);
-            } catch (e) {
-                return null;
-            }
+            try { return JSON.parse(userStr); } catch (e) { return null; }
         }
         return null;
     };
 
-    // Hàm kiểm tra xem user có phải là Khách hàng không
-    // (Giả sử RoleId = 2 là khách hàng, các role khác là admin/staff)
-    // Bạn cần check lại DB xem RoleId của khách hàng là mấy. Thường là 2 hoặc null.
     const isCustomer = (user) => {
-        if (!user) return true; // Chưa đăng nhập -> Coi là khách vãng lai
-        // Nếu roleId = 2 là khách hàng. Các role 1,3,4 là quản trị
-        return user.roleId === 2; 
+        if (!user) return true; 
+        return user.roleId === 2; // Giả sử Role 2 là khách
     };
 
-    // 1. Load giỏ hàng
+    const syncLocalStorage = (items) => {
+        const user = getUser();
+        if (!user) { 
+            localStorage.setItem('shoppingCart', JSON.stringify(items));
+        }
+    };
+
+    // --- 1. LOAD GIỎ HÀNG ---
     useEffect(() => {
         const user = getUser();
-        
-        // Nếu là Admin/Nhân viên -> Không load giỏ hàng, return luôn để tránh lỗi API
-        if (user && !isCustomer(user)) {
-            setCartItems([]);
-            return;
-        }
+        if (user && !isCustomer(user)) { setCartItems([]); return; }
 
         const userId = user?.userId;
 
         if (userId) {
-            // NẾU CÓ USER ID (Và là khách hàng) -> Gọi API
+            // DB: Load từ API
             fetch(`${BASE_URL}/api/Cart/get-cart/${userId}`)
-                .then(res => {
-                    // Nếu lỗi 404 (chưa có giỏ) hoặc 401/403 -> Không throw lỗi để tránh crash
-                    if (!res.ok) {
-                        return []; 
-                    }
-                    return res.json();
-                })
+                .then(res => { if (!res.ok) return []; return res.json(); })
                 .then(data => {
-                    if (Array.isArray(data)) {
-                        setCartItems(data);
-                    } else {
-                        setCartItems([]);
-                    }
+                    setCartItems(Array.isArray(data) ? data : []);
                 })
-                .catch(err => {
-                    console.error("Lỗi load cart:", err);
-                    setCartItems([]);
-                });
+                .catch(err => { console.error("Lỗi load cart:", err); setCartItems([]); });
         } else {
-            // NẾU KHÔNG CÓ USER ID -> Dùng LocalStorage (Khách vãng lai)
+            // Local: Load từ Storage
             const storedCart = localStorage.getItem('shoppingCart');
             if (storedCart) {
                 try {
                     const parsed = JSON.parse(storedCart);
                     if (Array.isArray(parsed)) setCartItems(parsed);
-                } catch (e) {
-                    setCartItems([]);
-                }
+                } catch (e) { setCartItems([]); }
             }
         }
     }, []);
 
-    // Helper: Sync LocalStorage (Chỉ dùng cho khách vãng lai)
-    const syncLocalStorage = (items) => {
-        const user = getUser();
-        if (!user) { // Chỉ lưu local nếu chưa đăng nhập
-            localStorage.setItem('shoppingCart', JSON.stringify(items));
-        }
-    };
-
     const refreshCart = async () => {
         const user = getUser();
-        
-        // Nếu là Admin -> Dừng luôn
-        if (user && !isCustomer(user)) {
-            setCartItems([]);
-            return;
-        }
-
+        if (user && !isCustomer(user)) { setCartItems([]); return; }
         const userId = user?.userId;
 
         if (userId) {
@@ -101,75 +65,63 @@ export const CartProvider = ({ children }) => {
                 if (res.ok) {
                     const data = await res.json();
                     setCartItems(Array.isArray(data) ? data : []);
-                } else {
-                    setCartItems([]);
-                }
-            } catch (err) {
-                setCartItems([]);
-            }
+                } else { setCartItems([]); }
+            } catch (err) { setCartItems([]); }
         } else {
-            // Khách vãng lai
             const storedCart = localStorage.getItem('shoppingCart');
-            if (storedCart) {
-                setCartItems(JSON.parse(storedCart));
-            } else {
-                setCartItems([]);
-            }
+            setCartItems(storedCart ? JSON.parse(storedCart) : []);
         }
     };
 
-    // 2. Thêm vào giỏ
+    // --- 2. THÊM VÀO GIỎ (SỬA LỖI item is not defined) ---
     const addToCart = async (product) => {
         const user = getUser();
-
-        // CHẶN ADMIN MUA HÀNG (Nếu muốn)
-        if (user && !isCustomer(user)) {
-            alert("Tài khoản quản trị không thể mua hàng!");
-            return;
-        }
+        if (user && !isCustomer(user)) { alert("Quản trị viên không thể mua hàng!"); return; }
 
         const userId = user?.userId;
 
         if (userId) {
-            // --- CÓ MẠNG (DB) ---
+            // --- LOGIC DB ---
             try {
                 const res = await fetch(`${BASE_URL}/api/Cart/add-to-cart`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         userId: parseInt(userId), 
-                        productId: product.productId, 
-                        quantity: 1 
+                        variantId: product.variantId, // Sửa item -> product
+                        quantity: product.quantity    // Sửa item -> product
                     })
                 });
                 
                 if (res.ok) {
-                    refreshCart(); // Tải lại giỏ hàng
-                    alert("Đã thêm vào giỏ!");
+                    refreshCart(); // Tải lại để đồng bộ
+                    alert("Đã thêm vào giỏ hàng!");
                 } else {
-                    alert("Lỗi khi thêm vào giỏ hàng");
+                    alert("Lỗi khi thêm vào giỏ hàng (API).");
                 }
             } catch (error) {
                 console.error("Lỗi thêm giỏ hàng DB", error);
                 alert("Lỗi kết nối server!");
             }
         } else {
-            // --- KHÁCH VÃNG LAI (Local) ---
+            // --- LOGIC LOCAL STORAGE (KHÁCH VÃNG LAI) ---
             setCartItems(prev => {
-                // Kiểm tra prev có phải mảng không trước khi find
                 const safePrev = Array.isArray(prev) ? prev : [];
-                const exist = safePrev.find(x => x.productId === product.productId);
+                // Sửa: Tìm theo variantId thay vì productId
+                const exist = safePrev.find(x => x.variantId === product.variantId);
                 let newCart;
                 
                 if (exist) {
-                    newCart = safePrev.map(x => x.productId === product.productId ? { ...x, quantity: x.quantity + 1 } : x);
+                    newCart = safePrev.map(x => x.variantId === product.variantId ? { ...x, quantity: x.quantity + product.quantity } : x);
                 } else {
                     newCart = [...safePrev, { 
-                        productId: product.productId, 
-                        productName: product.productName, 
-                        price: product.salePrice || product.originalPrice, 
-                        imageUrl: product.tblProductImages?.[0]?.imageUrl || '', 
-                        quantity: 1 
+                        productId: product.productId, // Vẫn lưu productId để link
+                        variantId: product.variantId, // QUAN TRỌNG
+                        productName: product.productName,
+                        variantName: product.variantName, // Lưu tên phân loại
+                        price: product.price || product.salePrice || product.originalPrice, 
+                        imageUrl: product.imageUrl || '', 
+                        quantity: product.quantity 
                     }];
                 }
                 syncLocalStorage(newCart);
@@ -179,25 +131,27 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    // 3. Xóa sản phẩm
-    const removeFromCart = async (productId) => {
+    // --- 3. XÓA SẢN PHẨM (Sửa dùng variantId) ---
+    const removeFromCart = async (variantId) => {
         const user = getUser();
         const userId = user?.userId;
 
         if (userId) {
-            await fetch(`${BASE_URL}/api/Cart/remove-item?userId=${userId}&productId=${productId}`, { method: 'DELETE' });
+            // Gọi API xóa theo variantId (Controller đã sửa ở bước trước)
+            await fetch(`${BASE_URL}/api/Cart/remove-item?userId=${userId}&variantId=${variantId}`, { method: 'DELETE' });
         }
         
         setCartItems(prev => {
             const safePrev = Array.isArray(prev) ? prev : [];
-            const newCart = safePrev.filter(item => item.productId !== productId);
+            // Lọc bỏ item có variantId trùng khớp
+            const newCart = safePrev.filter(item => item.variantId !== variantId);
             syncLocalStorage(newCart);
             return newCart;
         });
     };
 
-    // 4. Cập nhật số lượng
-    const updateQuantity = async (productId, newQuantity) => {
+    // --- 4. CẬP NHẬT SỐ LƯỢNG (Sửa dùng variantId) ---
+    const updateQuantity = async (variantId, newQuantity) => {
         if (newQuantity < 1) return;
 
         const user = getUser();
@@ -207,14 +161,14 @@ export const CartProvider = ({ children }) => {
             await fetch(`${BASE_URL}/api/Cart/update-quantity`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: parseInt(userId), productId, quantity: newQuantity })
+                body: JSON.stringify({ userId: parseInt(userId), variantId: variantId, quantity: newQuantity })
             });
         }
 
         setCartItems(prev => {
             const safePrev = Array.isArray(prev) ? prev : [];
             const newCart = safePrev.map(item => 
-                item.productId === productId ? { ...item, quantity: newQuantity } : item
+                item.variantId === variantId ? { ...item, quantity: newQuantity } : item
             );
             syncLocalStorage(newCart);
             return newCart;
@@ -226,15 +180,7 @@ export const CartProvider = ({ children }) => {
     const cartTotal = validItems.reduce((total, item) => total + ((item.price || 0) * (item.quantity || 0)), 0);
 
     return (
-        <CartContext.Provider value={{ 
-            cartItems, 
-            addToCart, 
-            removeFromCart, 
-            updateQuantity, 
-            cartCount, 
-            cartTotal,
-            refreshCart
-        }}>
+        <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, cartCount, cartTotal, refreshCart }}>
             {children}
         </CartContext.Provider>
     );

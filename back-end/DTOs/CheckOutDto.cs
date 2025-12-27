@@ -1,18 +1,19 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 namespace back_end.DTOs
 {
     // Dữ liệu chi tiết từng sản phẩm trong đơn
-    public class CartItemDto
+    public class CheckoutItemDto
     {
-        public int ProductId { get; set; }
+        public int VariantId { get; set; } // Đã đổi thành VariantId
         public int Quantity { get; set; }
     }
 
     // Dữ liệu tổng thể gửi lên để tạo đơn
     public class CheckoutRequest
     {
-        public int? UserId { get; set; } // Null nếu là khách vãng lai
+        public int? UserId { get; set; }
 
         [Required]
         public string RecipientName { get; set; } = null!;
@@ -21,19 +22,20 @@ namespace back_end.DTOs
         public string RecipientPhone { get; set; } = null!;
 
         [Required]
-        public string ShippingAddress { get; set; } = null!; // Địa chỉ chi tiết + Quận/Huyện/Tỉnh
+        public string ShippingAddress { get; set; } = null!;
 
-        // Dùng để tính phí ship (Frontend gửi lên "Hà Nội", "Hồ Chí Minh"...)
         public string Province { get; set; } = null!;
         public string? District { get; set; }
 
-        public string? VoucherCode { get; set; } // Mã giảm giá (nếu có)
+        public string? VoucherCode { get; set; }
 
         [Required]
-        public string PaymentMethod { get; set; } = null!; // "COD" hoặc "PAYOS"
+        public string PaymentMethod { get; set; } = null!;
 
-        public string? Note { get; set; } // Ghi chú của khách
+        public string? Note { get; set; }
 
-        public List<CartItemDto> Items { get; set; } = new List<CartItemDto>();
+        public List<CheckoutItemDto> Items { get; set; } = new List<CheckoutItemDto>();
     }
+
+    // ĐÃ XÓA UpdateStatusRequest KHỎI ĐÂY
 }

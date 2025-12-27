@@ -1,25 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// --- ICONS SVG (Giống trang Category) ---
+// --- ICONS SVG ---
 const Icons = {
     Search: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
     Eye: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>,
     Close: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
     Filter: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>,
-    // --- MỚI THÊM: Icon Thùng rác ---
     Trash: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
 };
 
-// --- COMPONENT MODAL CHI TIẾT ĐƠN HÀNG (Style giống CategoryModal) ---
+// --- COMPONENT MODAL CHI TIẾT ĐƠN HÀNG ---
 const OrderDetailModal = ({ isOpen, onClose, order, onUpdateStatus, updating }) => {
     if (!isOpen || !order) return null;
 
-    // Style cho Modal
     const overlayStyle = {
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: 'rgba(0,0,0,0.4)', 
-        backdropFilter: 'blur(4px)', // Hiệu ứng mờ nền
+        backdropFilter: 'blur(4px)',
         display: 'flex', justifyContent: 'center', alignItems: 'center',
         zIndex: 1050
     };
@@ -27,17 +25,16 @@ const OrderDetailModal = ({ isOpen, onClose, order, onUpdateStatus, updating }) 
     const modalStyle = {
         backgroundColor: 'white', 
         borderRadius: '12px', 
-        width: '800px', // Rộng hơn chút để chứa thông tin đơn hàng
+        width: '800px', 
         maxWidth: '95%',
-        maxHeight: '90vh', // Giới hạn chiều cao
-        overflowY: 'auto', // Cho phép cuộn nếu dài
+        maxHeight: '90vh', 
+        overflowY: 'auto',
         boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
         animation: 'fadeIn 0.3s ease-out'
     };
 
     const formatMoney = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0);
 
-    // Badge trong Modal
     const renderBadge = (status) => {
         const styles = {
             Pending: { bg: '#fff3cd', color: '#856404', border: '#ffeeba' },
@@ -95,7 +92,8 @@ const OrderDetailModal = ({ isOpen, onClose, order, onUpdateStatus, updating }) 
                         <thead style={{ backgroundColor: '#f1f3f5', borderBottom: '2px solid #dee2e6' }}>
                             <tr>
                                 <th style={{ padding: '10px', textAlign: 'left' }}>Sản phẩm</th>
-                                <th style={{ padding: '10px', textAlign: 'center' }}>Size</th>
+                                {/* SỬA TẠI ĐÂY: Size -> Phân loại */}
+                                <th style={{ padding: '10px', textAlign: 'center' }}>Phân loại</th> 
                                 <th style={{ padding: '10px', textAlign: 'right' }}>Đơn giá</th>
                                 <th style={{ padding: '10px', textAlign: 'center' }}>SL</th>
                                 <th style={{ padding: '10px', textAlign: 'right' }}>Thành tiền</th>
@@ -105,7 +103,8 @@ const OrderDetailModal = ({ isOpen, onClose, order, onUpdateStatus, updating }) 
                             {order.items.map((item, idx) => (
                                 <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
                                     <td style={{ padding: '10px' }}>{item.productName}</td>
-                                    <td style={{ padding: '10px', textAlign: 'center' }}>{item.size}</td>
+                                    {/* SỬA TẠI ĐÂY: item.size -> item.variantName */}
+                                    <td style={{ padding: '10px', textAlign: 'center', color:'#666' }}>{item.variantName}</td>
                                     <td style={{ padding: '10px', textAlign: 'right' }}>{formatMoney(item.price)}</td>
                                     <td style={{ padding: '10px', textAlign: 'center' }}>{item.quantity}</td>
                                     <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold' }}>{formatMoney(item.total)}</td>
@@ -164,7 +163,6 @@ const OrderDetailModal = ({ isOpen, onClose, order, onUpdateStatus, updating }) 
                     )}
                 </div>
             </div>
-             {/* CSS cho Animation của Modal */}
              <style>{`
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translateY(-20px); }
@@ -177,7 +175,6 @@ const OrderDetailModal = ({ isOpen, onClose, order, onUpdateStatus, updating }) 
 
 // --- COMPONENT DROPDOWN TRẠNG THÁI ---
 const StatusSelect = ({ orderId, currentStatus, onUpdate }) => {
-    // Cấu hình màu sắc và nhãn hiển thị
     const statusConfig = {
         Pending: { color: '#856404', bg: '#fff3cd', label: 'Chờ xác nhận' },
         Processing: { color: '#055160', bg: '#cff4fc', label: 'Đang đóng gói' },
@@ -185,20 +182,16 @@ const StatusSelect = ({ orderId, currentStatus, onUpdate }) => {
         Completed: { color: '#0f5132', bg: '#d1e7dd', label: 'Hoàn thành' },
         Cancelled: { color: '#842029', bg: '#f8d7da', label: 'Đã hủy' }
     };
-
     const config = statusConfig[currentStatus] || { color: '#333', bg: '#eee' };
 
     const handleChange = (e) => {
         const newStatus = e.target.value;
         if (newStatus === currentStatus) return;
-
-        // Hỏi xác nhận trước khi đổi (để tránh bấm nhầm)
         const confirmMsg = `Bạn muốn đổi trạng thái đơn #${orderId} sang "${statusConfig[newStatus].label}"?`;
         if (window.confirm(confirmMsg)) {
             onUpdate(orderId, newStatus);
         } else {
-            // Reset lại select nếu user bấm Cancel (để UI không bị đổi ảo)
-            e.target.value = currentStatus; 
+            e.target.value = currentStatus;
         }
     };
 
@@ -216,7 +209,7 @@ const StatusSelect = ({ orderId, currentStatus, onUpdate }) => {
                 fontWeight: 'bold',
                 cursor: 'pointer',
                 outline: 'none',
-                appearance: 'none', // Ẩn mũi tên mặc định của trình duyệt cho đẹp (tùy chọn)
+                appearance: 'none',
                 textAlign: 'center',
                 width: '130px'
             }}
@@ -229,6 +222,7 @@ const StatusSelect = ({ orderId, currentStatus, onUpdate }) => {
         </select>
     );
 };
+
 // --- MAIN COMPONENT ---
 const AdminOrders = () => {
     const [orders, setOrders] = useState([]);
@@ -267,7 +261,7 @@ const AdminOrders = () => {
 
     useEffect(() => {
         fetchOrders();
-    }, [page, statusFilter]); 
+    }, [page, statusFilter]);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -287,40 +281,31 @@ const AdminOrders = () => {
 
     const handleUpdateStatus = async (newStatus) => {
         if (!window.confirm(`Xác nhận chuyển trạng thái sang: ${newStatus}?`)) return;
-        
         setUpdating(true);
         try {
             await axios.put(`https://localhost:7298/api/Orders/admin/update-status/${selectedOrder.orderId}`, {
                 newStatus: newStatus
             });
-            // Update local state để UI phản hồi ngay
             setSelectedOrder(prev => ({ ...prev, orderStatus: newStatus }));
             fetchOrders(); 
-            // Không tắt modal ngay để user xem kết quả, hoặc tắt tùy bạn
-             setShowModal(false); 
+             setShowModal(false);
         } catch (error) {
             alert("Lỗi cập nhật: " + (error.response?.data?.message || error.message));
         }
         setUpdating(false);
     };
+
     const handleDelete = async (id, status) => {
-        // 1. Kiểm tra trạng thái hợp lệ ngay tại Client
-        // Chỉ cho phép xóa nếu là "Pending" (Chờ xác nhận) hoặc "Cancelled" (Đã hủy)
         if (status !== 'Pending' && status !== 'Cancelled') {
             alert("Chỉ có thể xóa đơn hàng 'Đã hủy' hoặc 'Chờ xác nhận'.");
-            return; // Dừng lại ngay, không hiện confirm, không gọi API
+            return;
         }
-
-        // 2. Nếu hợp lệ thì mới hiện Confirm
         if (!window.confirm("Bạn có chắc chắn muốn xóa đơn hàng này? Hành động này không thể hoàn tác!")) {
             return;
         }
-
-        // 3. Gọi API xóa
         try {
             await axios.delete(`https://localhost:7298/api/Orders/admin/delete/${id}`);
             alert("Đã xóa đơn hàng thành công!");
-            
             if (orders.length === 1 && page > 1) {
                 setPage(page - 1);
             } else {
@@ -332,57 +317,28 @@ const AdminOrders = () => {
         }
     };
 
-    // Render Badge Status (Cho bảng bên ngoài)
-    const StatusBadge = ({ status }) => {
-        const styles = {
-            Pending: { bg: '#fff3cd', color: '#856404', border: '#ffeeba', label: 'Chờ xác nhận' },
-            Processing: { bg: '#cff4fc', color: '#055160', border: '#b6effb', label: 'Đang đóng gói' },
-            Shipping: { bg: '#cfe2ff', color: '#084298', border: '#b6d4fe', label: 'Đang giao' },
-            Completed: { bg: '#d1e7dd', color: '#0f5132', border: '#badbcc', label: 'Hoàn thành' },
-            Cancelled: { bg: '#f8d7da', color: '#842029', border: '#f5c2c7', label: 'Đã hủy' },
-        }[status] || { bg: '#eee', color: '#333', border: '#ddd', label: status };
-
-        return (
-            <span style={{ 
-                backgroundColor: styles.bg, color: styles.color, border: `1px solid ${styles.border}`,
-                padding: '6px 12px', borderRadius: '30px', fontSize: '12px', fontWeight: 'bold'
-            }}>
-                {styles.label}
-            </span>
-        );
-    };
     const handleQuickUpdateStatus = async (orderId, newStatus) => {
         try {
             await axios.put(`https://localhost:7298/api/Orders/admin/update-status/${orderId}`, {
                 newStatus: newStatus
             });
-            
-            // Cập nhật lại danh sách orders ở client ngay lập tức (không cần load lại API)
             setOrders(prevOrders => prevOrders.map(o => 
                 o.orderId === orderId ? { ...o, orderStatus: newStatus } : o
             ));
-
-            // (Optional) Có thể hiện thông báo nhỏ ở góc (Toast)
-            // alert("Cập nhật thành công!"); 
-
         } catch (error) {
             console.error("Lỗi cập nhật", error);
             alert("Lỗi cập nhật: " + (error.response?.data?.message || error.message));
-            
-            // Nếu lỗi, nên load lại danh sách để đồng bộ dữ liệu chuẩn
-            fetchOrders(); 
+            fetchOrders();
         }
     };
+
     return (
         <div style={{ padding: '24px', backgroundColor: '#f4f6f9', minHeight: '100vh' }}>
-            
-            {/* Header */}
             <div style={{ marginBottom: '24px' }}>
                 <h2 style={{ margin: 0, color: '#2c3e50', fontWeight: 'bold' }}>Quản Lý Đơn Hàng</h2>
                 <p style={{ margin: 0, color: '#6c757d', fontSize: '14px' }}>Theo dõi trạng thái và xử lý đơn hàng</p>
             </div>
 
-            {/* Filter Section - Card Style giống Category */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', marginBottom: '24px' }}>
                 <form onSubmit={handleSearch} style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
                     <div style={{ flex: 2, minWidth: '200px' }}>
@@ -423,7 +379,6 @@ const AdminOrders = () => {
                 </form>
             </div>
 
-            {/* Table Section */}
             <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                     <thead style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
@@ -456,7 +411,6 @@ const AdminOrders = () => {
                                     {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.totalAmount)}
                                 </td>
                                 <td style={{ padding: '16px', textAlign: 'center' }}>
-                                    {/* Thay thế StatusBadge cũ bằng StatusSelect */}
                                     <StatusSelect 
                                         orderId={order.orderId}
                                         currentStatus={order.orderStatus}
@@ -465,23 +419,18 @@ const AdminOrders = () => {
                                 </td>
                                 <td style={{ padding: '16px', textAlign: 'center' }}>
                                     <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                                        {/* Nút Xem Chi Tiết */}
                                         <button 
                                             onClick={() => handleViewDetail(order.orderId)}
-                                            /* ... style cũ giữ nguyên ... */
+                                            style={{ width: '36px', height: '36px', border: '1px solid #4e73df', borderRadius: '6px', backgroundColor: 'white', color: '#4e73df', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
                                         >
                                             <Icons.Eye />
                                         </button>
-
-                                        {/* --- NÚT XÓA (CẬP NHẬT) --- */}
                                         <button 
-                                            // CẬP NHẬT DÒNG NÀY: Truyền thêm order.orderStatus
                                             onClick={() => handleDelete(order.orderId, order.orderStatus)} 
                                             title="Xóa đơn hàng"
                                             style={{ 
                                                 width: '36px', height: '36px', 
                                                 border: '1px solid #f5c2c7', borderRadius: '6px',
-                                                // Mẹo nhỏ: Nếu không được xóa thì làm mờ nút đi một chút cho trực quan (optional)
                                                 opacity: (order.orderStatus === 'Pending' || order.orderStatus === 'Cancelled') ? 1 : 0.5,
                                                 backgroundColor: 'white', color: '#dc3545', cursor: 'pointer',
                                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -500,7 +449,6 @@ const AdminOrders = () => {
                     </tbody>
                 </table>
                 
-                {/* Pagination */}
                 {totalPages > 1 && (
                     <div style={{ padding: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'center', borderTop: '1px solid #eee' }}>
                          <span style={{ fontSize: '14px', color: '#666', marginRight: '10px' }}>Trang {page} / {totalPages}</span>
@@ -522,7 +470,6 @@ const AdminOrders = () => {
                 )}
             </div>
 
-            {/* MODAL COMPONENT */}
             <OrderDetailModal 
                 isOpen={showModal}
                 onClose={() => setShowModal(false)}
@@ -530,7 +477,6 @@ const AdminOrders = () => {
                 onUpdateStatus={handleUpdateStatus}
                 updating={updating}
             />
-
         </div>
     );
 };

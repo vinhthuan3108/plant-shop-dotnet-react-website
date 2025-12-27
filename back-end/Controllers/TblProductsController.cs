@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.IO;                // Thư viện thao tác file
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -17,272 +17,130 @@ namespace back_end.Controllers
     public class TblProductsController : ControllerBase
     {
         private readonly DbplantShopThuanCuongContext _context;
-        private readonly IWebHostEnvironment _environment; // Khai báo biến môi trường
+        private readonly IWebHostEnvironment _environment;
 
-        // Inject IWebHostEnvironment vào constructor
         public TblProductsController(DbplantShopThuanCuongContext context, IWebHostEnvironment environment)
         {
             _context = context;
             _environment = environment;
         }
 
-        // GET: api/TblProducts
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<TblProduct>>> GetTblProducts()
-        {
-            return await _context.TblProducts
-                                 .Include(p => p.Category)
-                                 .Include(p => p.TblProductImages)
-                                 .OrderByDescending(p => p.CreatedAt)
-                                 .ToListAsync();
-        }
-        // GET: api/TblProducts/shop
-        // Đã sửa lỗi logic NULL và thêm Phân trang
-        [HttpGet("shop")]
-        public async Task<IActionResult> GetProductsForShop(int? categoryId, int page = 1, int pageSize = 12)
-        {
-            // 1. Khởi tạo Query
-            var query = _context.TblProducts
-                .Include(p => p.TblProductImages)
-                // --- SỬA LỖI QUAN TRỌNG Ở DÒNG DƯỚI ---
-                // Chấp nhận sản phẩm có IsDeleted là false HOẶC null
-                .Where(p => p.IsActive == true && (p.IsDeleted == false || p.IsDeleted == null));
-
-            // 2. Lọc theo danh mục nếu có
-            if (categoryId.HasValue)
-            {
-                query = query.Where(p => p.CategoryId == categoryId.Value);
-            }
-
-            // 3. Tính toán phân trang
-            int totalItems = await query.CountAsync();
-            int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
-
-            // 4. Lấy dữ liệu theo trang
-            var products = await query
-                .OrderByDescending(p => p.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(p => new
-                {
-                    p.ProductId,
-                    p.ProductName,
-                    p.OriginalPrice,
-                    p.SalePrice,
-                    p.StockQuantity,
-                    // Lấy ảnh thumbnail (từ Shop)
-                    thumbnail = p.TblProductImages
-                                .Where(img => img.IsThumbnail == true)
-                                .Select(img => img.ImageUrl)
-                                .FirstOrDefault()
-                                ?? p.TblProductImages.Select(img => img.ImageUrl).FirstOrDefault(),
-                    p.CategoryId
-                }).ToListAsync();
-
-            // 5. Trả về cấu trúc chuẩn cho Frontend
-            return Ok(new
-            {
-                data = products,      // Danh sách sản phẩm
-                totalPages = totalPages,
-                currentPage = page,
-                totalItems = totalItems
-            });
-        }
-        // GET: api/TblProducts/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<TblProduct>> GetTblProduct(int id)
-        {
-            var tblProduct = await _context.TblProducts
-                                           .Include(p => p.TblProductImages) // Quan trọng: Load kèm ảnh
-                                           .Include(p => p.Category)         // Load kèm tên danh mục
-                                           .FirstOrDefaultAsync(p => p.ProductId == id);
-
-            if (tblProduct == null)
-            {
-                return NotFound();
-            }
-
-            return tblProduct;
-        }
-
-        // PUT: api/TblProducts/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutTblProduct(int id, TblProduct tblProduct)
-        {
-            if (id != tblProduct.ProductId) return BadRequest();
-
-            // 1. Lấy sản phẩm cũ
-            bool isDuplicate = await _context.TblProducts
-        .AnyAsync(p => p.ProductCode == tblProduct.ProductCode && p.ProductId != id);
-
-            if (isDuplicate)
-            {
-                return BadRequest(new { title = $"Mã sản phẩm '{tblProduct.ProductCode}' đã tồn tại trong hệ thống!" });
-            }
-            var existingProduct = await _context.TblProducts
-                .Include(p => p.TblProductImages)
-                .FirstOrDefaultAsync(p => p.ProductId == id);
-
-            if (existingProduct == null) return NotFound();
-
-            // --- SỬA LỖI MẤT SẢN PHẨM ---
-            // Lưu lại trạng thái Active/Deleted cũ trước khi update
-            var oldIsDeleted = existingProduct.IsDeleted;
-            var oldCreatedAt = existingProduct.CreatedAt;
-
-            // 2. Ghi đè dữ liệu mới vào
-            _context.Entry(existingProduct).CurrentValues.SetValues(tblProduct);
-
-            // 3. KHÔI PHỤC LẠI CÁC TRƯỜNG QUAN TRỌNG
-            // Nếu frontend không gửi IsActive (hoặc gửi false do lỗi), ta ép nó về trạng thái cũ
-            // Dòng này đảm bảo sửa ảnh không làm ẩn sản phẩm
-            existingProduct.IsDeleted = oldIsDeleted;
-            existingProduct.CreatedAt = oldCreatedAt;
-            existingProduct.UpdatedAt = DateTime.Now;
-
-            // --- XỬ LÝ ẢNH (Giữ nguyên logic của bạn nhưng thêm try-catch xóa file cho an toàn) ---
-            var clientImages = tblProduct.TblProductImages ?? new List<TblProductImage>();
-            var clientImageIds = clientImages.Select(i => i.ImageId).ToList();
-            var imagesToDelete = existingProduct.TblProductImages
-                .Where(img => !clientImageIds.Contains(img.ImageId))
-                .ToList();
-
-            foreach (var img in imagesToDelete)
-            {
-                if (!string.IsNullOrEmpty(img.ImageUrl))
-                {
-                    // Sửa lỗi đường dẫn khi xóa file: thay / bằng \ cho đúng chuẩn Windows nếu cần
-                    var relativePath = img.ImageUrl.Replace("/", "\\").TrimStart('\\');
-                    var filePath = Path.Combine(_environment.WebRootPath, relativePath);
-                    if (System.IO.File.Exists(filePath))
-                    {
-                        try { System.IO.File.Delete(filePath); } catch { }
-                    }
-                }
-                _context.TblProductImages.Remove(img);
-            }
-
-            foreach (var img in clientImages)
-            {
-                if (img.ImageId == 0)
-                {
-                    var newImage = new TblProductImage
-                    {
-                        ProductId = id,
-                        ImageUrl = img.ImageUrl,
-                        IsThumbnail = img.IsThumbnail,
-                        DisplayOrder = img.DisplayOrder ?? 0
-                    };
-                    _context.TblProductImages.Add(newImage);
-                }
-                else
-                {
-                    var existingImg = existingProduct.TblProductImages.FirstOrDefault(i => i.ImageId == img.ImageId);
-                    if (existingImg != null)
-                    {
-                        existingImg.IsThumbnail = img.IsThumbnail;
-                        // existingImg.ImageUrl = img.ImageUrl; // Nếu muốn cho phép sửa link ảnh cũ
-                    }
-                }
-            }
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!TblProductExists(id)) return NotFound();
-                else throw;
-            }
-
-            return NoContent();
-        }
+        // GET: api/TblProducts/filter (Dùng cho Admin - Danh sách & Tìm kiếm)
+        // GET: api/TblProducts/filter
         [HttpGet("filter")]
         public async Task<ActionResult<IEnumerable<object>>> GetFilteredProducts([FromQuery] ProductFilterDto filter)
         {
             var query = _context.TblProducts
                 .Include(p => p.Category)
                 .Include(p => p.TblProductImages)
+                .Include(p => p.TblProductVariants)
                 .AsQueryable();
 
-            // ... (Giữ nguyên các logic lọc Keyword, Category, IsActive, StockStatus cũ) ...
-
-            // 1. Tìm kiếm (Giữ nguyên)
+            // 1. Lọc Keyword
             if (!string.IsNullOrEmpty(filter.Keyword))
             {
                 string kw = filter.Keyword.ToLower().Trim();
                 query = query.Where(p => p.ProductName.ToLower().Contains(kw) || p.ProductCode.ToLower().Contains(kw));
             }
-            // 2. Danh mục (Giữ nguyên)
-            if (filter.CategoryId.HasValue) query = query.Where(p => p.CategoryId == filter.CategoryId.Value);
-            // 3. Trạng thái (Giữ nguyên)
-            if (filter.IsActive.HasValue) query = query.Where(p => p.IsActive == filter.IsActive.Value);
-            // 4. Tồn kho (Giữ nguyên)
+
+            // 2. Lọc Category
+            if (filter.CategoryId.HasValue)
+                query = query.Where(p => p.CategoryId == filter.CategoryId.Value);
+
+            // 3. Lọc Active
+            if (filter.IsActive.HasValue)
+                query = query.Where(p => p.IsActive == filter.IsActive.Value);
+
+            // 4. Lọc Tồn kho
             if (!string.IsNullOrEmpty(filter.StockStatus))
             {
                 switch (filter.StockStatus.ToLower())
                 {
-                    case "out_of_stock": query = query.Where(p => p.StockQuantity <= 0); break;
-                    case "low_stock": query = query.Where(p => p.StockQuantity > 0 && p.StockQuantity <= (p.MinStockAlert ?? 5)); break;
-                    case "available": query = query.Where(p => p.StockQuantity > (p.MinStockAlert ?? 5)); break;
+                    case "out_of_stock":
+                        query = query.Where(p => p.TblProductVariants.Sum(v => v.StockQuantity) <= 0);
+                        break;
+                    case "low_stock":
+                        query = query.Where(p => p.TblProductVariants.Sum(v => v.StockQuantity) > 0
+                                              && p.TblProductVariants.Sum(v => v.StockQuantity) <= (p.TblProductVariants.FirstOrDefault().MinStockAlert ?? 5));
+                        break;
+                    case "available":
+                        query = query.Where(p => p.TblProductVariants.Sum(v => v.StockQuantity) > (p.TblProductVariants.FirstOrDefault().MinStockAlert ?? 5));
+                        break;
                 }
             }
-            // 5. Khoảng giá (Giữ nguyên)
-            if (filter.MinPrice.HasValue) query = query.Where(p => (p.SalePrice ?? p.OriginalPrice) >= filter.MinPrice.Value);
-            if (filter.MaxPrice.HasValue) query = query.Where(p => (p.SalePrice ?? p.OriginalPrice) <= filter.MaxPrice.Value);
 
-            // --- LOGIC MỚI BẮT ĐẦU TỪ ĐÂY ---
+            // --- 5. LỌC KHOẢNG GIÁ (SỬA LẠI LOGIC) ---
+            // Logic: Nếu SalePrice khác null VÀ lớn hơn 0 thì dùng SalePrice, ngược lại dùng OriginalPrice
+            if (filter.MinPrice.HasValue)
+            {
+                query = query.Where(p => p.TblProductVariants.Any(v =>
+                    ((v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice : v.OriginalPrice) >= filter.MinPrice.Value));
+            }
 
-            // 6. Lọc theo Khuyến mãi (IsOnSale)
+            if (filter.MaxPrice.HasValue)
+            {
+                query = query.Where(p => p.TblProductVariants.Any(v =>
+                    ((v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice : v.OriginalPrice) <= filter.MaxPrice.Value));
+            }
+
+            // 6. Lọc chương trình Sale
             if (filter.IsOnSale.HasValue)
             {
                 if (filter.IsOnSale.Value == true)
-                {
-                    // Đang sale: Có giá sale VÀ giá sale nhỏ hơn giá gốc
-                    query = query.Where(p => p.SalePrice != null && p.SalePrice < p.OriginalPrice);
-                }
+                    query = query.Where(p => p.TblProductVariants.Any(v => v.SalePrice != null && v.SalePrice > 0 && v.SalePrice < v.OriginalPrice));
                 else
-                {
-                    // Không sale: Giá sale null HOẶC giá sale >= giá gốc
-                    query = query.Where(p => p.SalePrice == null || p.SalePrice >= p.OriginalPrice);
-                }
+                    query = query.Where(p => !p.TblProductVariants.Any(v => v.SalePrice != null && v.SalePrice > 0 && v.SalePrice < v.OriginalPrice));
             }
 
-            // 7. Sắp xếp (SortByPrice)
-            // Lưu ý: Logic sắp xếp phải đặt cuối cùng trước khi .Select()
+            // --- 7. SẮP XẾP GIÁ (CŨNG PHẢI SỬA) ---
             if (!string.IsNullOrEmpty(filter.SortByPrice))
             {
-                if (filter.SortByPrice.ToLower() == "asc") // Tăng dần
+                if (filter.SortByPrice.ToLower() == "asc")
                 {
-                    query = query.OrderBy(p => p.SalePrice ?? p.OriginalPrice);
+                    // Sắp xếp tăng dần theo giá thực tế (ưu tiên giá Sale nếu có) của biến thể đầu tiên
+                    query = query.OrderBy(p => p.TblProductVariants.OrderBy(v => v.VariantId)
+                        .Select(v => (v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice : v.OriginalPrice)
+                        .FirstOrDefault());
                 }
-                else if (filter.SortByPrice.ToLower() == "desc") // Giảm dần
+                else if (filter.SortByPrice.ToLower() == "desc")
                 {
-                    query = query.OrderByDescending(p => p.SalePrice ?? p.OriginalPrice);
+                    // Sắp xếp giảm dần
+                    query = query.OrderByDescending(p => p.TblProductVariants.OrderBy(v => v.VariantId)
+                        .Select(v => (v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice : v.OriginalPrice)
+                        .FirstOrDefault());
                 }
             }
             else
             {
-                // Mặc định: Mới nhất lên đầu (nếu không chọn sắp xếp giá)
                 query = query.OrderByDescending(p => p.CreatedAt);
             }
 
-            // --- KẾT THÚC LOGIC MỚI ---
-
+            // 8. Select kết quả
             var result = await query
                 .Select(p => new
                 {
                     p.ProductId,
                     p.ProductCode,
                     p.ProductName,
-                    p.CategoryId, // Nhớ dòng này để sửa lỗi select danh mục lúc trước
+                    p.CategoryId,
                     CategoryName = p.Category != null ? p.Category.CategoryName : "N/A",
-                    p.OriginalPrice,
-                    p.SalePrice,
-                    p.StockQuantity,
-                    p.MinStockAlert,
+
+                    // Lấy giá hiển thị (để Frontend dùng)
+                    OriginalPrice = p.TblProductVariants.OrderBy(v => v.VariantId).Select(v => v.OriginalPrice).FirstOrDefault(),
+                    SalePrice = p.TblProductVariants.OrderBy(v => v.VariantId).Select(v => v.SalePrice).FirstOrDefault(),
+
+                    StockQuantity = p.TblProductVariants.Sum(v => v.StockQuantity),
+                    MinStockAlert = p.TblProductVariants.OrderBy(v => v.VariantId).Select(v => v.MinStockAlert).FirstOrDefault() ?? 5,
+
+                    TblProductVariants = p.TblProductVariants.Select(v => new
+                    {
+                        v.VariantId,
+                        v.VariantName,
+                        v.StockQuantity,
+                        v.OriginalPrice // Giá nhập tham khảo
+                    }).ToList(),
                     p.IsActive,
+
                     Thumbnail = p.TblProductImages
                                  .Where(img => img.IsThumbnail == true)
                                  .Select(img => img.ImageUrl)
@@ -294,57 +152,214 @@ namespace back_end.Controllers
             return Ok(result);
         }
 
-        // POST: api/TblProducts
+        // GET: api/TblProducts/shop (Dùng cho Khách hàng)
+        [HttpGet("shop")]
+        public async Task<IActionResult> GetProductsForShop(int? categoryId, int page = 1, int pageSize = 12)
+        {
+            var query = _context.TblProducts
+                .Include(p => p.TblProductImages)
+                .Include(p => p.TblProductVariants) // Load biến thể
+                .Where(p => p.IsActive == true && (p.IsDeleted == false || p.IsDeleted == null));
+
+            if (categoryId.HasValue)
+            {
+                query = query.Where(p => p.CategoryId == categoryId.Value);
+            }
+
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+
+            var products = await query
+                .OrderByDescending(p => p.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new
+                {
+                    p.ProductId,
+                    p.ProductName,
+                    // Lấy giá thấp nhất trong các biến thể để hiển thị "Từ..."
+                    OriginalPrice = p.TblProductVariants.OrderBy(v => v.OriginalPrice).Select(v => v.OriginalPrice).FirstOrDefault(),
+                    SalePrice = p.TblProductVariants.OrderBy(v => v.OriginalPrice).Select(v => v.SalePrice).FirstOrDefault(),
+
+                    StockQuantity = p.TblProductVariants.Sum(v => v.StockQuantity ?? 0),
+
+                    thumbnail = p.TblProductImages
+                                .Where(img => img.IsThumbnail == true)
+                                .Select(img => img.ImageUrl)
+                                .FirstOrDefault()
+                                ?? p.TblProductImages.Select(img => img.ImageUrl).FirstOrDefault(),
+                    p.CategoryId
+                }).ToListAsync();
+
+            return Ok(new
+            {
+                data = products,
+                totalPages = totalPages,
+                currentPage = page,
+                totalItems = totalItems
+            });
+        }
+
+        // GET: api/TblProducts/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<TblProduct>> GetTblProduct(int id)
+        {
+            var tblProduct = await _context.TblProducts
+                   .Include(p => p.TblProductImages)
+                   .Include(p => p.Category)
+                   .Include(p => p.TblProductVariants) // Load danh sách biến thể để edit
+                   .FirstOrDefaultAsync(p => p.ProductId == id);
+
+            if (tblProduct == null) return NotFound();
+
+            return tblProduct;
+        }
+
+        // POST: api/TblProducts (Tạo mới)
         [HttpPost]
         public async Task<ActionResult<TblProduct>> PostTblProduct(TblProduct tblProduct)
         {
-            // --- 1. KIỂM TRA TRÙNG MÃ (MỚI THÊM) ---
-            bool isDuplicate = await _context.TblProducts
-                .AnyAsync(p => p.ProductCode == tblProduct.ProductCode);
-
-            if (isDuplicate)
-            {
-                return BadRequest(new { title = $"Mã sản phẩm '{tblProduct.ProductCode}' đã tồn tại!" });
-            }
-            // ----------------------------------------
+            bool isDuplicate = await _context.TblProducts.AnyAsync(p => p.ProductCode == tblProduct.ProductCode);
+            if (isDuplicate) return BadRequest(new { title = $"Mã sản phẩm '{tblProduct.ProductCode}' đã tồn tại!" });
 
             tblProduct.CreatedAt = DateTime.Now;
             tblProduct.UpdatedAt = DateTime.Now;
-
-            // Đảm bảo ProductId = 0 để EF tự sinh ID mới (tránh lỗi nếu frontend gửi ID ảo)
             tblProduct.ProductId = 0;
 
             _context.TblProducts.Add(tblProduct);
-
             try
             {
                 await _context.SaveChangesAsync();
             }
             catch (Exception ex)
             {
-                // Bắt lỗi chung để không trả về HTML stack trace
                 return StatusCode(500, new { title = "Lỗi Server: " + ex.Message });
             }
 
             return CreatedAtAction("GetTblProduct", new { id = tblProduct.ProductId }, tblProduct);
         }
 
+        // PUT: api/TblProducts/5 (Cập nhật)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutTblProduct(int id, TblProduct tblProduct)
+        {
+            if (id != tblProduct.ProductId) return BadRequest();
+
+            var existingProduct = await _context.TblProducts
+                .Include(p => p.TblProductImages)
+                .Include(p => p.TblProductVariants) // Load biến thể cũ
+                .FirstOrDefaultAsync(p => p.ProductId == id);
+
+            if (existingProduct == null) return NotFound();
+
+            // Cập nhật thông tin chung
+            existingProduct.ProductCode = tblProduct.ProductCode;
+            existingProduct.ProductName = tblProduct.ProductName;
+            existingProduct.CategoryId = tblProduct.CategoryId;
+            existingProduct.ShortDescription = tblProduct.ShortDescription;
+            existingProduct.DetailDescription = tblProduct.DetailDescription;
+            existingProduct.FengShuiTags = tblProduct.FengShuiTags;
+            existingProduct.IsActive = tblProduct.IsActive;
+
+            // Cập nhật ngày Sale (ở bảng cha)
+            existingProduct.SaleStartDate = tblProduct.SaleStartDate;
+            existingProduct.SaleEndDate = tblProduct.SaleEndDate;
+
+            existingProduct.UpdatedAt = DateTime.Now;
+
+            // --- XỬ LÝ ẢNH ---
+            var clientImages = tblProduct.TblProductImages ?? new List<TblProductImage>();
+            var clientImageIds = clientImages.Select(i => i.ImageId).ToList();
+            var imagesToDelete = existingProduct.TblProductImages.Where(img => !clientImageIds.Contains(img.ImageId)).ToList();
+
+            foreach (var img in imagesToDelete)
+            {
+                if (!string.IsNullOrEmpty(img.ImageUrl))
+                {
+                    var relativePath = img.ImageUrl.Replace("/", "\\").TrimStart('\\');
+                    var filePath = Path.Combine(_environment.WebRootPath, relativePath);
+                    if (System.IO.File.Exists(filePath)) try { System.IO.File.Delete(filePath); } catch { }
+                }
+                _context.TblProductImages.Remove(img);
+            }
+
+            foreach (var img in clientImages)
+            {
+                if (img.ImageId == 0)
+                {
+                    existingProduct.TblProductImages.Add(new TblProductImage
+                    {
+                        ProductId = id,
+                        ImageUrl = img.ImageUrl,
+                        IsThumbnail = img.IsThumbnail,
+                        DisplayOrder = img.DisplayOrder ?? 0
+                    });
+                }
+                else
+                {
+                    var existingImg = existingProduct.TblProductImages.FirstOrDefault(i => i.ImageId == img.ImageId);
+                    if (existingImg != null) existingImg.IsThumbnail = img.IsThumbnail;
+                }
+            }
+
+            // --- XỬ LÝ BIẾN THỂ (VARIANTS) ---
+            var clientVariants = tblProduct.TblProductVariants ?? new List<TblProductVariant>();
+            var clientVariantIds = clientVariants.Select(v => v.VariantId).ToList();
+
+            // Xóa biến thể cũ không còn tồn tại
+            var variantsToDelete = existingProduct.TblProductVariants.Where(v => !clientVariantIds.Contains(v.VariantId)).ToList();
+            foreach (var v in variantsToDelete) _context.TblProductVariants.Remove(v);
+
+            // Thêm/Sửa biến thể
+            foreach (var v in clientVariants)
+            {
+                if (v.VariantId == 0)
+                {
+                    existingProduct.TblProductVariants.Add(new TblProductVariant
+                    {
+                        VariantName = v.VariantName,
+                        OriginalPrice = v.OriginalPrice,
+                        SalePrice = v.SalePrice,
+                        StockQuantity = v.StockQuantity,
+                        MinStockAlert = v.MinStockAlert,
+                        IsActive = true
+                    });
+                }
+                else
+                {
+                    var existingVar = existingProduct.TblProductVariants.FirstOrDefault(x => x.VariantId == v.VariantId);
+                    if (existingVar != null)
+                    {
+                        existingVar.VariantName = v.VariantName;
+                        existingVar.OriginalPrice = v.OriginalPrice;
+                        existingVar.SalePrice = v.SalePrice;
+                        existingVar.StockQuantity = v.StockQuantity;
+                        existingVar.MinStockAlert = v.MinStockAlert;
+                    }
+                }
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.TblProducts.Any(e => e.ProductId == id)) return NotFound();
+                else throw;
+            }
+
+            return NoContent();
+        }
+
         // DELETE: api/TblProducts/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTblProduct(int id)
         {
-            // BƯỚC 1: Tìm sản phẩm và KÈM THEO DANH SÁCH ẢNH
-            var tblProduct = await _context.TblProducts
-                .Include(p => p.TblProductImages)
-                .FirstOrDefaultAsync(p => p.ProductId == id);
+            var tblProduct = await _context.TblProducts.Include(p => p.TblProductImages).FirstOrDefaultAsync(p => p.ProductId == id);
+            if (tblProduct == null) return NotFound();
 
-            if (tblProduct == null)
-            {
-                return NotFound();
-            }
-
-            // BƯỚC 2: Xóa file vật lý trong thư mục wwwroot
-            if (tblProduct.TblProductImages != null && tblProduct.TblProductImages.Any())
+            if (tblProduct.TblProductImages != null)
             {
                 foreach (var image in tblProduct.TblProductImages)
                 {
@@ -352,25 +367,14 @@ namespace back_end.Controllers
                     {
                         var relativePath = image.ImageUrl.TrimStart('/');
                         var fullPath = Path.Combine(_environment.WebRootPath, relativePath);
-
-                        if (System.IO.File.Exists(fullPath))
-                        {
-                            try { System.IO.File.Delete(fullPath); } catch { }
-                        }
+                        if (System.IO.File.Exists(fullPath)) try { System.IO.File.Delete(fullPath); } catch { }
                     }
                 }
             }
 
-            // BƯỚC 3: Xóa dữ liệu trong Database
             _context.TblProducts.Remove(tblProduct);
             await _context.SaveChangesAsync();
-
             return NoContent();
-        }
-
-        private bool TblProductExists(int id)
-        {
-            return _context.TblProducts.Any(e => e.ProductId == id);
         }
     }
 }
