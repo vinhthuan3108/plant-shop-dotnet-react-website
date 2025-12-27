@@ -1,67 +1,77 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-
-// 1. Import ảnh logo mặc định (Đảm bảo đường dẫn này đúng)
 import defaultImg from '../../assets/images/logo.png'; 
 
 const HomeProductCard = ({ product, addToCart, baseUrl }) => {
     const [qty, setQty] = useState(1);
     
-    // Tính toán giá sale
+    // --- KIỂM TRA HẾT HÀNG ---
+    // Kiểm tra null, undefined hoặc <= 0
+    const isOutOfStock = !product.stockQuantity || product.stockQuantity <= 0;
+
     const isSale = product.salePrice && product.salePrice < product.originalPrice;
 
-    // --- HÀM LẤY ẢNH THÔNG MINH (QUAN TRỌNG) ---
     const getProductImage = (prod) => {
         let imagePath = null;
-
-        // ƯU TIÊN 1: Lấy từ trường 'Thumbnail' hoặc 'thumbnail' (Do API Shop trả về)
         if (prod.Thumbnail) {
             imagePath = prod.Thumbnail;
         } else if (prod.thumbnail) {
             imagePath = prod.thumbnail;
         }
-        // ƯU TIÊN 2: Lấy từ mảng 'tblProductImages' (Do API Home/Admin trả về)
         else if (prod.tblProductImages && prod.tblProductImages.length > 0) {
             const thumb = prod.tblProductImages.find(img => img.isThumbnail === true);
             imagePath = thumb ? thumb.imageUrl : prod.tblProductImages[0].imageUrl;
         }
 
-        // Nếu không tìm thấy đường dẫn nào -> Trả về ảnh mặc định
         if (!imagePath) return defaultImg;
 
-        // Xử lý đường dẫn: 
-        // Nếu là link online (http) thì giữ nguyên
         if (imagePath.startsWith('http')) return imagePath;
         
-        // Nếu là đường dẫn nội bộ thì nối thêm baseUrl.
-        // Xử lý bỏ dấu / thừa để tránh lỗi (ví dụ: ...7298//images...)
         const cleanBase = baseUrl.replace(/\/$/, ''); 
         const cleanPath = imagePath.replace(/^\//, '');
         return `${cleanBase}/${cleanPath}`;
     };
 
-    const handleIncrease = () => setQty(prev => prev + 1);
-    const handleDecrease = () => setQty(prev => (prev > 1 ? prev - 1 : 1));
+    const handleIncrease = () => {
+        // Không cho tăng nếu hết hàng
+        if (!isOutOfStock) setQty(prev => prev + 1);
+    };
+    
+    const handleDecrease = () => {
+        if (!isOutOfStock) setQty(prev => (prev > 1 ? prev - 1 : 1));
+    };
 
     const handleAddToCart = () => {
-        if (addToCart) {
+        // Chặn click nếu hết hàng
+        if (addToCart && !isOutOfStock) {
             addToCart({ ...product, quantity: qty });
             setQty(1); 
-            alert("Đã thêm vào giỏ hàng!");
         }
     };
 
     return (
-        <div className="home-product-card" style={{ height: '100%' }}>
+        <div className={`home-product-card ${isOutOfStock ? 'out-of-stock' : ''}`} style={{ height: '100%' }}>
             <Link to={`/product/${product.productId}`} style={{ textDecoration: 'none' }}>
-                <div className="product-img-wrap">
-                    {isSale && <span className="sale-badge">SALE</span>}
+                <div className="product-img-wrap" style={{ position: 'relative' }}>
+                    {/* --- LOGIC HIỂN THỊ NHÃN --- */}
+                    {isOutOfStock ? (
+                        <span className="stock-badge" style={{
+                            position: 'absolute', top: '10px', left: '10px', 
+                            background: '#6c757d', color: 'white', padding: '5px 10px', 
+                            fontSize: '12px', fontWeight: 'bold', borderRadius: '4px', zIndex: 2
+                        }}>
+                            HẾT HÀNG
+                        </span>
+                    ) : (
+                        isSale && <span className="sale-badge">SALE</span>
+                    )}
                     
+                    {/* Làm mờ ảnh nếu hết hàng */}
                     <img 
                         src={getProductImage(product)} 
                         alt={product.productName} 
                         className="hp-img"
-                        // Xử lý khi ảnh bị lỗi (404) -> Tự động chuyển về ảnh Logo
+                        style={isOutOfStock ? { opacity: 0.6, filter: 'grayscale(100%)' } : {}}
                         onError={(e) => { 
                             e.target.onerror = null; 
                             e.target.src = defaultImg; 
@@ -93,13 +103,19 @@ const HomeProductCard = ({ product, addToCart, baseUrl }) => {
                 </div>
 
                 <div className="qty-wrapper">
-                    <button className="qty-btn" onClick={handleDecrease}>-</button>
-                    <input type="text" className="qty-input" value={qty} readOnly />
-                    <button className="qty-btn" onClick={handleIncrease}>+</button>
+                    <button className="qty-btn" onClick={handleDecrease} disabled={isOutOfStock}>-</button>
+                    <input type="text" className="qty-input" value={qty} readOnly disabled={isOutOfStock} />
+                    <button className="qty-btn" onClick={handleIncrease} disabled={isOutOfStock}>+</button>
                 </div>
 
-                <button className="hp-btn-solid" onClick={handleAddToCart}>
-                    THÊM VÀO GIỎ HÀNG
+                {/* --- NÚT MUA HÀNG --- */}
+                <button 
+                    className={`hp-btn-solid ${isOutOfStock ? 'btn-disabled' : ''}`} 
+                    onClick={handleAddToCart}
+                    disabled={isOutOfStock}
+                    style={isOutOfStock ? { backgroundColor: '#ccc', cursor: 'not-allowed', borderColor: '#ccc' } : {}}
+                >
+                    {isOutOfStock ? "TẠM HẾT HÀNG" : "THÊM VÀO GIỎ HÀNG"}
                 </button>
             </div>
         </div>

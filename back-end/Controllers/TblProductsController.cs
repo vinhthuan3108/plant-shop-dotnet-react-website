@@ -69,6 +69,7 @@ namespace back_end.Controllers
                     p.ProductName,
                     p.OriginalPrice,
                     p.SalePrice,
+                    p.StockQuantity,
                     // Lấy ảnh thumbnail (từ Shop)
                     thumbnail = p.TblProductImages
                                 .Where(img => img.IsThumbnail == true)
@@ -105,14 +106,19 @@ namespace back_end.Controllers
         }
 
         // PUT: api/TblProducts/5
-        // PUT: api/TblProducts/5
-        // PUT: api/TblProducts/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTblProduct(int id, TblProduct tblProduct)
         {
             if (id != tblProduct.ProductId) return BadRequest();
 
             // 1. Lấy sản phẩm cũ
+            bool isDuplicate = await _context.TblProducts
+        .AnyAsync(p => p.ProductCode == tblProduct.ProductCode && p.ProductId != id);
+
+            if (isDuplicate)
+            {
+                return BadRequest(new { title = $"Mã sản phẩm '{tblProduct.ProductCode}' đã tồn tại trong hệ thống!" });
+            }
             var existingProduct = await _context.TblProducts
                 .Include(p => p.TblProductImages)
                 .FirstOrDefaultAsync(p => p.ProductId == id);
@@ -292,10 +298,33 @@ namespace back_end.Controllers
         [HttpPost]
         public async Task<ActionResult<TblProduct>> PostTblProduct(TblProduct tblProduct)
         {
+            // --- 1. KIỂM TRA TRÙNG MÃ (MỚI THÊM) ---
+            bool isDuplicate = await _context.TblProducts
+                .AnyAsync(p => p.ProductCode == tblProduct.ProductCode);
+
+            if (isDuplicate)
+            {
+                return BadRequest(new { title = $"Mã sản phẩm '{tblProduct.ProductCode}' đã tồn tại!" });
+            }
+            // ----------------------------------------
+
             tblProduct.CreatedAt = DateTime.Now;
             tblProduct.UpdatedAt = DateTime.Now;
+
+            // Đảm bảo ProductId = 0 để EF tự sinh ID mới (tránh lỗi nếu frontend gửi ID ảo)
+            tblProduct.ProductId = 0;
+
             _context.TblProducts.Add(tblProduct);
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Bắt lỗi chung để không trả về HTML stack trace
+                return StatusCode(500, new { title = "Lỗi Server: " + ex.Message });
+            }
 
             return CreatedAtAction("GetTblProduct", new { id = tblProduct.ProductId }, tblProduct);
         }

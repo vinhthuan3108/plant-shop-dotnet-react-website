@@ -6,7 +6,9 @@ const Icons = {
     Search: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
     Eye: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>,
     Close: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
-    Filter: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+    Filter: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>,
+    // --- MỚI THÊM: Icon Thùng rác ---
+    Trash: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
 };
 
 // --- COMPONENT MODAL CHI TIẾT ĐƠN HÀNG (Style giống CategoryModal) ---
@@ -173,7 +175,60 @@ const OrderDetailModal = ({ isOpen, onClose, order, onUpdateStatus, updating }) 
     );
 };
 
+// --- COMPONENT DROPDOWN TRẠNG THÁI ---
+const StatusSelect = ({ orderId, currentStatus, onUpdate }) => {
+    // Cấu hình màu sắc và nhãn hiển thị
+    const statusConfig = {
+        Pending: { color: '#856404', bg: '#fff3cd', label: 'Chờ xác nhận' },
+        Processing: { color: '#055160', bg: '#cff4fc', label: 'Đang đóng gói' },
+        Shipping: { color: '#084298', bg: '#cfe2ff', label: 'Đang giao hàng' },
+        Completed: { color: '#0f5132', bg: '#d1e7dd', label: 'Hoàn thành' },
+        Cancelled: { color: '#842029', bg: '#f8d7da', label: 'Đã hủy' }
+    };
 
+    const config = statusConfig[currentStatus] || { color: '#333', bg: '#eee' };
+
+    const handleChange = (e) => {
+        const newStatus = e.target.value;
+        if (newStatus === currentStatus) return;
+
+        // Hỏi xác nhận trước khi đổi (để tránh bấm nhầm)
+        const confirmMsg = `Bạn muốn đổi trạng thái đơn #${orderId} sang "${statusConfig[newStatus].label}"?`;
+        if (window.confirm(confirmMsg)) {
+            onUpdate(orderId, newStatus);
+        } else {
+            // Reset lại select nếu user bấm Cancel (để UI không bị đổi ảo)
+            e.target.value = currentStatus; 
+        }
+    };
+
+    return (
+        <select
+            value={currentStatus}
+            onChange={handleChange}
+            style={{
+                backgroundColor: config.bg,
+                color: config.color,
+                border: `1px solid ${config.color}`,
+                padding: '4px 8px',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                outline: 'none',
+                appearance: 'none', // Ẩn mũi tên mặc định của trình duyệt cho đẹp (tùy chọn)
+                textAlign: 'center',
+                width: '130px'
+            }}
+        >
+            <option value="Pending">Chờ xác nhận</option>
+            <option value="Processing">Đang đóng gói</option>
+            <option value="Shipping">Đang giao hàng</option>
+            <option value="Completed">Hoàn thành</option>
+            <option value="Cancelled">Đã hủy</option>
+        </select>
+    );
+};
 // --- MAIN COMPONENT ---
 const AdminOrders = () => {
     const [orders, setOrders] = useState([]);
@@ -248,6 +303,34 @@ const AdminOrders = () => {
         }
         setUpdating(false);
     };
+    const handleDelete = async (id, status) => {
+        // 1. Kiểm tra trạng thái hợp lệ ngay tại Client
+        // Chỉ cho phép xóa nếu là "Pending" (Chờ xác nhận) hoặc "Cancelled" (Đã hủy)
+        if (status !== 'Pending' && status !== 'Cancelled') {
+            alert("Chỉ có thể xóa đơn hàng 'Đã hủy' hoặc 'Chờ xác nhận'.");
+            return; // Dừng lại ngay, không hiện confirm, không gọi API
+        }
+
+        // 2. Nếu hợp lệ thì mới hiện Confirm
+        if (!window.confirm("Bạn có chắc chắn muốn xóa đơn hàng này? Hành động này không thể hoàn tác!")) {
+            return;
+        }
+
+        // 3. Gọi API xóa
+        try {
+            await axios.delete(`https://localhost:7298/api/Orders/admin/delete/${id}`);
+            alert("Đã xóa đơn hàng thành công!");
+            
+            if (orders.length === 1 && page > 1) {
+                setPage(page - 1);
+            } else {
+                fetchOrders();
+            }
+        } catch (error) {
+            console.error("Lỗi xóa đơn", error);
+            alert("Lỗi xóa: " + (error.response?.data?.message || error.message));
+        }
+    };
 
     // Render Badge Status (Cho bảng bên ngoài)
     const StatusBadge = ({ status }) => {
@@ -268,7 +351,28 @@ const AdminOrders = () => {
             </span>
         );
     };
+    const handleQuickUpdateStatus = async (orderId, newStatus) => {
+        try {
+            await axios.put(`https://localhost:7298/api/Orders/admin/update-status/${orderId}`, {
+                newStatus: newStatus
+            });
+            
+            // Cập nhật lại danh sách orders ở client ngay lập tức (không cần load lại API)
+            setOrders(prevOrders => prevOrders.map(o => 
+                o.orderId === orderId ? { ...o, orderStatus: newStatus } : o
+            ));
 
+            // (Optional) Có thể hiện thông báo nhỏ ở góc (Toast)
+            // alert("Cập nhật thành công!"); 
+
+        } catch (error) {
+            console.error("Lỗi cập nhật", error);
+            alert("Lỗi cập nhật: " + (error.response?.data?.message || error.message));
+            
+            // Nếu lỗi, nên load lại danh sách để đồng bộ dữ liệu chuẩn
+            fetchOrders(); 
+        }
+    };
     return (
         <div style={{ padding: '24px', backgroundColor: '#f4f6f9', minHeight: '100vh' }}>
             
@@ -352,22 +456,41 @@ const AdminOrders = () => {
                                     {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.totalAmount)}
                                 </td>
                                 <td style={{ padding: '16px', textAlign: 'center' }}>
-                                    <StatusBadge status={order.orderStatus} />
+                                    {/* Thay thế StatusBadge cũ bằng StatusSelect */}
+                                    <StatusSelect 
+                                        orderId={order.orderId}
+                                        currentStatus={order.orderStatus}
+                                        onUpdate={handleQuickUpdateStatus}
+                                    />
                                 </td>
                                 <td style={{ padding: '16px', textAlign: 'center' }}>
-                                    <button 
-                                        onClick={() => handleViewDetail(order.orderId)}
-                                        title="Xem chi tiết"
-                                        style={{ 
-                                            width: '36px', height: '36px', 
-                                            border: '1px solid #dee2e6', borderRadius: '6px', 
-                                            backgroundColor: 'white', color: '#0d6efd', cursor: 'pointer',
-                                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                                        }}
-                                    >
-                                        <Icons.Eye />
-                                    </button>
+                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                                        {/* Nút Xem Chi Tiết */}
+                                        <button 
+                                            onClick={() => handleViewDetail(order.orderId)}
+                                            /* ... style cũ giữ nguyên ... */
+                                        >
+                                            <Icons.Eye />
+                                        </button>
+
+                                        {/* --- NÚT XÓA (CẬP NHẬT) --- */}
+                                        <button 
+                                            // CẬP NHẬT DÒNG NÀY: Truyền thêm order.orderStatus
+                                            onClick={() => handleDelete(order.orderId, order.orderStatus)} 
+                                            title="Xóa đơn hàng"
+                                            style={{ 
+                                                width: '36px', height: '36px', 
+                                                border: '1px solid #f5c2c7', borderRadius: '6px',
+                                                // Mẹo nhỏ: Nếu không được xóa thì làm mờ nút đi một chút cho trực quan (optional)
+                                                opacity: (order.orderStatus === 'Pending' || order.orderStatus === 'Cancelled') ? 1 : 0.5,
+                                                backgroundColor: 'white', color: '#dc3545', cursor: 'pointer',
+                                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                            }}
+                                        >
+                                            <Icons.Trash />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
