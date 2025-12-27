@@ -18,30 +18,41 @@ function Login() {
                 body: JSON.stringify({ email, password })
             });
 
+            // --- BẮT ĐẦU ĐOẠN SỬA ---
+            
+            // 1. Kiểm tra nếu có lỗi từ Backend (status code != 200-299)
+            if (!res.ok) {
+                // Backend trả về BadRequest("Chuỗi lỗi") nên ta dùng text() để đọc
+                const errorMsg = await res.text(); 
+                alert(errorMsg || "Đăng nhập thất bại");
+                return; // Dừng hàm tại đây
+            }
+
+            // 2. Nếu thành công thì mới parse JSON
             const data = await res.json();
 
-            if (res.ok) {
-                const userSave = {
-                    userId: data.userId,
-                    email: email,
-                    fullName: data.fullName,
-                    roleId: data.role,
-                    token: data.token
-                };
+            // 3. Xử lý lưu thông tin user
+            const userSave = {
+                userId: data.userId,
+                email: email,
+                fullName: data.fullName,
+                roleId: data.role,
+                token: data.token
+            };
 
-                localStorage.setItem('user', JSON.stringify(userSave));
-                localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(userSave));
+            localStorage.setItem('token', data.token);
 
-                await refreshCart(); 
+            await refreshCart(); 
 
-                if (data.role === 1 || data.role === 3 || data.role === 4) {
-                    navigate('/admin/products');
-                } else {
-                    navigate('/'); 
-                }
+            if (data.role === 1 || data.role === 3 || data.role === 4) {
+                navigate('/admin/products');
             } else {
-                alert(data.message || "Đăng nhập thất bại"); 
+                navigate('/'); 
             }
+            
+            // --- KẾT THÚC ĐOẠN SỬA ---
+
         } catch (error) {
             console.error(error);
             alert('Lỗi kết nối server');
@@ -53,11 +64,29 @@ function Login() {
             <h2 style={{textAlign: 'center', marginBottom: '20px'}}>Đăng Nhập</h2>
             <form onSubmit={handleLogin}>
                 <div style={{ marginBottom: '15px' }}>
+                    <label>vinhthuan9@gmail.com</label>
+                    <div></div>
                     <label>Email:</label>
                     <input 
                         type="email" 
                         value={email} 
-                        onChange={e => setEmail(e.target.value)} 
+                        onChange={e => {
+                            setEmail(e.target.value);
+                            e.target.setCustomValidity(''); // 1. Xóa lỗi cũ để trình duyệt kiểm tra lại
+
+                            // 2. Kiểm tra ngay: Nếu sai định dạng email (typeMismatch) thì gán lại lỗi tiếng Việt luôn
+                            if (e.target.validity.typeMismatch) {
+                                e.target.setCustomValidity('Vui lòng nhập đúng định dạng email (ví dụ: abc@gmail.com)');
+                            }
+                        }} 
+                        onInvalid={e => {
+                            // Xử lý các trường hợp khác (ví dụ như bỏ trống - required)
+                            if (e.target.validity.valueMissing) {
+                                e.target.setCustomValidity('Vui lòng nhập email không được để trống');
+                            } else {
+                                e.target.setCustomValidity('Vui lòng nhập đúng định dạng email (ví dụ: abc@gmail.com)');
+                            }
+                        }}
                         required 
                         style={{ width: '100%', padding: '10px', marginTop: '5px', borderRadius: '4px', border: '1px solid #ddd' }} 
                     />

@@ -374,6 +374,7 @@ namespace back_end.Controllers
                 // LOGIC HOÀN KHO KHI HỦY ĐƠN
                 if (newStatus == "Cancelled" && oldStatus != "Cancelled")
                 {
+                    // Cộng lại kho (Logic cũ của bạn)
                     foreach (var item in order.TblOrderDetails)
                     {
                         var product = await _context.TblProducts.FindAsync(item.ProductId);
@@ -381,6 +382,25 @@ namespace back_end.Controllers
                         {
                             // Cộng lại số lượng tồn kho
                             product.StockQuantity = (product.StockQuantity ?? 0) + item.Quantity;
+                        }
+                    }
+                }
+                else if (oldStatus == "Cancelled" && newStatus != "Cancelled")
+                {
+                    // --- BỔ SUNG: Logic Trừ lại kho khi khôi phục đơn hủy ---
+                    foreach (var item in order.TblOrderDetails)
+                    {
+                        var product = await _context.TblProducts.FindAsync(item.ProductId);
+                        if (product != null)
+                        {
+                            // Kiểm tra xem còn đủ hàng để khôi phục không?
+                            if (product.StockQuantity < item.Quantity)
+                            {
+                                // Nếu muốn chặn, throw exception hoặc return BadRequest
+                                // return BadRequest($"Sản phẩm {product.ProductName} không đủ hàng để khôi phục.");
+                                // Hoặc cho phép âm kho tùy nghiệp vụ
+                            }
+                            product.StockQuantity -= item.Quantity;
                         }
                     }
                 }
@@ -440,6 +460,46 @@ namespace back_end.Controllers
                 .ToListAsync();
 
             return Ok(orders);
+        }
+        [HttpDelete("admin/delete/{id}")]
+        public async Task<IActionResult> DeleteOrder(int id)
+        {
+            try
+            {
+                // Tìm đơn hàng và bao gồm cả chi tiết đơn hàng để xóa sạch
+                var order = await _context.TblOrders
+                    .Include(o => o.TblOrderDetails)
+                    .FirstOrDefaultAsync(o => o.OrderId == id);
+
+                if (order == null)
+                {
+                    return NotFound(new { message = "Đơn hàng không tồn tại." });
+                }
+
+                // Kiểm tra an toàn (Tùy chọn): Chỉ cho xóa đơn Đã hủy hoặc Chờ xác nhận
+                // Nếu muốn xóa thoải mái thì comment dòng if dưới này lại
+                if (order.OrderStatus == "Processing" || order.OrderStatus == "Shipping" || order.OrderStatus == "Completed")
+                {
+                    return BadRequest(new { message = "Chỉ có thể xóa đơn hàng 'Đã hủy' hoặc 'Chờ xác nhận'." });
+                }
+
+                // 1. Xóa các chi tiết đơn hàng trước (do khóa ngoại)
+                if (order.TblOrderDetails.Any())
+                {
+                    _context.TblOrderDetails.RemoveRange(order.TblOrderDetails);
+                }
+
+                // 2. Xóa đơn hàng chính
+                _context.TblOrders.Remove(order);
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Xóa đơn hàng thành công." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi server: " + ex.Message });
+            }
         }
     }
 }
