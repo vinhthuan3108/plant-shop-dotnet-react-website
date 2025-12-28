@@ -154,16 +154,40 @@ namespace back_end.Controllers
 
         // GET: api/TblProducts/shop (Dùng cho Khách hàng)
         [HttpGet("shop")]
-        public async Task<IActionResult> GetProductsForShop(int? categoryId, int page = 1, int pageSize = 12)
+        public async Task<IActionResult> GetProductsForShop(
+            int? categoryId,
+            decimal? minPrice, // 1. THÊM THAM SỐ NHẬN GIÁ MIN
+            decimal? maxPrice, // 2. THÊM THAM SỐ NHẬN GIÁ MAX
+            int page = 1,
+            int pageSize = 12)
         {
             var query = _context.TblProducts
                 .Include(p => p.TblProductImages)
-                .Include(p => p.TblProductVariants) // Load biến thể
+                .Include(p => p.TblProductVariants) // Load biến thể để check giá
                 .Where(p => p.IsActive == true && (p.IsDeleted == false || p.IsDeleted == null));
 
+            // 1. Lọc theo Danh mục
             if (categoryId.HasValue)
             {
                 query = query.Where(p => p.CategoryId == categoryId.Value);
+            }
+
+            // 2. --- LỌC THEO KHOẢNG GIÁ (LOGIC MỚI) ---
+            if (minPrice.HasValue)
+            {
+                // Kiểm tra xem sản phẩm có BẤT KỲ biến thể nào có giá >= minPrice không
+                // Giá thực tế = Giá Sale (nếu có) hoặc Giá Gốc
+                query = query.Where(p => p.TblProductVariants.Any(v =>
+                    ((v.SalePrice != null && v.SalePrice > 0 ? v.SalePrice.Value : v.OriginalPrice) >= minPrice.Value)
+                ));
+            }
+
+            if (maxPrice.HasValue)
+            {
+                // Kiểm tra xem sản phẩm có BẤT KỲ biến thể nào có giá <= maxPrice không
+                query = query.Where(p => p.TblProductVariants.Any(v =>
+                    ((v.SalePrice != null && v.SalePrice > 0 ? v.SalePrice.Value : v.OriginalPrice) <= maxPrice.Value)
+                ));
             }
 
             int totalItems = await query.CountAsync();
