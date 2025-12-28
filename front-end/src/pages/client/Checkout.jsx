@@ -312,7 +312,7 @@ const Checkout = () => {
                     </label>
                     <label style={{ display: 'block', marginBottom: '10px', cursor: 'pointer' }}>
                         <input type="radio" name="paymentMethod" value="PAYOS" checked={formData.paymentMethod === 'PAYOS'} onChange={handleChange} /> 
-                        <span style={{ marginLeft: '10px' }}>Thanh toán qua Ngân hàng (VietQR - PayOS)</span>
+                        <span style={{ marginLeft: '10px' }}>Thanh toán điện tử (VietQR - PayOS)</span>
                     </label>
                 </div>
 

@@ -13,6 +13,7 @@ namespace back_end.DTOs
         public decimal TotalAmount { get; set; }
         public string OrderStatus { get; set; }
         public string PaymentStatus { get; set; }
+        public string PaymentMethod { get; set; }
     }
 
     // DTO hiển thị chi tiết 1 đơn hàng (Modal chi tiết)
@@ -22,6 +23,7 @@ namespace back_end.DTOs
         public DateTime? OrderDate { get; set; }
         public string OrderStatus { get; set; }
         public string PaymentStatus { get; set; }
+        public string PaymentMethod { get; set; }
 
         // Thông tin người nhận
         public string RecipientName { get; set; }

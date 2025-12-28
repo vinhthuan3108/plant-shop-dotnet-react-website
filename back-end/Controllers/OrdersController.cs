@@ -67,14 +67,13 @@ namespace back_end.Controllers
                     // Tạo chi tiết đơn hàng
                     orderDetailsList.Add(new TblOrderDetail
                     {
-                        VariantId = item.VariantId, // Lưu VariantId
-                        // Lưu Snapshot Tên để giữ lịch sử nếu Admin đổi tên sau này
-                        ProductName = variant.Product.ProductName,
-                        VariantName = variant.VariantName,
+                        VariantId = item.VariantId,
+                        ProductName = variant.Product.ProductName, // Snapshot tên SP
+                        VariantName = variant.VariantName,         // Snapshot tên loại
 
                         Quantity = item.Quantity,
                         PriceAtTime = price,
-                        CostPrice = variant.OriginalPrice // Lưu giá vốn (nếu cần tính lãi)
+                        CostPrice = variant.OriginalPrice
                     });
 
                     // TRỪ TỒN KHO BIẾN THỂ
@@ -97,7 +96,7 @@ namespace back_end.Controllers
                     var voucher = await _context.TblVouchers
                         .FirstOrDefaultAsync(v => v.Code == request.VoucherCode && v.IsActive == true);
 
-                    // Logic check voucher (Hạn sử dụng, Số lượng, Giá trị tối thiểu...)
+                    // Logic check voucher (Hạn sử dụng)
                     if (voucher != null && DateTime.Now >= voucher.StartDate && DateTime.Now <= voucher.EndDate)
                     {
                         if (subTotal >= (voucher.MinOrderValue ?? 0))
@@ -142,8 +141,11 @@ namespace back_end.Controllers
                     VoucherId = voucherId,
                     Note = request.Note,
 
-                    OrderStatus = "Pending",
-                    PaymentStatus = "Unpaid"
+                    OrderStatus = "Chờ xác nhận", // Mặc định: Chờ xác nhận
+
+                    // --- CẬP NHẬT MỚI ---
+                    PaymentMethod = request.PaymentMethod, // Lưu phương thức (COD/PayOS...)
+                    PaymentStatus = "Chưa thanh toán"               // Mặc định là Chưa thanh toán
                 };
 
                 _context.TblOrders.Add(order);
@@ -164,7 +166,6 @@ namespace back_end.Controllers
                     var cart = await _context.TblCarts.FirstOrDefaultAsync(c => c.UserId == request.UserId);
                     if (cart != null)
                     {
-                        // Xóa các item trong giỏ tương ứng với user
                         var cartItemsToRemove = _context.TblCartItems.Where(ci => ci.CartId == cart.CartId);
                         _context.TblCartItems.RemoveRange(cartItemsToRemove);
                     }
@@ -178,7 +179,7 @@ namespace back_end.Controllers
                     Message = "Đặt hàng thành công",
                     OrderId = order.OrderId,
                     TotalAmount = totalAmount,
-                    PaymentMethod = request.PaymentMethod
+                    PaymentMethod = request.PaymentMethod // Trả về để Frontend biết đường xử lý tiếp
                 });
             }
             catch (Exception ex)
@@ -199,16 +200,83 @@ namespace back_end.Controllers
         // --- CÁC API KHÁC CHO ADMIN & USER ---
 
         // GET: api/Orders/admin/list
+        // GET: api/Orders/admin/list
+        // GET: api/Orders/admin/list
+        // GET: api/Orders/admin/list
         [HttpGet("admin/list")]
-        public async Task<IActionResult> GetOrdersAdmin([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetOrdersAdmin(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null,
+            [FromQuery] string? status = null,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            [FromQuery] decimal? minPrice = null,
+            [FromQuery] decimal? maxPrice = null
+        )
         {
-            var query = _context.TblOrders.OrderByDescending(o => o.OrderDate).AsQueryable();
-            var totalItems = await query.CountAsync();
-            var orders = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            var query = _context.TblOrders.AsQueryable();
 
-            return Ok(new { Data = orders, TotalItems = totalItems, TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize) });
+            // 1. Lọc cơ bản (Status, Date, Search) - Code cũ giữ nguyên
+            if (!string.IsNullOrEmpty(status)) query = query.Where(o => o.OrderStatus == status);
+            if (fromDate.HasValue) query = query.Where(o => o.OrderDate >= fromDate.Value.Date);
+            if (toDate.HasValue)
+            {
+                var nextDay = toDate.Value.Date.AddDays(1);
+                query = query.Where(o => o.OrderDate < nextDay);
+            }
+            if (!string.IsNullOrEmpty(search))
+            {
+                string s = search.ToLower().Trim();
+                query = query.Where(o =>
+                    o.OrderId.ToString().Contains(s) ||
+                    (o.RecipientName != null && o.RecipientName.ToLower().Contains(s)) ||
+                    (o.RecipientPhone != null && o.RecipientPhone.Contains(s))
+                );
+            }
+
+            // --- TÍNH MAX PRICE TRƯỚC KHI LỌC GIÁ ---
+            // Để thanh trượt luôn hiển thị được giá trị lớn nhất của toàn bộ danh sách (theo bộ lọc status/search hiện tại)
+            decimal maxTotalAmount = 0;
+            if (await query.AnyAsync())
+            {
+                maxTotalAmount = await query.MaxAsync(o => o.TotalAmount ?? 0);
+            }
+            // ----------------------------------------
+
+            // 2. Lọc theo khoảng giá (nếu có request từ Slider)
+            if (minPrice.HasValue) query = query.Where(o => o.TotalAmount >= minPrice.Value);
+            if (maxPrice.HasValue) query = query.Where(o => o.TotalAmount <= maxPrice.Value);
+
+            // 3. Phân trang & Trả về
+            var totalItems = await query.CountAsync();
+            var orders = await query
+                .OrderByDescending(o => o.OrderDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(o => new OrderAdminListDto
+                {
+                    OrderId = o.OrderId,
+                    CustomerName = o.RecipientName,
+                    Phone = o.RecipientPhone,
+                    OrderDate = o.OrderDate,
+                    TotalAmount = o.TotalAmount ?? 0,
+                    OrderStatus = o.OrderStatus,
+                    PaymentStatus = o.PaymentStatus,
+                    PaymentMethod = o.PaymentMethod
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                Data = orders,
+                TotalItems = totalItems,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
+                MaxPrice = maxTotalAmount // <--- TRẢ VỀ GIÁ TRỊ LỚN NHẤT
+            });
         }
 
+        // GET: api/Orders/admin/detail/5
         // GET: api/Orders/admin/detail/5
         [HttpGet("admin/detail/{id}")]
         public async Task<IActionResult> GetOrderDetailAdmin(int id)
@@ -221,16 +289,27 @@ namespace back_end.Controllers
 
             if (order == null) return NotFound("Không tìm thấy đơn hàng");
 
-            // Map data trả về
+            // Map data trả về (Cập nhật thêm các trường mới)
             var result = new
             {
                 order.OrderId,
                 order.OrderDate,
                 order.OrderStatus,
+
+                // --- THÊM CÁC TRƯỜNG NÀY ---
+                order.PaymentStatus,     // Trạng thái thanh toán (Paid/Unpaid)
+                order.PaymentMethod,     // Phương thức (COD/PayOS...)
+                order.Note,              // Ghi chú đơn hàng
+                order.SubTotal,          // Tiền hàng
+                order.ShippingFee,       // Phí ship
+                order.DiscountAmount,    // Giảm giá
+                                         // ---------------------------
+
                 order.RecipientName,
                 order.RecipientPhone,
                 order.ShippingAddress,
-                order.TotalAmount,
+                order.TotalAmount,       // Tổng cộng cuối cùng
+
                 Items = order.TblOrderDetails.Select(d => new
                 {
                     // Lấy tên từ snapshot nếu có, nếu không lấy từ quan hệ
