@@ -178,8 +178,9 @@ namespace back_end.Controllers
                     p.ProductId,
                     p.ProductName,
                     // Lấy giá thấp nhất trong các biến thể để hiển thị "Từ..."
-                    OriginalPrice = p.TblProductVariants.OrderBy(v => v.OriginalPrice).Select(v => v.OriginalPrice).FirstOrDefault(),
-                    SalePrice = p.TblProductVariants.OrderBy(v => v.OriginalPrice).Select(v => v.SalePrice).FirstOrDefault(),
+                    // Sửa thành: Sắp xếp theo VariantId để lấy biến thể đầu tiên được tạo
+                    OriginalPrice = p.TblProductVariants.OrderBy(v => v.VariantId).Select(v => v.OriginalPrice).FirstOrDefault(),
+                    SalePrice = p.TblProductVariants.OrderBy(v => v.VariantId).Select(v => v.SalePrice).FirstOrDefault(),
 
                     StockQuantity = p.TblProductVariants.Sum(v => v.StockQuantity ?? 0),
 

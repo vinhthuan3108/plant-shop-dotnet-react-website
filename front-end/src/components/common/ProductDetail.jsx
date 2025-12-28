@@ -14,12 +14,43 @@ const ProductDetail = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const BASE_URL = 'https://localhost:7298';
 
+    // --- HÀM XỬ LÝ LỖI &nbsp; CỦA REACT QUILL ---
+    // Hàm này tìm tất cả các ký tự &nbsp; và thay bằng dấu cách thường
+    const cleanHtmlContent = (htmlString) => {
+        if (!htmlString) return '';
+        return htmlString.replace(/&nbsp;/g, ' ');
+    };
+
+    // --- CSS NỘI BỘ ---
+    const contentStyles = `
+        .html-content img {
+            max-width: 100% !important;
+            height: auto !important;
+            display: block;
+            margin: 10px auto;
+        }
+        .html-content table {
+            width: 100% !important;
+            max-width: 100%;
+        }
+        .html-content {
+            font-family: inherit; /* Giữ font chữ của web */
+        }
+        /* Chỉ định rõ cho các thẻ p, li bên trong */
+        .html-content p, .html-content li, .html-content div {
+            word-break: normal !important;
+            overflow-wrap: anywhere !important;
+            white-space: normal !important;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+    `;
+
     useEffect(() => {
         fetch(`${BASE_URL}/api/TblProducts/${id}`)
             .then(res => res.json())
             .then(data => {
                 setProduct(data);
-                // Xử lý ảnh
                 if (data.tblProductImages && data.tblProductImages.length > 0) {
                     const sorted = [...data.tblProductImages].sort((a, b) => 
                         (b.isThumbnail === true ? 1 : 0) - (a.isThumbnail === true ? 1 : 0)
@@ -35,30 +66,23 @@ const ProductDetail = () => {
     const nextImage = () => setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
     const prevImage = () => setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
 
-    // --- LOGIC TÍNH TOÁN HIỂN THỊ (QUAN TRỌNG) ---
-    // Kiểm tra dữ liệu an toàn để tránh lỗi undefined
     const getDisplayInfo = () => {
         if (!product) return { price: 0, oldPrice: 0, stock: 0, isSale: false };
 
         const variants = product.tblProductVariants || [];
         
         if (variants.length > 0) {
-            // Nếu có biến thể: Lấy khoảng giá hoặc giá của biến thể đầu tiên/rẻ nhất
-            // Ở đây lấy giá thấp nhất để hiển thị "Từ..."
             const prices = variants.map(v => v.salePrice || v.originalPrice);
             const minPrice = Math.min(...prices);
-            
-            // Tính tổng tồn kho
             const totalStock = variants.reduce((sum, v) => sum + (v.stockQuantity || 0), 0);
             
             return {
                 price: minPrice,
-                oldPrice: 0, // Biến thể phức tạp nên tạm thời hiển thị 1 giá
+                oldPrice: 0,
                 stock: totalStock,
-                isSale: false // Có thể check kỹ hơn nếu muốn
+                isSale: false
             };
         } else {
-            // Nếu không có biến thể (Sản phẩm đơn): Lấy từ bảng cha
             return {
                 price: product.salePrice || product.originalPrice || 0,
                 oldPrice: product.originalPrice || 0,
@@ -68,7 +92,6 @@ const ProductDetail = () => {
         }
     };
 
-    // --- LOGIC THÊM VÀO GIỎ ---
     const handleAddToCartClick = () => {
         if (!product) return;
         const variants = product.tblProductVariants || [];
@@ -90,7 +113,6 @@ const ProductDetail = () => {
         } else if (variants.length > 1) {
             setIsModalOpen(true);
         } else {
-            // Fallback cho sản phẩm cũ không có variant
             if ((product.stockQuantity || 0) <= 0) {
                  alert("Sản phẩm này tạm hết hàng.");
                  return;
@@ -112,10 +134,12 @@ const ProductDetail = () => {
 
     if (!product) return <div style={{ padding: '50px', textAlign: 'center' }}>Đang tải...</div>;
 
-    const info = getDisplayInfo(); // Lấy thông tin đã tính toán
+    const info = getDisplayInfo();
 
     return (
         <div style={{ padding: '40px', maxWidth: '1100px', margin: '0 auto' }}>
+            <style>{contentStyles}</style>
+
             <div style={{ display: 'flex', gap: '50px', flexWrap: 'wrap' }}>
                 
                 {/* --- KHỐI HÌNH ẢNH --- */}
@@ -156,7 +180,6 @@ const ProductDetail = () => {
                                 {info.price.toLocaleString()}đ
                             </>
                         ) : (
-                            // Hiển thị giá, nếu 0 thì hiện Liên hệ
                             info.price > 0 ? `${info.price.toLocaleString()}đ` : "Liên hệ"
                         )}
                     </div>
@@ -164,13 +187,16 @@ const ProductDetail = () => {
                     <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '4px', marginBottom: '20px' }}>
                         <div style={{ marginBottom: '15px' }}>
                             <strong style={{ display: 'block', marginBottom: '5px' }}>Mô tả ngắn:</strong>
-                            <div dangerouslySetInnerHTML={{ __html: product.shortDescription || '' }} 
-                                 style={{ wordWrap: 'break-word', lineHeight: '1.6', color: '#333' }} />
+                            
+                            {/* DÙNG HÀM CLEAN Ở ĐÂY */}
+                            <div className="html-content"
+                                 dangerouslySetInnerHTML={{ __html: cleanHtmlContent(product.shortDescription) }} 
+                                 style={{ color: '#333' }}
+                            />
                         </div>
                         
                         <p><strong>Kích thước:</strong> {product.size || 'Tiêu chuẩn'}</p>
                         
-                        {/* Fix lỗi hiện Hết hàng & Tồn kho */}
                         <p>
                             <strong>Tình trạng: </strong> 
                             {info.stock > 0 ? 
@@ -198,7 +224,13 @@ const ProductDetail = () => {
 
             <div style={{ marginTop: '50px', borderTop: '1px solid #eee', paddingTop: '30px' }}>
                 <h3 style={{ borderBottom: '2px solid #2e7d32', display: 'inline-block', paddingBottom: '5px' }}>THÔNG TIN CHI TIẾT</h3>
-                <div style={{ marginTop: '20px', lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: product.detailDescription || '' }} />
+                
+                {/* DÙNG HÀM CLEAN Ở ĐÂY NỮA */}
+                <div 
+                    className="html-content"
+                    style={{ marginTop: '20px' }}
+                    dangerouslySetInnerHTML={{ __html: cleanHtmlContent(product.detailDescription) }} 
+                />
             </div>
 
             <VariantSelectionModal 
