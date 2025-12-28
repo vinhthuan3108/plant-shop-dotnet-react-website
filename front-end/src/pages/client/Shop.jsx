@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { FaFilter, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaFilter, FaChevronLeft, FaChevronRight, FaMoneyBillWave } from 'react-icons/fa';
 
-// Import Component Card và Context
+// Import thư viện Slider và CSS của nó
+import Slider from 'rc-slider';
+import 'rc-slider/assets/index.css';
+
 import HomeProductCard from '../../components/client/HomeProductCard'; 
 import { CartContext } from '../../context/CartContext';
-
-// Import CSS của HomePage để ăn theo style (card, button,...)
 import './HomePage.css'; 
 
 const Shop = () => {
-    // Khởi tạo products là mảng rỗng [] ngay từ đầu để tránh lỗi undefined
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -20,21 +20,36 @@ const Shop = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
 
-    // Lấy hàm thêm giỏ hàng từ Context
-    const { addToCart } = useContext(CartContext);
+    // --- CẤU HÌNH KHOẢNG GIÁ (0đ - 10 triệu đồng) ---
+    const MIN_PRICE_LIMIT = 0;
+    const MAX_PRICE_LIMIT = 10000000;
+    
+    // State lưu giá trị thanh trượt: [min, max]
+    const [priceRange, setPriceRange] = useState([MIN_PRICE_LIMIT, MAX_PRICE_LIMIT]);
+    
+    // Biến này dùng để kích hoạt gọi lại API khi bấm nút "LỌC"
+    const [applyFilterTrigger, setApplyFilterTrigger] = useState(0); 
 
+    const { addToCart } = useContext(CartContext);
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
-    const categoryId = queryParams.get('category'); 
+    const categoryId = queryParams.get('category') || queryParams.get('cate');
 
     const API_BASE = 'https://localhost:7298';
 
-    // 1. Khi đổi danh mục -> Reset về trang 1
+    // Hàm định dạng tiền tệ (VD: 1.000.000 đ)
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    };
+
+    // 1. Reset trang khi đổi danh mục
     useEffect(() => {
         setCurrentPage(1);
+        // Tùy chọn: Reset giá về mặc định khi chuyển danh mục
+        // setPriceRange([MIN_PRICE_LIMIT, MAX_PRICE_LIMIT]); 
     }, [categoryId]);
 
-    // 2. Gọi API lấy dữ liệu
+    // 2. GỌI API LẤY DỮ LIỆU (QUAN TRỌNG)
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -46,45 +61,54 @@ const Shop = () => {
                     .sort((a, b) => a.displayOrder - b.displayOrder);
                 setCategories(activeCates);
 
-                // Lấy sản phẩm (Có phân trang)
+                // --- XÂY DỰNG URL VỚI CÁC THAM SỐ LỌC ---
                 let productUrl = `${API_BASE}/api/TblProducts/shop?page=${currentPage}&pageSize=12`;
+                
+                // Thêm danh mục
                 if (categoryId) {
                     productUrl += `&categoryId=${categoryId}`;
                 }
                 
+                // Thêm lọc giá (Lấy từ state priceRange)
+                // Chỉ gửi nếu giá khác mặc định để tối ưu
+                if (priceRange[0] > MIN_PRICE_LIMIT) {
+                    productUrl += `&minPrice=${priceRange[0]}`;
+                }
+                if (priceRange[1] < MAX_PRICE_LIMIT) {
+                    productUrl += `&maxPrice=${priceRange[1]}`;
+                }
+                
+                console.log("Calling API:", productUrl); // Log để kiểm tra đường dẫn
+
                 const prodRes = await axios.get(productUrl);
                 const responseData = prodRes.data;
 
-                // --- SỬA LỖI Ở ĐÂY: Kiểm tra kỹ mọi trường hợp dữ liệu trả về ---
+                // Xử lý dữ liệu trả về
                 if (responseData && responseData.data) {
-                    // TH1: Backend trả về object chuẩn { data: [...], totalPages: ... }
                     setProducts(responseData.data);
                     setTotalPages(responseData.totalPages || 0);
                 } else if (responseData && responseData.Data) {
-                    // TH2: Backend trả về chữ hoa { Data: [...], TotalPages: ... }
                     setProducts(responseData.Data);
                     setTotalPages(responseData.TotalPages || 0);
                 } else if (Array.isArray(responseData)) {
-                    // TH3: Backend trả về mảng trực tiếp [...] (không phân trang)
                     setProducts(responseData);
                     setTotalPages(1);
                 } else {
-                    // TH4: Không có dữ liệu hoặc lỗi
                     setProducts([]);
                     setTotalPages(0);
                 }
-                // -----------------------------------------------------------
 
             } catch (error) {
                 console.error("Lỗi tải dữ liệu shop:", error);
-                setProducts([]); // Nếu lỗi, set về mảng rỗng để không bị crash trang
+                setProducts([]); 
             } finally {
                 setLoading(false);
             }
         };
 
         fetchData();
-    }, [categoryId, currentPage]);
+        // Chạy lại khi: đổi danh mục, đổi trang, hoặc bấm nút Lọc (applyFilterTrigger)
+    }, [categoryId, currentPage, applyFilterTrigger]); 
 
     // Hàm chuyển trang
     const handlePageChange = (page) => {
@@ -94,11 +118,62 @@ const Shop = () => {
         }
     };
 
+    // Hàm xử lý khi kéo thanh trượt (chỉ cập nhật UI, chưa gọi API)
+    const handleSliderChange = (value) => {
+        setPriceRange(value);
+    };
+
+    // Hàm xử lý khi bấm nút "LỌC" -> Kích hoạt gọi API
+    const handleApplyFilter = () => {
+        setCurrentPage(1); // Về trang 1 khi lọc mới
+        setApplyFilterTrigger(prev => prev + 1); // Thay đổi state để kích hoạt useEffect
+    };
+
     return (
         <div className="container py-5">
             <div className="row">
-                {/* --- SIDEBAR --- */}
+                {/* --- SIDEBAR TRÁI --- */}
                 <div className="col-md-3 mb-4">
+                    
+                    {/* 1. LỌC THEO GIÁ */}
+                    <div className="card shadow-sm border-0 mb-4">
+                        <div className="card-header bg-success text-white">
+                            <h5 className="mb-0"><FaMoneyBillWave className="me-2" /> LỌC THEO GIÁ</h5>
+                        </div>
+                        <div className="card-body">
+                            {/* Thanh trượt */}
+                            <div style={{ padding: '15px 10px 20px 10px' }}>
+                                <Slider 
+                                    range 
+                                    min={MIN_PRICE_LIMIT} 
+                                    max={MAX_PRICE_LIMIT} 
+                                    step={50000} // Bước nhảy 50k
+                                    value={priceRange} 
+                                    onChange={handleSliderChange} 
+                                    trackStyle={[{ backgroundColor: '#28a745', height: 6 }]} 
+                                    handleStyle={[
+                                        { borderColor: '#28a745', backgroundColor: '#fff', opacity: 1, marginTop: -4 }, 
+                                        { borderColor: '#28a745', backgroundColor: '#fff', opacity: 1, marginTop: -4 }
+                                    ]} 
+                                    railStyle={{ backgroundColor: '#e9ecef', height: 6 }} 
+                                />
+                            </div>
+                            
+                            {/* Hiển thị số tiền */}
+                            <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13px', color: '#666', marginBottom: '15px' }}>
+                                {formatCurrency(priceRange[0])} — {formatCurrency(priceRange[1])}
+                            </div>
+
+                            <button 
+                                className="btn btn-outline-success w-100 fw-bold btn-sm"
+                                onClick={handleApplyFilter}
+                            >
+                                LỌC
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* 2. DANH MỤC */}
                     <div className="card shadow-sm border-0">
                         <div className="card-header bg-success text-white">
                             <h5 className="mb-0"><FaFilter className="me-2" /> Danh Mục</h5>
@@ -138,7 +213,6 @@ const Shop = () => {
                         </div>
                     ) : (
                         <>
-                            {/* QUAN TRỌNG: Thêm dấu ? (products?.length) để an toàn tuyệt đối */}
                             {products && products.length > 0 ? (
                                 <div className="row g-4">
                                     {products.map(p => (
@@ -153,7 +227,7 @@ const Shop = () => {
                                 </div>
                             ) : (
                                 <div className="col-12 text-center text-muted py-5">
-                                    <p>Không tìm thấy sản phẩm nào.</p>
+                                    <p>Không tìm thấy sản phẩm nào trong khoảng giá này.</p>
                                 </div>
                             )}
 
