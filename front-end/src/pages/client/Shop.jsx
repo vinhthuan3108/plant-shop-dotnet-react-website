@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { FaFilter, FaChevronLeft, FaChevronRight, FaMoneyBillWave } from 'react-icons/fa';
 
-// Import thư viện Slider và CSS của nó
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 
@@ -20,14 +19,15 @@ const Shop = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
 
-    // --- CẤU HÌNH KHOẢNG GIÁ (0đ - 10 triệu đồng) ---
-    const MIN_PRICE_LIMIT = 0;
-    const MAX_PRICE_LIMIT = 10000000;
+    // --- CẤU HÌNH KHOẢNG GIÁ ĐỘNG ---
+    // bounds: Giới hạn min/max của thanh trượt (Lấy từ DB)
+    const [bounds, setBounds] = useState({ min: 0, max: 10000000 });
+    // priceRange: Giá trị người dùng đang chọn
+    const [priceRange, setPriceRange] = useState([0, 10000000]);
     
-    // State lưu giá trị thanh trượt: [min, max]
-    const [priceRange, setPriceRange] = useState([MIN_PRICE_LIMIT, MAX_PRICE_LIMIT]);
-    
-    // Biến này dùng để kích hoạt gọi lại API khi bấm nút "LỌC"
+    // useRef để check lần đầu load của danh mục (để set lại bounds)
+    const isFirstLoad = useRef(true);
+
     const [applyFilterTrigger, setApplyFilterTrigger] = useState(0); 
 
     const { addToCart } = useContext(CartContext);
@@ -37,19 +37,17 @@ const Shop = () => {
 
     const API_BASE = 'https://localhost:7298';
 
-    // Hàm định dạng tiền tệ (VD: 1.000.000 đ)
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     };
 
-    // 1. Reset trang khi đổi danh mục
+    // 1. Reset trang & Cờ load lần đầu khi đổi danh mục
     useEffect(() => {
         setCurrentPage(1);
-        // Tùy chọn: Reset giá về mặc định khi chuyển danh mục
-        // setPriceRange([MIN_PRICE_LIMIT, MAX_PRICE_LIMIT]); 
+        isFirstLoad.current = true; // Đánh dấu là danh mục mới -> Cần lấy lại Min/Max chuẩn từ DB
     }, [categoryId]);
 
-    // 2. GỌI API LẤY DỮ LIỆU (QUAN TRỌNG)
+    // 2. GỌI API LẤY DỮ LIỆU
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -61,41 +59,43 @@ const Shop = () => {
                     .sort((a, b) => a.displayOrder - b.displayOrder);
                 setCategories(activeCates);
 
-                // --- XÂY DỰNG URL VỚI CÁC THAM SỐ LỌC ---
+                // --- XÂY DỰNG URL ---
                 let productUrl = `${API_BASE}/api/TblProducts/shop?page=${currentPage}&pageSize=12`;
                 
-                // Thêm danh mục
                 if (categoryId) {
                     productUrl += `&categoryId=${categoryId}`;
                 }
                 
-                // Thêm lọc giá (Lấy từ state priceRange)
-                // Chỉ gửi nếu giá khác mặc định để tối ưu
-                if (priceRange[0] > MIN_PRICE_LIMIT) {
-                    productUrl += `&minPrice=${priceRange[0]}`;
-                }
-                if (priceRange[1] < MAX_PRICE_LIMIT) {
-                    productUrl += `&maxPrice=${priceRange[1]}`;
+                // Logic gửi lọc giá:
+                // Nếu KHÔNG PHẢI là lần đầu load (tức là người dùng đã bấm Lọc hoặc đổi trang), thì gửi kèm giá.
+                // Nếu là lần đầu load danh mục, KHÔNG gửi giá để server trả về Min/Max gốc của toàn danh mục.
+                if (!isFirstLoad.current) {
+                     productUrl += `&minPrice=${priceRange[0]}`;
+                     productUrl += `&maxPrice=${priceRange[1]}`;
                 }
                 
-                console.log("Calling API:", productUrl); // Log để kiểm tra đường dẫn
-
                 const prodRes = await axios.get(productUrl);
                 const responseData = prodRes.data;
 
                 // Xử lý dữ liệu trả về
-                if (responseData && responseData.data) {
-                    setProducts(responseData.data);
-                    setTotalPages(responseData.totalPages || 0);
-                } else if (responseData && responseData.Data) {
-                    setProducts(responseData.Data);
-                    setTotalPages(responseData.TotalPages || 0);
-                } else if (Array.isArray(responseData)) {
-                    setProducts(responseData);
-                    setTotalPages(1);
-                } else {
-                    setProducts([]);
-                    setTotalPages(0);
+                // API mới trả về cấu trúc: { data, totalPages, minPrice, maxPrice, ... }
+                const listProducts = responseData.data || [];
+                setProducts(listProducts);
+                setTotalPages(responseData.totalPages || 0);
+
+                // --- CẬP NHẬT SLIDER BOUNDS (CHỈ LẦN ĐẦU) ---
+                if (isFirstLoad.current) {
+                    const serverMin = responseData.minPrice || 0;
+                    const serverMax = responseData.maxPrice || 10000000;
+
+                    // Set giới hạn thanh trượt theo DB
+                    setBounds({ min: serverMin, max: serverMax });
+                    
+                    // Set khoảng chọn mặc định full range
+                    setPriceRange([serverMin, serverMax]);
+
+                    // Đánh dấu đã load xong lần đầu
+                    isFirstLoad.current = false;
                 }
 
             } catch (error) {
@@ -107,10 +107,8 @@ const Shop = () => {
         };
 
         fetchData();
-        // Chạy lại khi: đổi danh mục, đổi trang, hoặc bấm nút Lọc (applyFilterTrigger)
     }, [categoryId, currentPage, applyFilterTrigger]); 
 
-    // Hàm chuyển trang
     const handlePageChange = (page) => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
@@ -118,15 +116,13 @@ const Shop = () => {
         }
     };
 
-    // Hàm xử lý khi kéo thanh trượt (chỉ cập nhật UI, chưa gọi API)
     const handleSliderChange = (value) => {
         setPriceRange(value);
     };
 
-    // Hàm xử lý khi bấm nút "LỌC" -> Kích hoạt gọi API
     const handleApplyFilter = () => {
-        setCurrentPage(1); // Về trang 1 khi lọc mới
-        setApplyFilterTrigger(prev => prev + 1); // Thay đổi state để kích hoạt useEffect
+        setCurrentPage(1);
+        setApplyFilterTrigger(prev => prev + 1);
     };
 
     return (
@@ -141,13 +137,13 @@ const Shop = () => {
                             <h5 className="mb-0"><FaMoneyBillWave className="me-2" /> LỌC THEO GIÁ</h5>
                         </div>
                         <div className="card-body">
-                            {/* Thanh trượt */}
                             <div style={{ padding: '15px 10px 20px 10px' }}>
+                                {/* Slider với bounds động */}
                                 <Slider 
                                     range 
-                                    min={MIN_PRICE_LIMIT} 
-                                    max={MAX_PRICE_LIMIT} 
-                                    step={50000} // Bước nhảy 50k
+                                    min={bounds.min} 
+                                    max={bounds.max} 
+                                    step={10000} 
                                     value={priceRange} 
                                     onChange={handleSliderChange} 
                                     trackStyle={[{ backgroundColor: '#28a745', height: 6 }]} 
@@ -159,7 +155,6 @@ const Shop = () => {
                                 />
                             </div>
                             
-                            {/* Hiển thị số tiền */}
                             <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13px', color: '#666', marginBottom: '15px' }}>
                                 {formatCurrency(priceRange[0])} — {formatCurrency(priceRange[1])}
                             </div>
@@ -231,7 +226,6 @@ const Shop = () => {
                                 </div>
                             )}
 
-                            {/* --- PHÂN TRANG --- */}
                             {totalPages > 1 && (
                                 <nav className="mt-5">
                                     <ul className="pagination justify-content-center">

@@ -189,12 +189,38 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
         
         // 2. Validate Variants
         for(let v of variants) {
-            if(!v.variantName.trim()) return alert("Tên phân loại không được để trống");
-            // Kiểm tra giá trị nhập vào có phải số không (tránh trường hợp parse ra NaN)
-            if(isNaN(parseFloat(v.originalPrice)) || parseFloat(v.originalPrice) < 0) 
-                return alert("Giá gốc không hợp lệ");
+        if(!v.variantName.trim()) return alert("Tên phân loại không được để trống");
+        if(isNaN(parseFloat(v.originalPrice)) || parseFloat(v.originalPrice) < 0) 
+            return alert("Giá gốc không hợp lệ");
         }
 
+        // --- LOGIC VALIDATE KHUYẾN MÃI (2 CHIỀU) ---
+        
+        // Kiểm tra xem đã chọn ngày chưa
+        const hasSaleDates = saleStart && saleEnd;
+        
+        // Kiểm tra xem có bất kỳ dòng nào đã nhập giá Sale > 0 chưa
+        const hasAnySalePrice = variants.some(v => parseFloat(v.salePrice) > 0);
+
+        // CHIỀU 1: Có nhập giá Sale (>0) nhưng quên chọn ngày
+        if (hasAnySalePrice && !hasSaleDates) {
+            return alert("Bạn đã nhập Giá KM nhưng chưa chọn thời gian áp dụng (Bắt đầu - Kết thúc)!");
+        }
+
+        // CHIỀU 2 (MỚI): Có chọn ngày nhưng có phân loại chưa nhập giá Sale (hoặc để = 0)
+        if (hasSaleDates) {
+            // Tìm xem có phân loại nào giá Sale <= 0 không
+            const hasInvalidSalePrice = variants.some(v => !v.salePrice || parseFloat(v.salePrice) <= 0);
+            
+            if (hasInvalidSalePrice) {
+                return alert("Bạn đã thiết lập Ngày khuyến mãi, vui lòng nhập đầy đủ Giá KM (> 0) cho tất cả các phân loại!");
+            }
+
+            // Validate logic thời gian
+            if (new Date(saleStart) >= new Date(saleEnd)) {
+                return alert("Thời gian kết thúc khuyến mãi phải lớn hơn thời gian bắt đầu!");
+            }
+        }   
         // 3. Chuẩn hóa dữ liệu trước khi gửi
         const formData = {
             productId: initialData ? initialData.productId : 0,
@@ -279,11 +305,11 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                         <div style={{display:'flex', gap:'10px', marginTop:'10px', background:'#f8f9fa', padding:'10px', borderRadius:'4px'}}>
                             <div style={{flex:1}}>
                                 <label style={{fontSize:'12px', fontWeight:'bold'}}>Bắt đầu KM:</label>
-                                <input type="datetime-local" value={saleStart} onChange={e => setSaleStart(e.target.value)} style={{width:'100%', padding:'5px', border:'1px solid #ccc', fontSize:'11px'}} />
+                                <input type="datetime-local" value={saleStart} onChange={e => setSaleStart(e.target.value)} style={{width:'100%', padding:'5px', border:'1px solid #ccc', fontSize:'13px'}} />
                             </div>
                             <div style={{flex:1}}>
                                 <label style={{fontSize:'12px', fontWeight:'bold'}}>Kết thúc KM:</label>
-                                <input type="datetime-local" value={saleEnd} onChange={e => setSaleEnd(e.target.value)} style={{width:'100%', padding:'5px', border:'1px solid #ccc', fontSize:'11px'}} />
+                                <input type="datetime-local" value={saleEnd} onChange={e => setSaleEnd(e.target.value)} style={{width:'100%', padding:'5px', border:'1px solid #ccc', fontSize:'13px'}} />
                             </div>
                         </div>
 
@@ -319,8 +345,13 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                 {/* KHU VỰC PHÂN LOẠI HÀNG (VARIANTS) */}
                 <div style={{ marginTop: '20px', border: '1px solid #bce8f1', padding: '15px', borderRadius: '5px', backgroundColor: '#f0f9ff' }}>
                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px'}}>
-                        <h4 style={{margin:0, color:'#0056b3'}}>Phân loại hàng & Giá bán</h4>
-                        <button type="button" onClick={addVariant} style={{background:'#28a745', color:'white', border:'none', padding:'5px 10px', borderRadius:'4px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px'}}>
+                        <div style={{display:'flex', alignItems:'baseline', gap:'10px'}}>
+                            <h4 style={{margin:0, color:'#0056b3'}}>Phân loại hàng & Giá bán</h4>
+                            <span style={{fontSize:'12px', color:'#e74a3b', fontStyle:'italic'}}>
+                                (* Tồn kho chỉ được cập nhật tại mục Quản lý kho)
+                            </span>
+                        </div>
+                                                <button type="button" onClick={addVariant} style={{background:'#28a745', color:'white', border:'none', padding:'5px 10px', borderRadius:'4px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px'}}>
                            <FaPlus /> Thêm loại
                         </button>
                     </div>
@@ -350,7 +381,20 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                                         <input type="number" value={v.salePrice} onChange={e => handleVariantChange(idx, 'salePrice', e.target.value)} style={{width:'100%', padding:'5px', border:'1px solid #ccc', textAlign:'right'}} />
                                     </td>
                                     <td style={{padding:'5px', border:'1px solid #ddd'}}>
-                                        <input type="number" value={v.stockQuantity} onChange={e => handleVariantChange(idx, 'stockQuantity', e.target.value)} style={{width:'100%', padding:'5px', border:'1px solid #ccc', textAlign:'center'}} />
+                                        <input 
+                                            type="number" 
+                                            value={v.stockQuantity} 
+                                            disabled={true} // Vô hiệu hóa nhập liệu
+                                            style={{
+                                                width:'100%', 
+                                                padding:'5px', 
+                                                border:'1px solid #eee', 
+                                                textAlign:'center', 
+                                                backgroundColor: '#e9ecef', // Màu nền xám
+                                                color: '#6c757d',           // Màu chữ chìm
+                                                cursor: 'not-allowed'       // Con trỏ chuột báo cấm
+                                            }} 
+                                        />
                                     </td>
                                     {/* Input Min Alert: Fix lỗi Uncontrolled */}
                                     <td style={{padding:'5px', border:'1px solid #ddd'}}>

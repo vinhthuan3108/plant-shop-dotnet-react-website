@@ -17,7 +17,7 @@ const HomeProductCard = ({ product, addToCart, baseUrl }) => {
 
     // --- LOGIC HIỂN THỊ ---
     const isOutOfStock = stockQuantity <= 0;
-    const isSale = salePrice && salePrice < originalPrice;
+    const isSale = salePrice > 0 && salePrice < originalPrice;
     const displayPrice = isSale ? salePrice : originalPrice;
 
     // --- HÀM LẤY ẢNH ---

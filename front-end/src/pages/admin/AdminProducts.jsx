@@ -317,11 +317,11 @@ function Products() {
                                     </td>
                                     <td style={{ padding: '12px' }}>
                                         <div style={{fontWeight: 'bold', color: '#333'}}>{item.productName}</div>
-                                        {item.salePrice && item.salePrice < item.originalPrice && <span style={{fontSize:'11px', background:'#e74a3b', color:'white', padding:'2px 6px', borderRadius:'10px', marginLeft:'5px'}}>Sale</span>}
+                                        {item.salePrice > 0 && item.salePrice < item.originalPrice && <span style={{fontSize:'11px', background:'#e74a3b', color:'white', padding:'2px 6px', borderRadius:'10px', marginLeft:'5px'}}>Sale</span>}
                                     </td>
                                     <td style={{ padding: '12px' }}><span style={{background:'#e3e6f0', padding:'3px 8px', borderRadius:'12px', fontSize:'12px', color:'#5a5c69'}}>{item.categoryName || getCategoryName(item.categoryId)}</span></td>
                                     <td style={{ padding: '12px', textAlign: 'right', fontWeight: '500' }}>
-                                        {item.salePrice ? (<div><div style={{color:'#e74a3b'}}>{item.salePrice.toLocaleString('vi-VN')} đ</div><div style={{textDecoration:'line-through', fontSize:'11px', color:'#999'}}>{item.originalPrice.toLocaleString('vi-VN')} đ</div></div>) : (<span>{item.originalPrice.toLocaleString('vi-VN')} đ</span>)}
+                                        {item.salePrice > 0 ? (<div><div style={{color:'#e74a3b'}}>{item.salePrice.toLocaleString('vi-VN')} đ</div><div style={{textDecoration:'line-through', fontSize:'11px', color:'#999'}}>{item.originalPrice.toLocaleString('vi-VN')} đ</div></div>) : (<span>{item.originalPrice.toLocaleString('vi-VN')} đ</span>)}
                                     </td>
                                     <td style={{ padding: '12px', textAlign: 'center' }}>
                                         {isOutOfStock ? <span style={{color:'red', fontWeight:'bold', fontSize:'12px'}}>Hết hàng</span> : (isLowStock ? <span style={{color:'#f6c23e', fontWeight:'bold'}}>{item.stockQuantity} ⚠️</span> : item.stockQuantity)}
