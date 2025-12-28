@@ -60,7 +60,24 @@ namespace back_end.Controllers
                     }
 
                     // Lấy giá: Ưu tiên giá Sale của biến thể -> Giá gốc biến thể
-                    decimal price = variant.SalePrice ?? variant.OriginalPrice;
+                    decimal price = variant.OriginalPrice; // Mặc định lấy giá gốc
+
+                    // 1. Kiểm tra có giá Sale > 0 không
+                    bool hasSale = variant.SalePrice.HasValue && variant.SalePrice.Value > 0;
+
+                    // 2. Kiểm tra hạn khuyến mãi (Nếu sản phẩm có cài đặt ngày)
+                    bool isDateValid = true;
+                    if (variant.Product.SaleStartDate.HasValue && variant.Product.SaleEndDate.HasValue)
+                    {
+                        var now = DateTime.Now;
+                        isDateValid = now >= variant.Product.SaleStartDate.Value && now <= variant.Product.SaleEndDate.Value;
+                    }
+
+                    // 3. Chốt giá: Nếu có Sale hợp lệ và rẻ hơn giá gốc thì lấy
+                    if (hasSale && isDateValid && variant.SalePrice.Value < variant.OriginalPrice)
+                    {
+                        price = variant.SalePrice.Value;
+                    }
 
                     subTotal += price * item.Quantity;
 

@@ -153,47 +153,62 @@ namespace back_end.Controllers
         }
 
         // GET: api/TblProducts/shop (Dùng cho Khách hàng)
+        // GET: api/TblProducts/shop
         [HttpGet("shop")]
         public async Task<IActionResult> GetProductsForShop(
             int? categoryId,
-            decimal? minPrice, // 1. THÊM THAM SỐ NHẬN GIÁ MIN
-            decimal? maxPrice, // 2. THÊM THAM SỐ NHẬN GIÁ MAX
             int page = 1,
-            int pageSize = 12)
+            int pageSize = 12,
+            decimal? minPrice = null, // Thêm tham số lọc Min
+            decimal? maxPrice = null  // Thêm tham số lọc Max
+        )
         {
-            var query = _context.TblProducts
-                .Include(p => p.TblProductImages)
-                .Include(p => p.TblProductVariants) // Load biến thể để check giá
+            // 1. Tạo Query cơ bản (Active & Category)
+            var baseQuery = _context.TblProducts
+                .Include(p => p.TblProductVariants)
                 .Where(p => p.IsActive == true && (p.IsDeleted == false || p.IsDeleted == null));
 
-            // 1. Lọc theo Danh mục
             if (categoryId.HasValue)
             {
-                query = query.Where(p => p.CategoryId == categoryId.Value);
+                baseQuery = baseQuery.Where(p => p.CategoryId == categoryId.Value);
             }
 
-            // 2. --- LỌC THEO KHOẢNG GIÁ (LOGIC MỚI) ---
+            // 2. TÍNH TOÁN MIN/MAX PRICE (Của toàn bộ danh sách phù hợp, chưa phân trang)
+            decimal minPriceBound = 0;
+            decimal maxPriceBound = 0;
+
+            if (await baseQuery.AnyAsync())
+            {
+                // Lấy tập hợp tất cả biến thể để tìm giá Min/Max thực tế
+                var allVariants = baseQuery.SelectMany(p => p.TblProductVariants);
+
+                // Logic: Ưu tiên giá Sale nếu có, ngược lại lấy giá Gốc
+                // Lưu ý: Có thể tách ra query riêng nếu gặp lỗi dịch SQL phức tạp, nhưng EF Core 5+ thường xử lý tốt.
+                minPriceBound = await allVariants.MinAsync(v => (v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice.Value : v.OriginalPrice);
+                maxPriceBound = await allVariants.MaxAsync(v => (v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice.Value : v.OriginalPrice);
+            }
+
+            // 3. Áp dụng bộ lọc Giá (Nếu client có gửi lên)
+            var query = baseQuery;
+
             if (minPrice.HasValue)
             {
-                // Kiểm tra xem sản phẩm có BẤT KỲ biến thể nào có giá >= minPrice không
-                // Giá thực tế = Giá Sale (nếu có) hoặc Giá Gốc
                 query = query.Where(p => p.TblProductVariants.Any(v =>
-                    ((v.SalePrice != null && v.SalePrice > 0 ? v.SalePrice.Value : v.OriginalPrice) >= minPrice.Value)
-                ));
+                    ((v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice.Value : v.OriginalPrice) >= minPrice.Value));
             }
 
             if (maxPrice.HasValue)
             {
-                // Kiểm tra xem sản phẩm có BẤT KỲ biến thể nào có giá <= maxPrice không
                 query = query.Where(p => p.TblProductVariants.Any(v =>
-                    ((v.SalePrice != null && v.SalePrice > 0 ? v.SalePrice.Value : v.OriginalPrice) <= maxPrice.Value)
-                ));
+                    ((v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice.Value : v.OriginalPrice) <= maxPrice.Value));
             }
 
+            // 4. Phân trang & Projection
             int totalItems = await query.CountAsync();
             int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
             var products = await query
+                .Include(p => p.TblProductImages)
                 .OrderByDescending(p => p.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -201,13 +216,10 @@ namespace back_end.Controllers
                 {
                     p.ProductId,
                     p.ProductName,
-                    // Lấy giá thấp nhất trong các biến thể để hiển thị "Từ..."
-                    // Sửa thành: Sắp xếp theo VariantId để lấy biến thể đầu tiên được tạo
+                    // Giá hiển thị
                     OriginalPrice = p.TblProductVariants.OrderBy(v => v.VariantId).Select(v => v.OriginalPrice).FirstOrDefault(),
                     SalePrice = p.TblProductVariants.OrderBy(v => v.VariantId).Select(v => v.SalePrice).FirstOrDefault(),
-
                     StockQuantity = p.TblProductVariants.Sum(v => v.StockQuantity ?? 0),
-
                     thumbnail = p.TblProductImages
                                 .Where(img => img.IsThumbnail == true)
                                 .Select(img => img.ImageUrl)
@@ -216,12 +228,15 @@ namespace back_end.Controllers
                     p.CategoryId
                 }).ToListAsync();
 
+            // 5. Trả về kết quả kèm Min/Max Price để Frontend set Slider
             return Ok(new
             {
                 data = products,
                 totalPages = totalPages,
                 currentPage = page,
-                totalItems = totalItems
+                totalItems = totalItems,
+                minPrice = minPriceBound, // Giá thấp nhất hệ thống
+                maxPrice = maxPriceBound  // Giá cao nhất hệ thống
             });
         }
 
