@@ -16,6 +16,10 @@ namespace back_end.DTOs
         public decimal TotalRevenue { get; set; }
         public decimal TotalProfit { get; set; }
         public int TotalOrders { get; set; }
+        public decimal TotalShipping { get; set; }
+        public decimal TotalImportCost { get; set; }
+        public decimal NetCashFlow { get; set; }
+
         public List<RevenueStatDto> DailyStats { get; set; }
     }
 

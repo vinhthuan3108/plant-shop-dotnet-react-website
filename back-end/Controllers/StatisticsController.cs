@@ -21,38 +21,95 @@ namespace back_end.Controllers
         [HttpGet("revenue")]
         public async Task<ActionResult<StatisticsResponse>> GetRevenueStats(DateTime startDate, DateTime endDate)
         {
-            // Xử lý thời gian: Đầu ngày start -> Cuối ngày end
             var fromDate = startDate.Date;
             var toDate = endDate.Date.AddDays(1).AddTicks(-1);
 
-            // Lấy đơn hàng trong khoảng thời gian (Không lấy đơn hủy)
+            // 1. Lấy danh sách đơn hàng "Completed" trong khoảng thời gian
             var orders = await _context.TblOrders
                 .Include(o => o.TblOrderDetails)
                 .Where(o => o.OrderDate >= fromDate && o.OrderDate <= toDate)
-                .Where(o => o.OrderStatus != "Cancelled")
+                .Where(o => o.OrderStatus == "Completed") // <--- CHÍNH LÀ CỘT NÀY
                 .ToListAsync();
 
-            // Tính toán chi tiết theo ngày
+            // 2. Tính giá vốn trung bình từ lịch sử nhập hàng (TblImportReceiptDetails)
+            // (Lấy TẤT CẢ phiếu nhập để tính giá trung bình chính xác nhất)
+            var importStats = await _context.TblImportReceiptDetails
+                .GroupBy(x => x.VariantId)
+                .Select(g => new
+                {
+                    VariantId = g.Key,
+                    TotalImportValue = g.Sum(x => x.Quantity * x.ImportPrice),
+                    TotalImportQty = g.Sum(x => x.Quantity)
+                })
+                .ToListAsync();
+
+            // Tạo Map để tra cứu giá vốn nhanh: [VariantId] => [Giá trung bình]
+            var avgCostMap = importStats.ToDictionary(
+                k => k.VariantId,
+                v => v.TotalImportQty > 0 ? (v.TotalImportValue / v.TotalImportQty) : 0
+            );
+
+            // 3. Tính toán chi tiết
             var dailyStats = orders
-                .GroupBy(o => o.OrderDate.Value.Date)
-                .Select(g => new RevenueStatDto
+            .GroupBy(o => o.OrderDate.Value.Date)
+            .Select(g =>
+            {
+                decimal revenue = g.Sum(o => o.TotalAmount ?? 0);
+
+                // Tính tổng tiền ship trong ngày (để trừ ra khỏi lợi nhuận)
+                decimal dailyShipping = g.Sum(o => o.ShippingFee ?? 0);
+
+                decimal totalCost = 0;
+                foreach (var order in g)
+                {
+                    foreach (var detail in order.TblOrderDetails)
+                    {
+                        decimal importPrice = avgCostMap.ContainsKey(detail.VariantId) ? avgCostMap[detail.VariantId] : 0;
+                        totalCost += importPrice * detail.Quantity;
+                    }
+                }
+
+                return new RevenueStatDto
                 {
                     Date = g.Key,
-                    // Tổng doanh thu (Giá bán thực tế)
-                    Revenue = g.Sum(o => o.TotalAmount ?? 0),
+                    Revenue = revenue,
 
-                    // Lợi nhuận = Tổng thu - Tổng giá vốn
-                    // Giá vốn (CostPrice) đã được lưu trong OrderDetail lúc mua
-                    Profit = g.Sum(o => o.TotalAmount ?? 0) - g.Sum(o => o.TblOrderDetails.Sum(d => d.CostPrice * d.Quantity))
-                })
-                .OrderBy(s => s.Date)
-                .ToList();
+                    // TRẢ VỀ THÊM TIỀN SHIP TRONG NGÀY (Cần thêm thuộc tính này vào DTO nếu chưa có, hoặc tính tổng ở ngoài)
+                    // Tuy nhiên để đơn giản, ta sẽ tính tổng Shipping ở bên dưới, 
+                    // còn Profit ở đây ta trừ ship đi luôn.
 
+                    // CÔNG THỨC MỚI: Lợi nhuận = Tổng thu - Tiền Ship - Giá vốn nhập
+                    Profit = revenue - dailyShipping - totalCost
+                };
+            })
+            .OrderBy(s => s.Date)
+            .ToList();
+
+            // Tính tổng ship toàn bộ giai đoạn
+            decimal totalShippingPeriod = orders.Sum(o => o.ShippingFee ?? 0);
+            var totalImportCost = await _context.TblImportReceipts
+        .Where(r => r.ImportDate >= fromDate && r.ImportDate <= toDate)
+        .SumAsync(r => r.TotalAmount ?? 0);
+
+            // Tính toán các chỉ số tổng
+            decimal totalRevenue = dailyStats.Sum(x => x.Revenue); // Tiền thu về từ khách
+            decimal totalShipping = orders.Sum(o => o.ShippingFee ?? 0); // Tiền ship (thu hộ)
+            decimal totalProfit = dailyStats.Sum(x => x.Profit); // Lợi nhuận sổ sách
+
+            // CÔNG THỨC DÒNG TIỀN (CASH FLOW):
+            // Tiền vào túi (Doanh thu) - Tiền ship (trả shipper) - Tiền chi ra nhập hàng (Bất kể bán được hay chưa)
+            // Lưu ý: Đây là tiền thực tế còn lại trong két sắt sau giai đoạn này.
+            decimal netCashFlow = totalRevenue - totalShipping - totalImportCost;
             var response = new StatisticsResponse
             {
                 TotalOrders = orders.Count,
                 TotalRevenue = dailyStats.Sum(x => x.Revenue),
                 TotalProfit = dailyStats.Sum(x => x.Profit),
+
+                // Bạn cần thêm thuộc tính này vào class StatisticsResponse DTO nhé
+                TotalShipping = totalShippingPeriod,
+                TotalImportCost = totalImportCost, // Tổng tiền chi nhập hàng
+                NetCashFlow = netCashFlow,
                 DailyStats = dailyStats
             };
 
@@ -74,7 +131,8 @@ namespace back_end.Controllers
                     .ThenInclude(v => v.Product) // Lấy thông tin sản phẩm cha
                         .ThenInclude(p => p.Category)
                 .Where(d => d.Order.OrderDate >= fromDate && d.Order.OrderDate <= toDate)
-                .Where(d => d.Order.OrderStatus != "Cancelled")
+                // THAY ĐỔI: Chỉ tính những đơn hàng đã hoàn thành ("Completed")
+                .Where(d => d.Order.OrderStatus == "Completed") // <-- Đã sửa dòng này
                 .ToListAsync();
 
             // Nhóm theo ProductId (Gộp các variant lại thành 1 sản phẩm chung)
@@ -93,7 +151,7 @@ namespace back_end.Controllers
                 .Take(5)
                 .ToList();
 
-            // Thống kê theo Danh mục
+            // Thống kê theo Danh mục (Cũng sẽ chỉ tính trên đơn Completed do dùng biến orderDetails ở trên)
             var categoryShares = orderDetails
                 .GroupBy(d => d.Variant.Product.Category.CategoryName)
                 .Select(g => new CategoryShareDto
@@ -103,28 +161,22 @@ namespace back_end.Controllers
                 })
                 .ToList();
 
-            // B. TÍNH TOÁN TỒN KHO (LOGIC MỚI: Dựa vào bảng Variants)
-            // Lấy danh sách sản phẩm và tính tổng tồn kho từ các biến thể con
+            // B. TÍNH TOÁN TỒN KHO (Giữ nguyên logic cũ vì tồn kho không phụ thuộc vào đơn hàng lịch sử)
             var allProducts = await _context.TblProducts
                 .Include(p => p.Category)
-                .Include(p => p.TblProductVariants) // Include để tính tổng
+                .Include(p => p.TblProductVariants)
                 .ToListAsync();
 
-            // Lọc và sắp xếp trong bộ nhớ (Client-side evaluation) vì EF Core khó GroupBy phức tạp
             var topInventory = allProducts
                 .Select(p => new InventoryStatDto
                 {
                     ProductName = p.ProductName,
                     CategoryName = p.Category.CategoryName,
-
-                    // Tổng tồn kho = Tổng stock của các biến thể
                     StockQuantity = p.TblProductVariants.Sum(v => v.StockQuantity ?? 0),
-
-                    // Giá hiển thị: Lấy giá thấp nhất của biến thể
                     Price = p.TblProductVariants.OrderBy(v => v.OriginalPrice).Select(v => v.OriginalPrice).FirstOrDefault()
                 })
-                .Where(p => p.StockQuantity > 0) // Chỉ lấy sp còn hàng
-                .OrderByDescending(p => p.StockQuantity) // Tồn nhiều nhất lên đầu
+                .Where(p => p.StockQuantity > 0)
+                .OrderByDescending(p => p.StockQuantity)
                 .Take(10)
                 .ToList();
 
