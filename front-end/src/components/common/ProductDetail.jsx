@@ -11,11 +11,13 @@ const ProductDetail = () => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const { addToCart } = useContext(CartContext);
     
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    // --- KHAI BÁO STATE ---
+    const [isModalOpen, setIsModalOpen] = useState(false); // Modal chọn biến thể
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false); // Modal xem ảnh full màn hình
+    
     const BASE_URL = 'https://localhost:7298';
 
     // --- HÀM XỬ LÝ LỖI &nbsp; CỦA REACT QUILL ---
-    // Hàm này tìm tất cả các ký tự &nbsp; và thay bằng dấu cách thường
     const cleanHtmlContent = (htmlString) => {
         if (!htmlString) return '';
         return htmlString.replace(/&nbsp;/g, ' ');
@@ -34,15 +36,23 @@ const ProductDetail = () => {
             max-width: 100%;
         }
         .html-content {
-            font-family: inherit; /* Giữ font chữ của web */
+            font-family: inherit;
         }
-        /* Chỉ định rõ cho các thẻ p, li bên trong */
         .html-content p, .html-content li, .html-content div {
             word-break: normal !important;
             overflow-wrap: anywhere !important;
             white-space: normal !important;
             line-height: 1.6;
             margin-bottom: 10px;
+        }
+        /* Hiệu ứng hiện Lightbox */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
     `;
 
@@ -135,29 +145,82 @@ const ProductDetail = () => {
     if (!product) return <div style={{ padding: '50px', textAlign: 'center' }}>Đang tải...</div>;
 
     const info = getDisplayInfo();
+    
+    // Lấy URL ảnh hiện tại
+    const currentImgUrl = images.length > 0 
+    ? (images[currentIndex].imageUrl?.startsWith('http') 
+        ? images[currentIndex].imageUrl 
+        : `${BASE_URL}${images[currentIndex].imageUrl}`) 
+    : '';
 
     return (
         <div style={{ padding: '40px', maxWidth: '1100px', margin: '0 auto' }}>
             <style>{contentStyles}</style>
 
             <div style={{ display: 'flex', gap: '50px', flexWrap: 'wrap' }}>
-                
                 {/* --- KHỐI HÌNH ẢNH --- */}
                 <div style={{ flex: '1', minWidth: '350px' }}>
-                    <div style={{ width: '100%', height: '450px', backgroundColor: '#f5f5f5', borderRadius: '8px', overflow: 'hidden', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ 
+                        width: '100%', 
+                        height: '450px', 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #eee',
+                        borderRadius: '8px', 
+                        position: 'relative', 
+                        display: 'flex',
+                        overflow: 'hidden'
+                    }}>
                         {images.length > 0 ? (
-                            <img src={images[currentIndex].imageUrl?.startsWith('http') ? images[currentIndex].imageUrl : `${BASE_URL}${images[currentIndex].imageUrl}`} 
-                                 alt="product" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                        ) : (<span>Không có hình ảnh</span>)}
+                            <div style={{ 
+                                width: '100%', 
+                                height: '100%', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                cursor: 'zoom-in' // Đổi con trỏ chuột
+                            }}>
+                                {/* PHƯƠNG ÁN ZOOM CSS + CLICK ĐỂ MỞ LIGHTBOX */}
+                                <div 
+                                    className="zoom-container"
+                                    onClick={() => setIsLightboxOpen(true)} // <--- THÊM SỰ KIỆN CLICK Ở ĐÂY
+                                    style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}
+                                    onMouseMove={(e) => {
+                                        const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+                                        const x = ((e.pageX - left) / width) * 100;
+                                        const y = ((e.pageY - top) / height) * 100;
+                                        e.currentTarget.querySelector('img').style.transformOrigin = `${x}% ${y}%`;
+                                        e.currentTarget.querySelector('img').style.transform = "scale(2)"; // Zoom 2x
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.querySelector('img').style.transform = "scale(1)";
+                                        setTimeout(() => { 
+                                            const img = e.currentTarget.querySelector('img');
+                                            if(img) img.style.transformOrigin = "center center"; 
+                                        }, 300);
+                                    }}
+                                >
+                                    <img 
+                                        src={currentImgUrl} 
+                                        alt="Product Zoom"
+                                        style={{ width: '100%', height: '100%', objectFit: 'contain', transition: 'transform 0.1s ease-out' }} 
+                                    />
+                                </div>
+                            </div>
+                        ) : (
+                            <div style={{width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                                <span>Không có hình ảnh</span>
+                            </div>
+                        )}
                         
                         {images.length > 1 && (
                             <>
-                                <button onClick={prevImage} style={arrowButtonStyle(true)}><FaChevronLeft /></button>
-                                <button onClick={nextImage} style={arrowButtonStyle(false)}><FaChevronRight /></button>
+                                <button onClick={(e) => { e.stopPropagation(); prevImage(); }} style={arrowButtonStyle(true)}><FaChevronLeft /></button>
+                                <button onClick={(e) => { e.stopPropagation(); nextImage(); }} style={arrowButtonStyle(false)}><FaChevronRight /></button>
                             </>
                         )}
                     </div>
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '15px', overflowX: 'auto' }}>
+
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '15px', overflowX: 'auto', paddingBottom: '5px' }}>
                         {images.map((img, index) => (
                             <img key={index} src={img.imageUrl?.startsWith('http') ? img.imageUrl : `${BASE_URL}${img.imageUrl}`} 
                                  alt="sub" onClick={() => setCurrentIndex(index)}
@@ -187,8 +250,6 @@ const ProductDetail = () => {
                     <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '4px', marginBottom: '20px' }}>
                         <div style={{ marginBottom: '15px' }}>
                             <strong style={{ display: 'block', marginBottom: '5px' }}>Mô tả ngắn:</strong>
-                            
-                            {/* DÙNG HÀM CLEAN Ở ĐÂY */}
                             <div className="html-content"
                                  dangerouslySetInnerHTML={{ __html: cleanHtmlContent(product.shortDescription) }} 
                                  style={{ color: '#333' }}
@@ -224,8 +285,6 @@ const ProductDetail = () => {
 
             <div style={{ marginTop: '50px', borderTop: '1px solid #eee', paddingTop: '30px' }}>
                 <h3 style={{ borderBottom: '2px solid #2e7d32', display: 'inline-block', paddingBottom: '5px' }}>THÔNG TIN CHI TIẾT</h3>
-                
-                {/* DÙNG HÀM CLEAN Ở ĐÂY NỮA */}
                 <div 
                     className="html-content"
                     style={{ marginTop: '20px' }}
@@ -239,15 +298,59 @@ const ProductDetail = () => {
                 product={product}
                 onConfirm={handleModalConfirm}
             />
+
+            {/* --- 4. LIGHTBOX MODAL --- */}
+            {isLightboxOpen && (
+                <div 
+                    style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.9)', 
+                        zIndex: 9999, 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        animation: 'fadeIn 0.3s forwards'
+                    }}
+                    onClick={() => setIsLightboxOpen(false)} 
+                >
+                    {/* Nút đóng */}
+                    <button 
+                        style={{
+                            position: 'absolute', top: '20px', right: '30px', 
+                            background: 'transparent', border: 'none', 
+                            color: '#fff', fontSize: '40px', cursor: 'pointer', zIndex: 10000
+                        }}
+                        onClick={() => setIsLightboxOpen(false)}
+                    >
+                        &times;
+                    </button>
+                    
+                    {/* Ảnh lớn */}
+                    <img 
+                        src={currentImgUrl} 
+                        alt="Fullsize"
+                        style={{ 
+                            height: '90vh',       
+                            maxWidth: '95vw',     
+                            width: 'auto',        
+                            objectFit: 'contain', 
+                            borderRadius:'4px',
+                            boxShadow: '0 0 20px rgba(255,255,255,0.2)',
+                            animation: 'zoomIn 0.3s forwards',
+                            backgroundColor: '#fff' 
+                        }} 
+                        onClick={(e) => e.stopPropagation()} 
+                    />
+                </div>
+            )}
         </div>
     );
 };
 
 const arrowButtonStyle = (isLeft) => ({
     position: 'absolute', top: '50%', [isLeft ? 'left' : 'right']: '10px', transform: 'translateY(-50%)',
-    backgroundColor: 'rgba(255,255,255,0.7)', border: 'none', width: '40px', height: '40px',
+    backgroundColor: 'rgba(255,255,255,0.8)', border: '1px solid #ddd', width: '40px', height: '40px',
     borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: '20px', color: '#333', transition: '0.3s'
+    fontSize: '20px', color: '#333', transition: '0.3s',
+    zIndex: 10 
 });
 
 export default ProductDetail;
