@@ -254,6 +254,44 @@ namespace back_end.Controllers
 
             return tblProduct;
         }
+        // GET: api/TblProducts/related/5
+        // Lấy 4 sản phẩm tương tự ngẫu nhiên
+        [HttpGet("related/{id}")]
+        public async Task<ActionResult<IEnumerable<object>>> GetRelatedProducts(int id)
+        {
+            // 1. Tìm sản phẩm hiện tại để lấy CategoryId
+            var currentProduct = await _context.TblProducts.FindAsync(id);
+            if (currentProduct == null) return NotFound();
+
+            // 2. Lấy danh sách sản phẩm cùng danh mục (trừ chính nó)
+            var relatedProducts = await _context.TblProducts
+                .Include(p => p.TblProductImages)
+                .Include(p => p.TblProductVariants)
+                .Where(p => p.CategoryId == currentProduct.CategoryId
+                            && p.ProductId != id
+                            && p.IsActive == true
+                            && (p.IsDeleted == false || p.IsDeleted == null))
+                .OrderBy(r => Guid.NewGuid()) // Sắp xếp ngẫu nhiên
+                .Take(4) // Chỉ lấy 4 sản phẩm
+                .Select(p => new
+                {
+                    p.ProductId,
+                    p.ProductName,
+                    // Lấy giá hiển thị giống API Shop
+                    OriginalPrice = p.TblProductVariants.OrderBy(v => v.OriginalPrice).Select(v => v.OriginalPrice).FirstOrDefault(),
+                    SalePrice = p.TblProductVariants.OrderBy(v => v.OriginalPrice).Select(v => v.SalePrice).FirstOrDefault(),
+
+                    // Lấy ảnh đại diện
+                    thumbnail = p.TblProductImages
+                                .Where(img => img.IsThumbnail == true)
+                                .Select(img => img.ImageUrl)
+                                .FirstOrDefault()
+                                ?? p.TblProductImages.Select(img => img.ImageUrl).FirstOrDefault(),
+                    p.CategoryId
+                }).ToListAsync();
+
+            return Ok(relatedProducts);
+        }
 
         // POST: api/TblProducts (Tạo mới)
         [HttpPost]
