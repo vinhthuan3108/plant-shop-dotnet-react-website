@@ -86,7 +86,8 @@ namespace back_end.Controllers
                 Token = token,
                 FullName = user.FullName,
                 Role = user.RoleId,
-                UserId = user.UserId
+                UserId = user.UserId,
+                PhoneNumber = user.PhoneNumber
             });
         }
 
@@ -100,7 +101,7 @@ namespace back_end.Controllers
                 new Claim("UserId", user.UserId.ToString())
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value ?? "tokencuavinhthuanvamanhcuong-dsjfhjdfhshfhsfdfhsdfhsdhfsfskhfdjhfkshdfhsdfsdf"));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value));
 
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 

@@ -56,10 +56,20 @@ const VoucherModal = ({ isOpen, onClose, onSubmit, editingVoucher }) => {
     };
 
     const handleSubmit = () => {
-        // Validation cơ bản
+        // 1. Kiểm tra Mã code
         if (!formData.code.trim()) return alert("Mã code không được trống");
-        if (new Date(formData.endDate) < new Date(formData.startDate)) {
-            return alert("Ngày kết thúc phải lớn hơn ngày bắt đầu!");
+
+        // 2. Kiểm tra xem đã chọn ngày chưa (Thêm đoạn này)
+        if (!formData.startDate) return alert("Vui lòng chọn ngày bắt đầu!");
+        if (!formData.endDate) return alert("Vui lòng chọn ngày kết thúc!");
+
+        // 3. Kiểm tra logic ngày (Kết thúc phải sau Bắt đầu)
+        // Lưu ý: new Date() cần chuỗi đúng định dạng, nếu rỗng sẽ ra Invalid Date
+        const start = new Date(formData.startDate);
+        const end = new Date(formData.endDate);
+
+        if (end < start) {
+            return alert("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu!");
         }
 
         // Chuẩn bị dữ liệu gửi đi
@@ -73,7 +83,6 @@ const VoucherModal = ({ isOpen, onClose, onSubmit, editingVoucher }) => {
         
         onSubmit(payload);
     };
-
     // Style chung cho input
     const inputStyle = { width: '100%', padding: '8px', marginBottom: '10px', boxSizing: 'border-box' };
     const labelStyle = { display: 'block', marginBottom: '5px', fontWeight: '500' };

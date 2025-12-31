@@ -33,7 +33,7 @@ const Shop = () => {
     const { addToCart } = useContext(CartContext);
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
-    const categoryId = queryParams.get('category') || queryParams.get('cate');
+    const categoryId = queryParams.get('category') || queryParams.get('cate') || queryParams.get('categoryId');
 
     const API_BASE = 'https://localhost:7298';
 

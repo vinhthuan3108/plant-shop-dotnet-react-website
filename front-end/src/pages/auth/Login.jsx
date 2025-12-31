@@ -37,7 +37,8 @@ function Login() {
                 email: email,
                 fullName: data.fullName,
                 roleId: data.role,
-                token: data.token
+                token: data.token,
+                phoneNumber: data.phoneNumber
             };
 
             localStorage.setItem('user', JSON.stringify(userSave));

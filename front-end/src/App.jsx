@@ -41,7 +41,6 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AdminBanners from './pages/admin/AdminBanners';
 import ForgotPassword from './pages/auth/ForgotPassword';
-import SystemConfigPage from './pages/admin/SystemConfigPage';
 import RevenueStats from './pages/admin/RevenueStats';
 import ProductStats from './pages/admin/ProductStats';
 import Contacts from './pages/admin/Contacts';
@@ -51,6 +50,8 @@ import GuidePage from './pages/client/GuidePage';
 import { ROLES } from './constants/roles'; 
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Testimonials from './pages/admin/Testimonials';
+import ShopInfo from './pages/admin/ShopInfo';
+import SystemIntegration from './pages/admin/SystemIntegration';
 function App() {
   useEffect(() => {
     const fetchSystemConfig = async () => {
@@ -153,7 +154,8 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
              <Route path="users" element={<Users />} />
              <Route path="backup" element={<SystemBackup />} />
-             <Route path="system-config" element={<SystemConfigPage />} />
+             <Route path="shop-info" element={<ShopInfo />} />
+             <Route path="system-integration" element={<SystemIntegration />} />
         </Route>
 
       </Route>

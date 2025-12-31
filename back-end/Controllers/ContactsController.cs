@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using back_end.Models; // Đổi namespace theo project của bạn
-using System.Net;
-using System.Net.Mail;
+using back_end.Models;
+using back_end.Services; // 1. Nhớ using namespace chứa EmailService
 
 namespace back_end.Controllers
 {
@@ -10,59 +9,66 @@ namespace back_end.Controllers
     [ApiController]
     public class ContactsController : ControllerBase
     {
-        private readonly DbplantShopThuanCuongContext _context; // Đổi tên Context theo project của bạn
+        private readonly DbplantShopThuanCuongContext _context;
+        private readonly EmailService _emailService; // 2. Khai báo service
 
-        public ContactsController(DbplantShopThuanCuongContext context)
+        // 3. Inject EmailService vào Constructor
+        public ContactsController(DbplantShopThuanCuongContext context, EmailService emailService)
         {
             _context = context;
+            _emailService = emailService;
         }
 
-        // 1. Lấy danh sách liên hệ (Có tìm kiếm và lọc trạng thái)
+        // 1. Lấy danh sách liên hệ (Giữ nguyên)
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TblContact>>> GetContacts(string? search, string? status)
         {
             var query = _context.TblContacts.AsQueryable();
 
-            // Tìm kiếm theo Tên hoặc Email
             if (!string.IsNullOrEmpty(search))
             {
                 query = query.Where(c => c.FullName.Contains(search) || c.Email.Contains(search));
             }
 
-            // Lọc theo trạng thái (New, Read, Replied)
             if (!string.IsNullOrEmpty(status) && status != "all")
             {
                 query = query.Where(c => c.Status == status);
             }
 
-            // Sắp xếp tin nhắn mới nhất lên đầu
             return await query.OrderByDescending(c => c.SentAt).ToListAsync();
         }
 
-        // 2. Lấy chi tiết 1 tin nhắn (và tự động đánh dấu là Đã xem nếu đang là New)
+        // 2. Lấy chi tiết (Giữ nguyên)
         [HttpGet("{id}")]
         public async Task<ActionResult<TblContact>> GetContact(int id)
         {
             var contact = await _context.TblContacts.FindAsync(id);
             if (contact == null) return NotFound();
 
+            // Tự động đánh dấu đã đọc nếu đang là New (Optional logic)
+            if (contact.Status == "New")
+            {
+                contact.Status = "Read";
+                await _context.SaveChangesAsync();
+            }
+
             return contact;
         }
 
-        // 3. Cập nhật trạng thái (Ví dụ: Admin bấm nút "Đã xử lý")
+        // 3. Cập nhật trạng thái (Giữ nguyên)
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] string newStatus)
         {
             var contact = await _context.TblContacts.FindAsync(id);
             if (contact == null) return NotFound();
 
-            contact.Status = newStatus; // Ví dụ: "Processed"
+            contact.Status = newStatus;
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Cập nhật trạng thái thành công!" });
         }
 
-        // 4. Xóa liên hệ
+        // 4. Xóa liên hệ (Giữ nguyên)
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteContact(int id)
         {
@@ -75,17 +81,18 @@ namespace back_end.Controllers
             return Ok(new { message = "Đã xóa tin nhắn liên hệ." });
         }
 
-        // 5. API nhận tin nhắn từ User (Dùng cho Form ở Hình 1 của bạn)
+        // 5. API User gửi tin (Giữ nguyên)
         [HttpPost]
         public async Task<ActionResult<TblContact>> CreateContact(TblContact contact)
         {
             contact.SentAt = DateTime.Now;
-            contact.Status = "New"; // Mặc định là tin mới
+            contact.Status = "New";
             _context.TblContacts.Add(contact);
             await _context.SaveChangesAsync();
             return CreatedAtAction("GetContact", new { id = contact.ContactId }, contact);
         }
-        // 6. API Phản hồi liên hệ (Gửi Email)
+
+        // 6. API Phản hồi liên hệ (SỬA ĐỔI QUAN TRỌNG)
         [HttpPost("reply/{id}")]
         public async Task<IActionResult> ReplyContact(int id, [FromBody] ReplyContactRequest request)
         {
@@ -94,47 +101,37 @@ namespace back_end.Controllers
 
             try
             {
-                // --- CẤU HÌNH GỬI EMAIL (SMTP) ---
-                // Lưu ý: Nếu dùng Gmail, bạn cần bật "App Password" (Mật khẩu ứng dụng)
-                string fromEmail = "vinhthuan9@gmail.com"; // <-- THAY EMAIL CỦA BẠN
-                string password = "gxmp burt maca knab";        // <-- THAY MẬT KHẨU ỨNG DỤNG GMAIL
+                // Chuẩn bị nội dung mail
+                // Vì EmailService mặc định IsBodyHtml = true, nên ta dùng thẻ <br> để xuống dòng
+                string emailSubject = "Phản hồi: " + request.Subject;
+                string emailBody = $@"
+                    <h3>Chào {contact.FullName},</h3>
+                    <p>{request.Message.Replace("\n", "<br/>")}</p>
+                    <br/>
+                    <p>Trân trọng,<br/>Đội ngũ Admin.</p>
+                ";
 
-                var smtpClient = new SmtpClient("smtp.gmail.com")
-                {
-                    Port = 587,
-                    Credentials = new NetworkCredential(fromEmail, password),
-                    EnableSsl = true,
-                };
+                // GỌI EMAIL SERVICE (Nó sẽ tự lo việc lấy pass từ DB, giải mã và gửi)
+                await _emailService.SendEmailAsync(contact.Email, emailSubject, emailBody);
 
-                var mailMessage = new MailMessage
-                {
-                    From = new MailAddress(fromEmail),
-                    Subject = "Phản hồi: " + request.Subject,
-                    Body = $"Chào {contact.FullName},\n\n{request.Message}\n\nTrân trọng,\nĐội ngũ Admin.",
-                    IsBodyHtml = false,
-                };
-
-                mailMessage.To.Add(contact.Email);
-
-                // Gửi mail
-                smtpClient.Send(mailMessage);
-
-                // --- CẬP NHẬT TRẠNG THÁI ---
-                contact.Status = "Replied"; // Đánh dấu là Đã phản hồi
+                // Cập nhật trạng thái trong DB
+                contact.Status = "Replied";
                 await _context.SaveChangesAsync();
 
                 return Ok(new { message = "Đã gửi email phản hồi thành công!" });
             }
             catch (Exception ex)
             {
+                // Log lỗi ra console để debug nếu cần
+                Console.WriteLine(ex.Message);
                 return BadRequest("Lỗi gửi email: " + ex.Message);
             }
         }
     }
+
     public class ReplyContactRequest
     {
         public string Subject { get; set; }
         public string Message { get; set; }
     }
-
 }

@@ -81,7 +81,7 @@ const PostModal = ({ post, onClose, onSuccess }) => {
     const formats = [
         'header',
         'bold', 'italic', 'underline', 'strike',
-        'list', 'bullet',
+        'list', 
         'align', // Quan trọng: Phải có align ở đây
         'image', 'link', 'video'
     ];

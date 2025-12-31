@@ -124,7 +124,11 @@ const ProfilePage = () => {
     const [passwordForm, setPasswordForm] = useState({
         currentPassword: '', newPassword: '', confirmPassword: ''
     });
-
+    const isValidPassword = (password) => {
+        // Ít nhất 8 ký tự, có ít nhất 1 ký tự đặc biệt
+        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+        return password.length >= 8 && hasSpecialChar;
+    };
     // Location API Data
     const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
@@ -265,14 +269,14 @@ const ProfilePage = () => {
 
     // --- ACTIONS: ADDRESS ---
     const openAddAddress = () => {
-        setAddressForm({ addressId: 0, recipientName: '', phoneNumber: '', addressDetail: '', province: '', district: '', ward: '', isDefault: false });
+        setAddressForm({ addressId: 0, recipientName: profile.fullName || '', phoneNumber: profile.phoneNumber || '', addressDetail: '', province: '', district: '', ward: '', isDefault: false });
         setIsEditingAddress(false);
         setShowAddressForm(true);
     };
 
     const openEditAddress = (addr) => {
         setAddressForm({
-            addressId: addr.addressId, recipientName: addr.recipientName, phoneNumber: addr.phoneNumber,
+            addressId: addr.addressId, recipientName: addr.recipientName || profile.fullName || '', phoneNumber: addr.phoneNumber || profile.phoneNumber || '',
             addressDetail: addr.addressDetail, province: addr.province, district: addr.district, ward: addr.ward, isDefault: addr.isDefault
         });
         setIsEditingAddress(true);
@@ -317,14 +321,25 @@ const ProfilePage = () => {
     // --- ACTIONS: CHANGE PASSWORD ---
     const handleChangePassword = async () => {
         const effectiveId = userId || localStorage.getItem('userId');
+        
+        // 1. Kiểm tra rỗng
         if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
             alert("Vui lòng nhập đầy đủ thông tin!");
             return;
         }
+
+        // 2. Kiểm tra độ mạnh mật khẩu (MỚI THÊM)
+        if (!isValidPassword(passwordForm.newPassword)) {
+            alert("Mật khẩu mới phải có tối thiểu 8 ký tự và chứa ít nhất 1 ký tự đặc biệt!");
+            return;
+        }
+
+        // 3. Kiểm tra trùng khớp
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
             alert("Mật khẩu xác nhận không khớp!");
             return;
         }
+
         try {
             const payload = {
                 userId: parseInt(effectiveId),
@@ -335,7 +350,9 @@ const ProfilePage = () => {
             alert("Đổi mật khẩu thành công!");
             setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
         } catch (err) {
-            alert("Lỗi đổi mật khẩu! Vui lòng kiểm tra lại.");
+            console.error(err);
+            // Kiểm tra nếu server trả về lỗi sai mật khẩu cũ (thường là 400 hoặc 401)
+            alert("Lỗi đổi mật khẩu! Vui lòng kiểm tra lại mật khẩu hiện tại.");
         }
     };
 
@@ -370,43 +387,78 @@ const ProfilePage = () => {
             <div className="profile-content" style={{ flex: 1, background: '#fff', padding: '20px', borderRadius: '5px', boxShadow: '0 0 10px rgba(0,0,0,0.05)' }}>
                 
                 {/* --- TAB HỒ SƠ --- */}
-                {activeTab === 'info' && (
-                    <div>
-                        <h2 style={{borderBottom: '1px solid #eee', paddingBottom: '10px'}}>Hồ Sơ Của Tôi</h2>
-                        <div className="form-group" style={{marginTop: '20px'}}>
-                            <label>Họ và tên:</label>
-                            <input type="text" className="form-control" value={profile.fullName} onChange={(e) => setProfile({...profile, fullName: e.target.value})} />
+            {activeTab === 'info' && (
+                <div>
+                    <h2 style={{borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '20px'}}>Hồ Sơ Của Tôi</h2>
+
+                    {/* HÀNG 1: HỌ TÊN & EMAIL */}
+                    <div style={{ display: 'flex', gap: '20px', marginBottom: '15px' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{fontWeight: 'bold', display: 'block', marginBottom: '5px'}}>Họ và tên:</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={profile.fullName} 
+                                onChange={(e) => setProfile({...profile, fullName: e.target.value})} 
+                            />
                         </div>
-                        <div className="form-group">
-                            <label>Email:</label>
-                            <input type="text" className="form-control" value={profile.email} disabled style={{ background: '#eee', cursor: 'not-allowed' }} />
+                        <div style={{ flex: 1 }}>
+                            <label style={{fontWeight: 'bold', display: 'block', marginBottom: '5px'}}>Email:</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={profile.email} 
+                                disabled 
+                                style={{ background: '#f5f5f5', cursor: 'not-allowed', color: '#666' }} 
+                            />
                         </div>
-                        <div className="form-group">
-                            <label>Số điện thoại:</label>
-                            <input type="text" className="form-control" value={profile.phoneNumber} onChange={(e) => setProfile({...profile, phoneNumber: e.target.value})} />
-                        </div>
-                        <div className="form-group">
-                            <label>Ngày sinh:</label>
-                            <input type="date" className="form-control" value={profile.dateofBirth || ''} onChange={(e) => setProfile({...profile, dateofBirth: e.target.value})} />
-                        </div>
-                        <div className="form-group">
-                            <label>Giới tính:</label>
-                            <div style={{display: 'flex', gap: '20px'}}>
-                                <label><input type="radio" name="gender" value="Nam" checked={profile.gender === 'Nam'} onChange={() => setProfile({...profile, gender: 'Nam'})} /> Nam</label>
-                                <label><input type="radio" name="gender" value="Nữ" checked={profile.gender === 'Nữ'} onChange={() => setProfile({...profile, gender: 'Nữ'})} /> Nữ</label>
-                                <label><input type="radio" name="gender" value="Khác" checked={profile.gender === 'Khác'} onChange={() => setProfile({...profile, gender: 'Khác'})} /> Khác</label>
-                            </div>
-                        </div>
-                        <div className="form-group">
-                            <label>Thay đổi Avatar:</label>
-                            <div style={{display: 'flex', alignItems: 'center', gap: '15px', marginTop: '5px'}}>
-                                <img src={getAvatarSrc(profile.avatarUrl)} style={{width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover'}} alt="Preview" />
-                                <input type="file" accept="image/*" onChange={handleAvatarUpload} />
-                            </div>
-                        </div>
-                        <button className="btn btn-success" onClick={handleUpdateProfile} style={{marginTop: '20px'}}>Lưu Thay Đổi</button>
                     </div>
-                )}
+
+                    {/* HÀNG 2: SỐ ĐIỆN THOẠI & NGÀY SINH */}
+                    <div style={{ display: 'flex', gap: '20px', marginBottom: '15px' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{fontWeight: 'bold', display: 'block', marginBottom: '5px'}}>Số điện thoại:</label>
+                            <input 
+                                type="text" 
+                                className="form-control" 
+                                value={profile.phoneNumber} 
+                                onChange={(e) => setProfile({...profile, phoneNumber: e.target.value})} 
+                            />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{fontWeight: 'bold', display: 'block', marginBottom: '5px'}}>Ngày sinh:</label>
+                            <input 
+                                type="date" 
+                                className="form-control" 
+                                value={profile.dateofBirth || ''} 
+                                onChange={(e) => setProfile({...profile, dateofBirth: e.target.value})} 
+                            />
+                        </div>
+                    </div>
+
+                    {/* CÁC PHẦN CÒN LẠI (GIỚI TÍNH, AVATAR...) GIỮ NGUYÊN */}
+                    <div className="form-group" style={{marginBottom: '15px'}}>
+                        <label style={{fontWeight: 'bold', display: 'block', marginBottom: '5px'}}>Giới tính:</label>
+                        <div style={{display: 'flex', gap: '30px', alignItems: 'center', padding: '10px 0'}}>
+                            <label style={{cursor: 'pointer'}}><input type="radio" name="gender" value="Nam" checked={profile.gender === 'Nam'} onChange={() => setProfile({...profile, gender: 'Nam'})} style={{marginRight: '5px'}} /> Nam</label>
+                            <label style={{cursor: 'pointer'}}><input type="radio" name="gender" value="Nữ" checked={profile.gender === 'Nữ'} onChange={() => setProfile({...profile, gender: 'Nữ'})} style={{marginRight: '5px'}} /> Nữ</label>
+                            <label style={{cursor: 'pointer'}}><input type="radio" name="gender" value="Khác" checked={profile.gender === 'Khác'} onChange={() => setProfile({...profile, gender: 'Khác'})} style={{marginRight: '5px'}} /> Khác</label>
+                        </div>
+                    </div>
+
+                    <div className="form-group" style={{marginBottom: '20px'}}>
+                        <label style={{fontWeight: 'bold', display: 'block', marginBottom: '5px'}}>Thay đổi Avatar:</label>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '20px', marginTop: '10px', border: '1px dashed #ccc', padding: '15px', borderRadius: '8px'}}>
+                            <img src={getAvatarSrc(profile.avatarUrl)} style={{width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', boxShadow: '0 2px 5px rgba(0,0,0,0.1)'}} alt="Preview" />
+                            <input type="file" accept="image/*" onChange={handleAvatarUpload} />
+                        </div>
+                    </div>
+
+                    <div style={{textAlign: 'right'}}>
+                        <button className="btn btn-success" onClick={handleUpdateProfile} style={{padding: '10px 30px', fontWeight: 'bold'}}>Lưu Thay Đổi</button>
+                    </div>
+                </div>
+            )}
 
                 {/* --- TAB ĐỊA CHỈ --- */}
                 {activeTab === 'address' && (
@@ -437,20 +489,80 @@ const ProfilePage = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="address-form" style={{ marginTop: '20px' }}>
-                                {/* Form Địa chỉ (Giữ nguyên) */}
-                                <div className="form-group"><input placeholder="Họ và tên" className="form-control" value={addressForm.recipientName} onChange={e => setAddressForm({...addressForm, recipientName: e.target.value})} /></div>
-                                <div className="form-group"><input placeholder="Số điện thoại" className="form-control" value={addressForm.phoneNumber} onChange={e => setAddressForm({...addressForm, phoneNumber: e.target.value})} /></div>
-                                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                                    <select className="form-control" onChange={handleProvinceChange}><option value="">{addressForm.province || "Chọn Tỉnh/Thành"}</option>{provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}</select>
-                                    <select className="form-control" onChange={handleDistrictChange}><option value="">{addressForm.district || "Chọn Quận/Huyện"}</option>{districts.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}</select>
-                                    <select className="form-control" onChange={handleWardChange}><option value="">{addressForm.ward || "Chọn Phường/Xã"}</option>{wards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}</select>
+                            <div className="address-form" style={{ marginTop: '20px', background: '#f8f9fa', padding: '25px', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+                                <h4 style={{marginBottom: '20px', color: '#00796b', borderBottom: '1px solid #ddd', paddingBottom: '10px'}}>
+                                    {isEditingAddress ? "Cập Nhật Địa Chỉ" : "Thêm Địa Chỉ Mới"}
+                                </h4>
+
+                                {/* --- HÀNG 1: HỌ TÊN & SỐ ĐIỆN THOẠI (GỘP HÀNG) --- */}
+                                <div style={{ display: 'flex', gap: '20px', marginBottom: '15px' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{fontWeight: 'bold', marginBottom: '5px', display: 'block', fontSize: '14px'}}>Họ và tên</label>
+                                        <input 
+                                            placeholder="Tên người nhận hàng" 
+                                            className="form-control" 
+                                            value={addressForm.recipientName} 
+                                            onChange={e => setAddressForm({...addressForm, recipientName: e.target.value})} 
+                                        />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{fontWeight: 'bold', marginBottom: '5px', display: 'block', fontSize: '14px'}}>Số điện thoại</label>
+                                        <input 
+                                            placeholder="Số điện thoại liên lạc" 
+                                            className="form-control" 
+                                            value={addressForm.phoneNumber} 
+                                            onChange={e => setAddressForm({...addressForm, phoneNumber: e.target.value})} 
+                                        />
+                                    </div>
                                 </div>
-                                <div className="form-group"><input placeholder="Địa chỉ cụ thể" className="form-control" value={addressForm.addressDetail} onChange={e => setAddressForm({...addressForm, addressDetail: e.target.value})} /></div>
-                                <div className="form-group"><label><input type="checkbox" checked={addressForm.isDefault} onChange={e => setAddressForm({...addressForm, isDefault: e.target.checked})} /> Đặt làm mặc định</label></div>
-                                <div style={{marginTop: '20px'}}>
-                                    <button className="btn btn-success" onClick={handleSaveAddress} style={{marginRight: '10px'}}>Hoàn thành</button>
-                                    <button className="btn btn-secondary" onClick={() => setShowAddressForm(false)}>Trở lại</button>
+
+                                {/* --- HÀNG 2: CHỌN TỈNH/THÀNH (GIỮ NGUYÊN LOGIC) --- */}
+                                <div style={{ marginBottom: '15px' }}>
+                                    <label style={{fontWeight: 'bold', marginBottom: '5px', display: 'block', fontSize: '14px'}}>Khu vực</label>
+                                    <div style={{ display: 'flex', gap: '15px' }}>
+                                        <select className="form-control" onChange={handleProvinceChange} style={{flex: 1}}>
+                                            <option value="">{addressForm.province || "Tỉnh/Thành phố"}</option>
+                                            {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
+                                        </select>
+                                        <select className="form-control" onChange={handleDistrictChange} style={{flex: 1}}>
+                                            <option value="">{addressForm.district || "Quận/Huyện"}</option>
+                                            {districts.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+                                        </select>
+                                        <select className="form-control" onChange={handleWardChange} style={{flex: 1}}>
+                                            <option value="">{addressForm.ward || "Phường/Xã"}</option>
+                                            {wards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* --- HÀNG 3: ĐỊA CHỈ CỤ THỂ --- */}
+                                <div className="form-group" style={{ marginBottom: '15px' }}>
+                                    <label style={{fontWeight: 'bold', marginBottom: '5px', display: 'block', fontSize: '14px'}}>Địa chỉ chi tiết</label>
+                                    <input 
+                                        placeholder="Số nhà, tên đường, tòa nhà..." 
+                                        className="form-control" 
+                                        value={addressForm.addressDetail} 
+                                        onChange={e => setAddressForm({...addressForm, addressDetail: e.target.value})} 
+                                    />
+                                </div>
+
+                                {/* --- CHECKBOX MẶC ĐỊNH --- */}
+                                <div className="form-group" style={{ marginBottom: '20px' }}>
+                                    <label style={{cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px'}}>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={addressForm.isDefault} 
+                                            onChange={e => setAddressForm({...addressForm, isDefault: e.target.checked})} 
+                                            style={{width: '18px', height: '18px'}}
+                                        /> 
+                                        Đặt làm địa chỉ mặc định
+                                    </label>
+                                </div>
+
+                                {/* --- BUTTONS --- */}
+                                <div style={{marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '15px', textAlign: 'right'}}>
+                                    <button className="btn btn-secondary" onClick={() => setShowAddressForm(false)} style={{marginRight: '10px'}}>Trở lại</button>
+                                    <button className="btn btn-success" onClick={handleSaveAddress}>Hoàn thành</button>
                                 </div>
                             </div>
                         )}
@@ -532,25 +644,66 @@ const ProfilePage = () => {
 
                 {/* --- TAB ĐỔI MẬT KHẨU --- */}
                 {activeTab === 'password' && (
+                <div style={{ maxWidth: '600px' }}>
+                    <h2 style={{borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '20px'}}>Đổi Mật Khẩu</h2>
+                    
                     <div>
-                        <h2 style={{borderBottom: '1px solid #eee', paddingBottom: '10px'}}>Đổi Mật Khẩu</h2>
-                        <div style={{ maxWidth: '500px', marginTop: '20px' }}>
-                            <div className="form-group">
-                                <label>Mật khẩu hiện tại (*)</label>
-                                <input type="password" className="form-control" value={passwordForm.currentPassword} onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})} placeholder="Nhập mật khẩu đang dùng" />
-                            </div>
-                            <div className="form-group">
-                                <label>Mật khẩu mới (*)</label>
-                                <input type="password" className="form-control" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})} placeholder="Tối thiểu 8 ký tự, có ký tự đặc biệt" />
-                            </div>
-                            <div className="form-group">
-                                <label>Nhập lại mật khẩu mới (*)</label>
-                                <input type="password" className="form-control" value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})} placeholder="Xác nhận mật khẩu mới" />
-                            </div>
-                            <button className="btn btn-primary" onClick={handleChangePassword} style={{marginTop: '20px'}}>Xác nhận đổi mật khẩu</button>
+                        
+                        {/* Mật khẩu hiện tại */}
+                        <div className="form-group" style={{ marginBottom: '20px' }}>
+                            <label style={{fontWeight: 'bold', display: 'block', marginBottom: '8px'}}>Mật khẩu hiện tại (*)</label>
+                            <input 
+                                type="password" 
+                                className="form-control" 
+                                value={passwordForm.currentPassword} 
+                                onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})} 
+                                placeholder="Nhập mật khẩu đang sử dụng"
+                                style={{ padding: '10px' }}
+                            />
+                        </div>
+
+                        {/* Mật khẩu mới */}
+                        <div className="form-group" style={{ marginBottom: '20px' }}>
+                            <label style={{fontWeight: 'bold', display: 'block', marginBottom: '8px'}}>Mật khẩu mới (*)</label>
+                            <input 
+                                type="password" 
+                                className="form-control" 
+                                value={passwordForm.newPassword} 
+                                onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})} 
+                                placeholder="Nhập mật khẩu mới" 
+                                style={{ padding: '10px' }}
+                            />
+                            <small style={{display: 'block', marginTop: '5px', color: '#666', fontStyle: 'italic'}}>
+                                * Tối thiểu 8 ký tự và chứa ít nhất 1 ký tự đặc biệt (!@#$%...)
+                            </small>
+                        </div>
+
+                        {/* Nhập lại mật khẩu */}
+                        <div className="form-group" style={{ marginBottom: '25px' }}>
+                            <label style={{fontWeight: 'bold', display: 'block', marginBottom: '8px'}}>Xác nhận mật khẩu mới (*)</label>
+                            <input 
+                                type="password" 
+                                className="form-control" 
+                                value={passwordForm.confirmPassword} 
+                                onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})} 
+                                placeholder="Nhập lại mật khẩu mới" 
+                                style={{ padding: '10px' }}
+                            />
+                        </div>
+
+                        {/* Nút hành động */}
+                        <div style={{ textAlign: 'right', borderTop: '1px solid #ddd', paddingTop: '20px' }}>
+                            <button 
+                                className="btn btn-primary" 
+                                onClick={handleChangePassword}
+                                style={{ padding: '10px 25px', fontWeight: 'bold' }}
+                            >
+                                Cập nhật mật khẩu
+                            </button>
                         </div>
                     </div>
-                )}
+                </div>
+            )}
 
             </div>
 

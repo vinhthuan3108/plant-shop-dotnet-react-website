@@ -15,7 +15,7 @@ builder.Services.AddControllers().AddJsonOptions(x =>
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<DbplantShopThuanCuongContext>(options =>
-    options.UseSqlServer("Server=DELL;Database=DBPlantShop;Trusted_Connection=True;TrustServerCertificate=True;"));
+    options.UseSqlServer("Server=LAPTOP-BPFVN8L7\\SQLEXPRESS02;Database=DBPlantShop;Trusted_Connection=True;TrustServerCertificate=True;"));
 
 builder.Services.AddCors(options =>
 {
@@ -28,7 +28,7 @@ builder.Services.AddCors(options =>
 // CẤU HÌNH AUTHENTICATION MỚI
 // Giả sử bạn lưu Key trong appsettings.json là "Jwt:Key"
 // Nếu không, bạn điền cứng chuỗi key vào đây (như ví dụ trên)
-var secretKey = builder.Configuration["Jwt:Key"] ?? "tokencuavinhthuanvamanhcuong-dsjfhjdfhshfhsfdfhsdfhsdhfsfskhfdjhfkshdfhsdfsdf";
+var secretKey = builder.Configuration["AppSettings:Token"] ?? "tokencuavinhthuanvamanhcuong-dsjfhjdfhshfhsfdfhsdfhsdhfsfskhfdjhfkshdfhsdfsdf";
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
