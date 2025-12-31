@@ -113,9 +113,9 @@ namespace back_end.Controllers
             string kw = keyword.ToLower().Trim();
 
             // Tìm bài viết:
-            // 1. Phải là bài đã Published (hoặc Active)
+            // 1. Phải là bài đã Published
             // 2. Chưa bị xóa (IsDeleted != true)
-            // 3. Tiêu đề hoặc Mô tả chứa từ khóa
+            // 3. Tiêu đề chứa từ khóa
             var posts = await _context.TblPosts
                 .Where(p => (p.Status == "Published")
                             && (p.IsDeleted != true)
@@ -127,7 +127,12 @@ namespace back_end.Controllers
                     Id = p.PostId,
                     Title = p.Title,
                     Image = p.ThumbnailUrl,
-                    Type = "blog", // Đánh dấu để Frontend biết đây là bài viết
+                    Type = "blog" // Đánh dấu để Frontend biết đây là bài viết
+                })
+                .ToListAsync(); // <--- BẠN BỊ THIẾU ĐOẠN TỪ ĐÂY TRỞ XUỐNG
+
+            return Ok(posts);
+        } // Đánh dấu để Frontend biết đây là bài viết
         [HttpGet("related/{id}")]
         public async Task<ActionResult<IEnumerable<PostDto>>> GetRelatedPosts(int id)
         {
