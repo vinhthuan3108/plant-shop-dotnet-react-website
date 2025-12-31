@@ -116,38 +116,64 @@ const CreateImportReceipt = () => {
     const totalAmount = details.reduce((sum, item) => sum + (item.quantity * item.importPrice), 0);
 
     // 4. SUBMIT
+    // 4. SUBMIT (Phiên bản Debug lỗi 401)
     const handleSubmit = async () => {
+        // Validate cơ bản
         if (!supplierId) return alert("Chưa chọn Nhà cung cấp!");
-        if (details.some(d => !d.variantId)) return alert("Vui lòng chọn đầy đủ phân loại hàng cho các dòng!");
+        if (details.some(d => !d.variantId)) return alert("Vui lòng chọn đầy đủ phân loại hàng!");
 
-        const token = localStorage.getItem('token'); // Hoặc lấy từ Context
-        if (!token) return alert("Vui lòng đăng nhập lại.");
+        // --- BƯỚC DEBUG: KIỂM TRA TOKEN ---
+        let token = localStorage.getItem('token'); 
+        
+        console.log(">>> 1. Token lấy từ localStorage:", token); // Xem token có null không?
 
-        // Chuẩn bị payload đúng chuẩn DTO Backend yêu cầu
+        if (!token) {
+            alert("Lỗi: Không tìm thấy Token! Bạn hãy đăng xuất và đăng nhập lại.");
+            return;
+        }
+
+        // Xử lý lỗi phổ biến: Token bị dính dấu ngoặc kép "..." do JSON.stringify
+        if (token.startsWith('"') && token.endsWith('"')) {
+            token = token.slice(1, -1);
+            console.log(">>> 2. Token sau khi cắt bỏ ngoặc kép thừa:", token);
+        }
+        // ------------------------------------
+
         const payload = {
             supplierId: parseInt(supplierId),
             importDate: importDate,
             note: note,
             details: details.map(d => ({
-                variantId: parseInt(d.variantId), // Backend cần VariantId
+                variantId: parseInt(d.variantId),
                 quantity: parseInt(d.quantity),
                 importPrice: parseFloat(d.importPrice)
             }))
         };
 
         try {
+            console.log(">>> 3. Đang gửi request với Header:", `Bearer ${token}`);
+            
             const res = await axios.post(`${BASE_URL}/api/ImportReceipts`, payload, {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json' 
+                }
             });
+
             if (res.status === 200 || res.status === 201) {
-                alert("Nhập kho thành công!");
-                // Reset form
+                alert("Thành công!");
+                // Reset form...
                 setDetails([{ tempCategoryId: '', tempProductId: '', variantId: '', quantity: 1, importPrice: 0 }]);
                 setNote('');
             }
         } catch (err) {
-            console.error(err);
-            alert("Lỗi: " + (err.response?.data?.message || err.message));
+            console.error(">>> LỖI API:", err);
+            // In ra chi tiết lỗi từ backend (nếu có)
+            if (err.response && err.response.status === 401) {
+                alert("Lỗi 401: Token hết hạn hoặc không hợp lệ. Vui lòng ĐĂNG NHẬP LẠI.");
+            } else {
+                alert("Lỗi: " + (err.response?.data?.message || err.message));
+            }
         }
     };
 

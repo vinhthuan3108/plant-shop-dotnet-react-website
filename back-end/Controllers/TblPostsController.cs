@@ -128,15 +128,34 @@ namespace back_end.Controllers
                     Title = p.Title,
                     Image = p.ThumbnailUrl,
                     Type = "blog", // Đánh dấu để Frontend biết đây là bài viết
+        [HttpGet("related/{id}")]
+        public async Task<ActionResult<IEnumerable<PostDto>>> GetRelatedPosts(int id)
+        {
+            // 1. Lấy thông tin bài viết hiện tại để biết nó thuộc Category nào
+            var currentPost = await _context.TblPosts.FindAsync(id);
+            if (currentPost == null) return NotFound();
+
+            // 2. Truy vấn các bài viết khác cùng Category
+            var relatedPosts = await _context.TblPosts
+                .Where(p => p.PostCategoryId == currentPost.PostCategoryId // Cùng danh mục
+                         && p.PostId != id // KHÔNG trùng với bài hiện tại
+                         && p.Status == "Published" // Phải là bài đã đăng
+                         && p.IsDeleted != true) // Chưa bị xóa
+                .OrderByDescending(p => p.CreatedAt) // Bài mới nhất
+                .Take(3) // Chỉ lấy 3 bài
+                .Select(p => new PostDto
+                {
+                    PostId = p.PostId,
+                    Title = p.Title,
+                    ThumbnailUrl = p.ThumbnailUrl,
+                    PublishedAt = p.PublishedAt,
+                    CreatedAt = p.CreatedAt,
                     ShortDescription = p.ShortDescription
                 })
                 .ToListAsync();
 
-            return Ok(posts);
+            return Ok(relatedPosts);
         }
-
-        // ----------------------------------------------------
-
         [HttpPost]
         [Authorize] // <--- Bắt buộc phải có token mới được đăng bài
         public async Task<ActionResult> CreatePost(PostDto postDto)

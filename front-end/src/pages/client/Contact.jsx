@@ -12,7 +12,7 @@ function Contact() {
 
     const [status, setStatus] = useState(''); // Thông báo thành công/thất bại
 
-    // Xử lý khi nhập liệu
+    // Xử lý khi nhập liệu (chung cho các trường)
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -24,10 +24,10 @@ function Contact() {
         setStatus('sending');
 
         try {
-            // Gọi API CreateContact mà chúng ta đã viết ở Backend
+            // Gọi API CreateContact
             await axios.post('https://localhost:7298/api/Contacts', {
                 ...formData,
-                subject: 'Liên hệ từ khách hàng' // Mặc định subject nếu form không có
+                subject: 'Liên hệ từ khách hàng'
             });
 
             alert('Gửi tin nhắn thành công!');
@@ -44,7 +44,7 @@ function Contact() {
     return (
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px', fontFamily: 'Arial, sans-serif' }}>
             
-            {/* Phần Map (Ảnh minh họa hoặc iframe Google Map) */}
+            {/* Phần Map */}
             <div style={{ marginBottom: '40px' }}>
                 <iframe 
                     src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3528.4810863297434!2d109.17483147453608!3d12.241600130463471!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3170678749018e2f%3A0x4b0e1e18074eb956!2zQ8O0bmcgdHkgY-G7lSBwaOG6p24gU3dlZXRTb2Z0!5e1!3m2!1svi!2s!4v1766377102808!5m2!1svi!2s" 
@@ -92,23 +92,47 @@ function Contact() {
                                 type="text" 
                                 name="fullName" 
                                 value={formData.fullName}
-                                onChange={handleChange}
+                                onChange={(e) => {
+                                    handleChange(e);
+                                    e.target.setCustomValidity(''); // Xóa lỗi khi gõ lại
+                                }}
+                                onInvalid={(e) => e.target.setCustomValidity('Vui lòng nhập họ và tên của bạn')}
                                 style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
                                 required
                             />
                         </div>
 
+                        {/* --- PHẦN XỬ LÝ EMAIL TIẾNG VIỆT & CHECK FORMAT --- */}
                         <div style={{ marginBottom: '15px' }}>
                             <label style={{ display: 'block', marginBottom: '5px' }}>Email của bạn</label>
                             <input 
                                 type="email" 
                                 name="email" 
                                 value={formData.email}
-                                onChange={handleChange}
+                                onChange={(e) => {
+                                    handleChange(e); // 1. Lưu state
+                                    
+                                    // 2. Xóa lỗi cũ để trình duyệt check lại
+                                    e.target.setCustomValidity(''); 
+
+                                    // 3. Kiểm tra ngay lập tức khi gõ (nếu sai format thì báo lỗi ngầm định, đợi submit hoặc blur sẽ hiện)
+                                    if (e.target.validity.typeMismatch) {
+                                        e.target.setCustomValidity('Vui lòng nhập đúng định dạng email (ví dụ: abc@gmail.com)');
+                                    }
+                                }}
+                                onInvalid={(e) => {
+                                    // 4. Xử lý khi bấm nút Gửi mà bị lỗi
+                                    if (e.target.validity.valueMissing) {
+                                        e.target.setCustomValidity('Vui lòng nhập email, không được để trống');
+                                    } else {
+                                        e.target.setCustomValidity('Vui lòng nhập đúng định dạng email (ví dụ: abc@gmail.com)');
+                                    }
+                                }}
                                 style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
                                 required
                             />
                         </div>
+                        {/* -------------------------------------------------- */}
 
                         <div style={{ marginBottom: '15px' }}>
                             <label style={{ display: 'block', marginBottom: '5px' }}>Số điện thoại</label>
@@ -126,7 +150,11 @@ function Contact() {
                             <textarea 
                                 name="message" 
                                 value={formData.message}
-                                onChange={handleChange}
+                                onChange={(e) => {
+                                    handleChange(e);
+                                    e.target.setCustomValidity('');
+                                }}
+                                onInvalid={(e) => e.target.setCustomValidity('Vui lòng nhập nội dung tin nhắn')}
                                 rows="5"
                                 style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
                                 required
@@ -136,7 +164,7 @@ function Contact() {
                         <button 
                             type="submit" 
                             style={{ 
-                                backgroundColor: '#4CAF50', // Màu xanh lá giống hình mẫu
+                                backgroundColor: '#4CAF50', 
                                 color: 'white', 
                                 padding: '10px 30px', 
                                 border: 'none', 

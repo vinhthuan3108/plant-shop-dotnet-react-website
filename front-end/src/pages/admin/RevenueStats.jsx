@@ -79,26 +79,67 @@ function RevenueStats() {
                 <>
                     {/* 2. CHI TIẾT DOANH THU/LỢI NHUẬN (CARDS) */}
                     <div style={cardsContainer}>
+                        {/* CARD 1: DOANH THU */}
                         <div style={{ ...cardStyle, borderLeft: '5px solid #007bff' }}>
                             <div style={labelStyle}>Tổng Doanh Thu</div>
                             <div style={{ ...numberStyle, color: '#007bff' }}>
-                                {data.totalRevenue.toLocaleString('vi-VN')} đ
+                                {data.totalRevenue?.toLocaleString('vi-VN')} đ
                             </div>
+                            <small style={{color: '#999'}}>(Bao gồm ship)</small>
                         </div>
+
+                        {/* CARD 2: TIỀN SHIP (MỚI) */}
+                        <div style={{ ...cardStyle, borderLeft: '5px solid #6f42c1' }}> {/* Màu tím */}
+                            <div style={labelStyle}>Tổng Tiền Ship</div>
+                            <div style={{ ...numberStyle, color: '#6f42c1' }}>
+                                {data.totalShipping?.toLocaleString('vi-VN')} đ
+                            </div>
+                            <small style={{color: '#999'}}>(Thu của khách)</small>
+                        </div>
+
+                        {/* CARD 3: LỢI NHUẬN */}
                         <div style={{ ...cardStyle, borderLeft: '5px solid #28a745' }}>
-                            <div style={labelStyle}>Tổng Lợi Nhuận</div>
+                            <div style={labelStyle}>Lợi Nhuận Thực</div>
                             <div style={{ ...numberStyle, color: '#28a745' }}>
-                                {data.totalProfit.toLocaleString('vi-VN')} đ
+                                {data.totalProfit?.toLocaleString('vi-VN')} đ
                             </div>
+                            <small style={{color: '#999'}}>(Đã trừ vốn & ship, chỉ tính sản phẩm bán được)</small>
                         </div>
+
+                        {/* CARD 4: ĐƠN HÀNG */}
                         <div style={{ ...cardStyle, borderLeft: '5px solid #ffc107' }}>
                             <div style={labelStyle}>Tổng Đơn Hàng</div>
                             <div style={{ ...numberStyle, color: '#d39e00' }}>
                                 {data.totalOrders} đơn
                             </div>
+                            <small style={{color: '#999'}}>(Đã hoàn thành)</small>
                         </div>
                     </div>
+                    <div style={{ display: 'flex', gap: '20px', marginBottom: '30px' }}>
+    
+                        {/* Card Chi Nhập Hàng */}
+                        <div style={{ ...cardStyle, borderLeft: '5px solid #dc3545', backgroundColor: '#fff5f5' }}>
+                            <div style={labelStyle}>Tổng Chi Nhập Hàng</div>
+                            <div style={{ ...numberStyle, color: '#dc3545' }}>
+                                -{data.totalImportCost?.toLocaleString('vi-VN')} đ
+                            </div>
+                            <small style={{color: '#999'}}>(Tổng tiền chi ra để nhập hành)</small>
+                        </div>
 
+                        {/* Card QUAN TRỌNG: Dòng Tiền */}
+                        <div style={{ ...cardStyle, borderLeft: `5px solid ${data.netCashFlow >= 0 ? '#198754' : '#dc3545'}` }}>
+                            <div style={labelStyle}>Dòng Tiền Thực (Cash Flow)</div>
+                            <div style={{ 
+                                ...numberStyle, 
+                                color: data.netCashFlow >= 0 ? '#198754' : '#dc3545' // Xanh nếu dương, Đỏ nếu âm
+                            }}>
+                                {data.netCashFlow?.toLocaleString('vi-VN')} đ
+                            </div>
+                            <small style={{color: '#666'}}>
+                                (Lợi nhuận thực tế xét toàn bộ sản phẩm)
+                            </small>
+                        </div>
+                    </div>
                     {/* 3. BIỂU ĐỒ (CHART) */}
 {/* QUAN TRỌNG: Phải có height: '400px' ở thẻ div này */}
 <div style={{ height: '400px', width: '100%', backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>

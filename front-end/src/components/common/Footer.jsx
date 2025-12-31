@@ -34,7 +34,8 @@ const Footer = () => {
         // 2. Hàm lấy 4 danh mục nổi bật (Code cũ)
         const fetchCategories = async () => {
             try {
-                const res = await axios.get(`${API_BASE}/api/TblCategories/get-featured`);
+                // Gọi API lấy danh mục bán chạy nhất
+                const res = await axios.get(`${API_BASE}/api/TblCategories/best-selling`);
                 if(res.data) setCategories(res.data);
             } catch (error) {
                 console.error("Lỗi lấy danh mục:", error);
@@ -124,7 +125,7 @@ const Footer = () => {
                         {categories.length > 0 ? (
                             categories.map((cat) => (
                                 <li key={cat.categoryId || cat.CategoryId}>
-                                    <Link to={`/shop?categoryId=${cat.categoryId || cat.CategoryId}`}>
+                                    <Link to={`/shop?category=${cat.categoryId || cat.CategoryId}`}>
                                         {cat.categoryName || cat.CategoryName}
                                     </Link>
                                 </li>
