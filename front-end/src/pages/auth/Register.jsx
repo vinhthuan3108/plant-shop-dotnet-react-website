@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { toast } from 'react-toastify'; // Import thư viện thông báo
+import { toast } from 'react-toastify'; 
 
 function Register() {
     const navigate = useNavigate();
     
-    // State chứa dữ liệu form
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -15,19 +14,16 @@ function Register() {
     });
 
     const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false); // Thêm trạng thái loading
+    const [isLoading, setIsLoading] = useState(false); 
 
     const handleChange = (e) => {
         const { name, value } = e.target;
 
-        // --- LOGIC MỚI: CHỈ CHO NHẬP SỐ VÀO Ô PHONE ---
         if (name === 'phoneNumber') {
-            // Regex: Nếu chuỗi nhập vào KHÔNG phải là số nguyên thì return luôn (không lưu state)
             if (!/^\d*$/.test(value)) {
                 return; 
             }
         }
-        // ----------------------------------------------
 
         setFormData({
             ...formData,
@@ -37,15 +33,11 @@ function Register() {
         if (error) setError('');
     };
 
-    // Hàm kiểm tra định dạng email
     const isValidEmail = (email) => {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     };
 
-    // Hàm kiểm tra độ mạnh mật khẩu (>= 8 ký tự và có ký tự đặc biệt)
     const isValidPassword = (password) => {
-        // Regex: Ít nhất 8 ký tự, có ít nhất 1 ký tự đặc biệt
-        // Các ký tự đặc biệt ví dụ: ! @ # $ % ^ & *
         const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
         return password.length >= 8 && hasSpecialChar;
     };
@@ -54,8 +46,7 @@ function Register() {
         e.preventDefault();
         setError('');
 
-        // --- 1. VALIDATION ---
-
+        // Validation thủ công (dự phòng)
         if (!isValidEmail(formData.email)) {
             setError("Định dạng email không hợp lệ!");
             return;
@@ -71,7 +62,6 @@ function Register() {
             return;
         }
 
-        // --- LOGIC MỚI: KIỂM TRA ĐỘ DÀI SỐ ĐIỆN THOẠI ---
         if (formData.phoneNumber) {
             if (formData.phoneNumber.length < 10 || formData.phoneNumber.length > 11) {
                 setError("Số điện thoại phải từ 10 đến 11 số!");
@@ -79,8 +69,7 @@ function Register() {
             }
         }
 
-        // --- 2. GỌI API ---
-        setIsLoading(true); // Bắt đầu loading
+        setIsLoading(true); 
         try {
             const payload = {
                 email: formData.email,
@@ -98,12 +87,9 @@ function Register() {
             const responseText = await res.text();
 
             if (res.ok) {
-                // Thành công
                 toast.success('Đăng ký thành công! Hãy kiểm tra email để lấy mã OTP.');
-                // Chuyển hướng sang trang nhập OTP và mang theo email
                 navigate('/verify-otp', { state: { email: formData.email } }); 
             } else {
-                // Thất bại (Ví dụ: Email trùng)
                 setError(responseText || "Đăng ký thất bại");
                 toast.error(responseText || "Đăng ký thất bại");
             }
@@ -112,7 +98,7 @@ function Register() {
             setError("Lỗi kết nối Server");
             toast.error("Không thể kết nối đến máy chủ");
         } finally {
-            setIsLoading(false); // Kết thúc loading
+            setIsLoading(false); 
         }
     };
 
@@ -121,7 +107,6 @@ function Register() {
             <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '400px' }}>
                 <h2 style={{ textAlign: 'center', color: '#333', marginBottom: '20px' }}>Đăng Ký </h2>
                 
-                {/* Hiển thị lỗi nếu có */}
                 {error && (
                     <div style={{ color: '#721c24', backgroundColor: '#f8d7da', padding: '10px', borderRadius: '4px', marginBottom: '15px', fontSize: '14px', border: '1px solid #f5c6cb' }}>
                         {error}
@@ -129,14 +114,34 @@ function Register() {
                 )}
 
                 <form onSubmit={handleRegister}>
+                    {/* --- ĐOẠN ĐÃ SỬA: INPUT EMAIL --- */}
                     <div style={{ marginBottom: '15px' }}>
                         <label style={{fontWeight: '500'}}>Email</label>
                         <input 
-                            type="email" name="email" required
-                            value={formData.email} onChange={handleChange}
+                            type="email" 
+                            name="email" 
+                            required
+                            value={formData.email} 
+                            // Sửa đổi onChange để vừa cập nhật state vừa reset validate message
+                            onChange={(e) => {
+                                handleChange(e); 
+                                e.target.setCustomValidity(''); // Xóa lỗi cũ khi gõ
+                                if (e.target.validity.typeMismatch) {
+                                    e.target.setCustomValidity('Vui lòng nhập đúng định dạng email (ví dụ: abc@gmail.com)');
+                                }
+                            }}
+                            // Thêm onInvalid để bắt sự kiện lỗi của trình duyệt
+                            onInvalid={(e) => {
+                                if (e.target.validity.valueMissing) {
+                                    e.target.setCustomValidity('Vui lòng nhập email, không được để trống');
+                                } else {
+                                    e.target.setCustomValidity('Vui lòng nhập đúng định dạng email (ví dụ: abc@gmail.com)');
+                                }
+                            }}
                             style={{ width: '100%', padding: '10px', marginTop: '5px', border: '1px solid #ddd', borderRadius: '4px' }} 
                         />
                     </div>
+                    {/* --------------------------------- */}
 
                     <div style={{ marginBottom: '15px' }}>
                         <label style={{fontWeight: '500'}}>Họ và tên</label>
@@ -178,11 +183,11 @@ function Register() {
 
                     <button 
                         type="submit" 
-                        disabled={isLoading} // Khóa nút khi đang loading
+                        disabled={isLoading} 
                         style={{ 
                             width: '100%', 
                             padding: '12px', 
-                            backgroundColor: isLoading ? '#6c757d' : '#28a745', // Đổi màu khi loading
+                            backgroundColor: isLoading ? '#6c757d' : '#28a745', 
                             color: 'white', 
                             border: 'none', 
                             borderRadius: '4px', 

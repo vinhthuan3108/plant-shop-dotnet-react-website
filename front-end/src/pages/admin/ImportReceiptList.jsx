@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-// Thêm các icon mới: FaTrash (Xóa), FaEdit (Sửa), FaSave (Lưu), FaTimes (Hủy)
 import { FaEye, FaPrint, FaCalendarAlt, FaSearch, FaTrash, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 
 const ImportReceiptList = () => {
@@ -9,13 +8,17 @@ const ImportReceiptList = () => {
     const [loading, setLoading] = useState(false);
     const [filters, setFilters] = useState({ fromDate: '', toDate: '', supplierId: '' });
 
+    // --- STATE PHÂN TRANG (MỚI) ---
+    const [page, setPage] = useState(1);
+    const itemsPerPage = 10; // Số lượng hiển thị trên mỗi trang
+
     // --- STATE CHO MODAL & EDIT ---
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDetail, setSelectedDetail] = useState(null);
     
     // State riêng cho chức năng sửa giá
-    const [isEditing, setIsEditing] = useState(false); 
-    const [editData, setEditData] = useState([]); // Dùng để lưu dữ liệu tạm khi đang sửa
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState([]); 
 
     const BASE_URL = 'https://localhost:7298';
 
@@ -31,6 +34,9 @@ const ImportReceiptList = () => {
             const res = await axios.get(`${BASE_URL}/api/ImportReceipts?${params.toString()}`);
             const data = res.data?.$values || res.data;
             setReceipts(Array.isArray(data) ? data : []);
+            
+            // Reset về trang 1 khi lọc lại dữ liệu
+            setPage(1); 
         } catch (err) {
             console.error("Lỗi tải phiếu nhập:", err);
         } finally {
@@ -40,14 +46,20 @@ const ImportReceiptList = () => {
 
     useEffect(() => { fetchReceipts(); }, []);
 
-    // 2. XEM CHI TIẾT (Reset chế độ sửa khi mở modal)
+    // --- LOGIC TÍNH TOÁN PHÂN TRANG (CLIENT-SIDE) ---
+    const indexOfLastItem = page * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = receipts.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(receipts.length / itemsPerPage);
+
+    const paginate = (pageNumber) => setPage(pageNumber);
+
+    // 2. XEM CHI TIẾT
     const viewDetail = async (id) => {
-        setIsEditing(false); // Luôn tắt chế độ sửa khi mới mở modal
+        setIsEditing(false);
         try {
             const res = await axios.get(`${BASE_URL}/api/ImportReceipts/${id}`);
             const data = res.data?.$values || res.data;
-            
-            // Lưu dữ liệu vào state
             setSelectedDetail({
                 id: id,
                 items: Array.isArray(data) ? data : []
@@ -59,19 +71,17 @@ const ImportReceiptList = () => {
         }
     };
 
-    // 3. XỬ LÝ XÓA PHIẾU (Logic kiểm tra hàng đã bán)
+    // 3. XỬ LÝ XÓA PHIẾU
     const handleDelete = async (id) => {
         if (!window.confirm(`CẢNH BÁO: Bạn có chắc muốn xóa phiếu PN-${id}?\n\nHành động này sẽ trừ lại tồn kho. Nếu hàng đã bán, hệ thống sẽ chặn xóa.`)) {
             return;
         }
-
         try {
             await axios.delete(`${BASE_URL}/api/ImportReceipts/${id}`);
             alert("Xóa phiếu và hoàn tác kho thành công!");
-            fetchReceipts(); // Load lại danh sách
+            fetchReceipts(); 
         } catch (err) {
             console.error("Lỗi xóa phiếu:", err);
-            // Hiển thị thông báo lỗi cụ thể từ Backend (ví dụ: "Sản phẩm X chỉ còn 5 tồn kho...")
             if (err.response && err.response.data && err.response.data.message) {
                 alert(`KHÔNG THỂ XÓA:\n${err.response.data.message}`);
             } else {
@@ -80,15 +90,14 @@ const ImportReceiptList = () => {
         }
     };
 
-    // 4. BẮT ĐẦU SỬA GIÁ (Copy data sang state tạm)
+    // 4. BẮT ĐẦU SỬA GIÁ
     const handleStartEdit = () => {
-        // Map dữ liệu hiện tại sang editData để người dùng chỉnh sửa
         const currentData = selectedDetail.items.map(item => ({
-            detailId: item.detailId,       // Cần đảm bảo Backend trả về field này
-            productName: item.productName, // Giữ lại để hiển thị
+            detailId: item.detailId,       
+            productName: item.productName, 
             variantName: item.variantName,
-            quantity: item.quantity,       // Số lượng không cho sửa
-            importPrice: item.importPrice  // Đây là cái cần sửa
+            quantity: item.quantity,       
+            importPrice: item.importPrice  
         }));
         setEditData(currentData);
         setIsEditing(true);
@@ -104,27 +113,23 @@ const ImportReceiptList = () => {
     // 6. LƯU CẬP NHẬT GIÁ
     const handleSavePrice = async () => {
         if (!window.confirm("Bạn có chắc chắn muốn cập nhật giá vốn mới?")) return;
-
         try {
-            // Chuẩn bị payload đúng format DTO Backend yêu cầu
             const payload = editData.map(item => ({
                 DetailId: item.detailId,
                 NewImportPrice: item.importPrice
             }));
-
             await axios.put(`${BASE_URL}/api/ImportReceipts/${selectedDetail.id}/update-price`, payload);
             
             alert("Cập nhật giá vốn thành công!");
             setIsEditing(false);
             setIsModalOpen(false);
-            fetchReceipts(); // Load lại danh sách bên ngoài để cập nhật cột Tổng tiền
+            fetchReceipts();
         } catch (err) {
             console.error(err);
             alert("Lỗi cập nhật giá: " + (err.response?.data?.message || err.message));
         }
     };
 
-    // Helper format tiền
     const formatMoney = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
     return (
@@ -162,6 +167,8 @@ const ImportReceiptList = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead style={{ backgroundColor: '#ecf0f1' }}>
                         <tr>
+                            {/* --- CỘT STT MỚI --- */}
+                            <th style={{ padding: '15px', textAlign: 'center', color: '#2c3e50', width: '50px' }}>STT</th>
                             <th style={{ padding: '15px', textAlign: 'left', color: '#2c3e50' }}>Mã Phiếu</th>
                             <th style={{ padding: '15px', textAlign: 'left', color: '#2c3e50' }}>Nhà Cung Cấp</th>
                             <th style={{ padding: '15px', textAlign: 'left', color: '#2c3e50' }}>Ngày Nhập</th>
@@ -172,48 +179,163 @@ const ImportReceiptList = () => {
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>Đang tải...</td></tr>
-                        ) : receipts.length > 0 ? (
-                            receipts.map((r, index) => (
-                                <tr key={r.receiptId} style={{ borderBottom: '1px solid #eee', backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9' }}>
-                                    <td style={{ padding: '15px', fontWeight: 'bold', color: '#3498db' }}>PN-{r.receiptId}</td>
-                                    <td style={{ padding: '15px' }}>{r.supplierName}</td>
-                                    <td style={{ padding: '15px' }}>{new Date(r.importDate).toLocaleDateString('vi-VN')}</td>
-                                    <td style={{ padding: '15px' }}>{r.creatorName}</td>
-                                    <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: '#e74c3c' }}>
-                                        {formatMoney(r.totalAmount)}
-                                    </td>
-                                    <td style={{ padding: '15px', textAlign: 'center' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
-                                            {/* NÚT CHI TIẾT */}
-                                            <button 
-                                                onClick={() => viewDetail(r.receiptId)} 
-                                                style={{ backgroundColor: 'white', border: '1px solid #ddd', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', color: '#555', display: 'flex', alignItems: 'center', gap: '5px' }}
-                                                title="Xem chi tiết & Sửa giá"
-                                            >
-                                                <FaEye />
-                                            </button>
-                                            
-                                            {/* NÚT XÓA */}
-                                            <button 
-                                                onClick={() => handleDelete(r.receiptId)} 
-                                                style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '5px' }}
-                                                title="Xóa phiếu (Hoàn kho)"
-                                            >
-                                                <FaTrash />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
+                            <tr><td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>Đang tải...</td></tr>
+                        ) : currentItems.length > 0 ? (
+                            currentItems.map((r, index) => {
+                                // Tính STT
+                                const stt = (page - 1) * itemsPerPage + index + 1;
+
+                                return (
+                                    <tr 
+                                        key={r.receiptId} 
+                                        style={{ borderBottom: '1px solid #eee', transition: 'background-color 0.2s' }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                                    >
+                                        {/* HIỂN THỊ STT */}
+                                        <td style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', color: '#888' }}>{stt}</td>
+                                        
+                                        <td style={{ padding: '15px', fontWeight: 'bold', color: '#3498db' }}>PN-{r.receiptId}</td>
+                                        <td style={{ padding: '15px' }}>{r.supplierName}</td>
+                                        <td style={{ padding: '15px' }}>{new Date(r.importDate).toLocaleDateString('vi-VN')}</td>
+                                        <td style={{ padding: '15px' }}>{r.creatorName}</td>
+                                        <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: '#e74c3c' }}>
+                                            {formatMoney(r.totalAmount)}
+                                        </td>
+                                        <td style={{ padding: '15px', textAlign: 'center' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                                                {/* NÚT CHI TIẾT (STYLE GIỐNG ADMIN ORDER) */}
+                                                <button 
+                                                    onClick={() => viewDetail(r.receiptId)} 
+                                                    style={{ 
+                                                        width: '36px', height: '36px', 
+                                                        border: '1px solid #4e73df', borderRadius: '6px', 
+                                                        backgroundColor: 'white', color: '#4e73df', 
+                                                        cursor: 'pointer', display: 'inline-flex', 
+                                                        alignItems: 'center', justifyContent: 'center', 
+                                                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)' 
+                                                    }}
+                                                    title="Xem chi tiết & Sửa giá"
+                                                >
+                                                    <FaEye />
+                                                </button>
+                                                
+                                                {/* NÚT XÓA (STYLE GIỐNG ADMIN ORDER) */}
+                                                <button 
+                                                    onClick={() => handleDelete(r.receiptId)} 
+                                                    style={{ 
+                                                        width: '36px', height: '36px', 
+                                                        border: '1px solid #f5c2c7', borderRadius: '6px',
+                                                        backgroundColor: 'white', color: '#dc3545', 
+                                                        cursor: 'pointer', display: 'inline-flex', 
+                                                        alignItems: 'center', justifyContent: 'center', 
+                                                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                                    }}
+                                                    title="Xóa phiếu (Hoàn kho)"
+                                                >
+                                                    <FaTrash />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )
+                            })
                         ) : (
-                            <tr><td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#888' }}>Không có dữ liệu phiếu nhập nào.</td></tr>
+                            <tr><td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: '#888' }}>Không có dữ liệu phiếu nhập nào.</td></tr>
                         )}
                     </tbody>
                 </table>
+
+                {/* --- UI PHÂN TRANG (GIỐNG ADMIN ORDER) --- */}
+                {totalPages > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px 0', gap: '5px', borderTop: '1px solid #eee' }}>
+                        {/* NHÓM NÚT TRÁI */}
+                        {page > 1 && (
+                            <>
+                                <button 
+                                    onClick={() => paginate(1)} 
+                                    style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', color: '#4e73df', fontWeight: 'bold' }}
+                                    title="Về trang đầu"
+                                >
+                                    &#171; Đầu
+                                </button>
+                                <button 
+                                    onClick={() => paginate(page - 1)} 
+                                    style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px' }}
+                                >
+                                    &lsaquo; Trước
+                                </button>
+                            </>
+                        )}
+
+                        {/* DANH SÁCH SỐ TRANG (SLIDING WINDOW) */}
+                        {(() => {
+                            let startPage, endPage;
+                            if (totalPages <= 10) {
+                                startPage = 1;
+                                endPage = totalPages;
+                            } else {
+                                if (page <= 6) {
+                                    startPage = 1;
+                                    endPage = 10;
+                                } else if (page + 4 >= totalPages) {
+                                    startPage = totalPages - 9;
+                                    endPage = totalPages;
+                                } else {
+                                    startPage = page - 5;
+                                    endPage = page + 4;
+                                }
+                            }
+
+                            const pages = [];
+                            for (let i = startPage; i <= endPage; i++) {
+                                pages.push(i);
+                            }
+
+                            return pages.map(number => (
+                                <button 
+                                    key={number} 
+                                    onClick={() => paginate(number)}
+                                    style={{ 
+                                        padding: '6px 12px', 
+                                        border: '1px solid #ddd', 
+                                        background: page === number ? '#4e73df' : 'white', 
+                                        color: page === number ? 'white' : '#333',
+                                        cursor: 'pointer', 
+                                        borderRadius: '4px',
+                                        fontWeight: page === number ? 'bold' : 'normal',
+                                        fontSize: '13px',
+                                        minWidth: '32px'
+                                    }}
+                                >
+                                    {number}
+                                </button>
+                            ));
+                        })()}
+
+                        {/* NHÓM NÚT PHẢI */}
+                        {page < totalPages && (
+                            <>
+                                <button 
+                                    onClick={() => paginate(page + 1)} 
+                                    style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px' }}
+                                >
+                                    Sau &rsaquo;
+                                </button>
+                                <button 
+                                    onClick={() => paginate(totalPages)} 
+                                    style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', color: '#4e73df', fontWeight: 'bold' }}
+                                    title="Đến trang cuối"
+                                >
+                                    Cuối &#187;
+                                </button>
+                            </>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* MODAL CHI TIẾT & SỬA */}
+            {/* MODAL CHI TIẾT & SỬA (GIỮ NGUYÊN) */}
             {isModalOpen && selectedDetail && (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -244,7 +366,6 @@ const ImportReceiptList = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {/* Nếu đang sửa thì render editData, không thì render selectedDetail.items */}
                                     {(isEditing ? editData : selectedDetail.items).map((d, i) => (
                                         <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
                                             <td style={{ padding: '10px' }}>
@@ -252,8 +373,6 @@ const ImportReceiptList = () => {
                                                 <div style={{color: '#666', fontSize: '12px'}}>{d.variantName !== 'Tiêu chuẩn' ? d.variantName : ''}</div>
                                             </td>
                                             <td style={{ padding: '10px', textAlign: 'center' }}>{d.quantity}</td>
-                                            
-                                            {/* LOGIC HIỂN THỊ GIÁ */}
                                             <td style={{ padding: '10px', textAlign: 'right' }}>
                                                 {isEditing ? (
                                                     <input 
@@ -266,8 +385,6 @@ const ImportReceiptList = () => {
                                                     formatMoney(d.importPrice)
                                                 )}
                                             </td>
-
-                                            {/* THÀNH TIỀN TỰ ĐỘNG TÍNH */}
                                             <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold' }}>
                                                 {formatMoney(d.quantity * d.importPrice)}
                                             </td>
@@ -280,7 +397,6 @@ const ImportReceiptList = () => {
                         {/* Footer Buttons */}
                         <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
                             {!isEditing ? (
-                                // --- CHẾ ĐỘ XEM ---
                                 <>
                                     <button 
                                         onClick={handleStartEdit} 
@@ -303,7 +419,6 @@ const ImportReceiptList = () => {
                                     </button>
                                 </>
                             ) : (
-                                // --- CHẾ ĐỘ SỬA ---
                                 <>
                                     <span style={{ display: 'flex', alignItems: 'center', marginRight: 'auto', color: '#e67e22', fontStyle: 'italic', fontSize: '13px' }}>
                                         * Lưu ý: Giá vốn sản phẩm sẽ được cập nhật theo giá mới.
@@ -327,7 +442,6 @@ const ImportReceiptList = () => {
                 </div>
             )}
             
-            {/* CSS Animation */}
             <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }`}</style>
         </div>
     );

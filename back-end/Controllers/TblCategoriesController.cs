@@ -34,8 +34,10 @@ namespace back_end.Controllers
         [HttpGet]
         public async Task<IActionResult> GetTblCategories()
         {
-            // Sử dụng Select để chỉ lấy dữ liệu cần thiết và đếm số sản phẩm
             var categories = await _context.TblCategories
+                // --- SỬA: Lọc bỏ danh mục đã xóa ---
+                .Where(c => c.IsDeleted == false || c.IsDeleted == null)
+                .OrderBy(c => c.DisplayOrder) // Sắp xếp cho đẹp
                 .Select(c => new
                 {
                     c.CategoryId,
@@ -44,7 +46,6 @@ namespace back_end.Controllers
                     c.DisplayOrder,
                     c.IsActive,
                     c.IsDeleted,
-                    // Đếm số lượng sản phẩm thuộc danh mục này
                     ProductCount = c.TblProducts.Count()
                 })
                 .ToListAsync();
