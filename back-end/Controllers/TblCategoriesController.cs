@@ -65,7 +65,46 @@ namespace back_end.Controllers
 
             return tblCategory;
         }
+        [HttpGet("best-selling")]
+        public async Task<ActionResult<IEnumerable<TblCategory>>> GetBestSellingCategories()
+        {
+            // 1. Truy vấn từ chi tiết đơn hàng để tính thực tế số lượng bán
+            var topCategories = await _context.TblOrderDetails
+                // Join các bảng liên quan (Tham khảo logic từ StatisticsController [cite: 67, 68])
+                .Include(d => d.Order)
+                .Include(d => d.Variant)
+                    .ThenInclude(v => v.Product)
+                        .ThenInclude(p => p.Category)
+                // QUAN TRỌNG: Chỉ tính đơn hàng đã hoàn thành "Completed" (Theo logic thống kê [cite: 69])
+                .Where(d => d.Order.OrderStatus == "Completed")
+                // Nhóm theo Category
+                .GroupBy(d => d.Variant.Product.Category)
+                .Select(g => new
+                {
+                    Category = g.Key,
+                    TotalSold = g.Sum(d => d.Quantity) // Tính tổng số lượng bán
+                })
+                // Sắp xếp giảm dần theo số lượng bán
+                .OrderByDescending(x => x.TotalSold)
+                // Lấy 4 danh mục đầu tiên
+                .Take(4)
+                // Chỉ lấy đối tượng Category để trả về
+                .Select(x => x.Category)
+                .ToListAsync();
 
+            // (Tuỳ chọn) Fallback: Nếu web mới chưa có đơn hàng nào (list rỗng), 
+            // thì lấy 4 danh mục mặc định để Footer không bị trống.
+            if (topCategories == null || topCategories.Count == 0)
+            {
+                return await _context.TblCategories
+                    .Where(c => c.IsActive == true && c.IsDeleted == false)
+                    .OrderBy(c => c.DisplayOrder)
+                    .Take(4)
+                    .ToListAsync();
+            }
+
+            return Ok(topCategories);
+        }
         // PUT: api/TblCategories/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTblCategory(int id, TblCategory tblCategory)

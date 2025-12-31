@@ -77,7 +77,13 @@ export const MENU_ITEMS = [
   {
     id: 'config',
     title: "⚙️ Quản lý cấu hình",
-    path: "/admin/system-config",
+    path: "/admin/shop-info",
+    permissions: [ROLES.ADMIN], // Chỉ Admin
+  },
+    {
+    id: 'integration',
+    title: "⚙️ Quản lý cấu hình hệ thống",
+    path: "/admin/system-integration",
     permissions: [ROLES.ADMIN], // Chỉ Admin
   },
   {

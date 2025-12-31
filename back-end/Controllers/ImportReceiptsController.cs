@@ -68,7 +68,7 @@ public class ImportReceiptsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize]
+    [Authorize(Roles = "1, 4")]
     public async Task<IActionResult> CreateReceipt(ImportReceiptCreateDto dto)
     {
         var userIdClaim = User.FindFirst("UserId"); // Hoặc ClaimTypes.NameIdentifier tùy cấu hình

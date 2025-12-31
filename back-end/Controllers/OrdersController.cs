@@ -219,7 +219,37 @@ namespace back_end.Controllers
         // GET: api/Orders/admin/list
         // GET: api/Orders/admin/list
         // GET: api/Orders/admin/list
-        // GET: api/Orders/admin/list
+        [HttpGet("validate-voucher")]
+        public async Task<IActionResult> ValidateVoucher(string code, decimal orderValue)
+        {
+            var voucher = await _context.TblVouchers
+                       .FirstOrDefaultAsync(v => v.Code == code && v.IsActive == true);
+
+            if (voucher == null) return BadRequest("Mã không tồn tại.");
+            if (DateTime.Now < voucher.StartDate || DateTime.Now > voucher.EndDate) return BadRequest("Mã hết hạn.");
+            if (voucher.UsageLimit.HasValue && voucher.UsageCount >= voucher.UsageLimit) return BadRequest("Mã hết lượt dùng.");
+            if (orderValue < (voucher.MinOrderValue ?? 0)) return BadRequest($"Đơn hàng cần tối thiểu {voucher.MinOrderValue:N0}đ.");
+
+            // Tính thử số tiền giảm
+            decimal discount = 0;
+            if (voucher.DiscountType == "PERCENT")
+            {
+                discount = orderValue * (voucher.DiscountValue / 100);
+                if (voucher.MaxDiscountAmount.HasValue && discount > voucher.MaxDiscountAmount)
+                    discount = voucher.MaxDiscountAmount.Value;
+            }
+            else
+            {
+                discount = voucher.DiscountValue;
+            }
+
+            return Ok(new
+            {
+                Valid = true,
+                DiscountAmount = discount,
+                Code = code
+            });
+        }
         [HttpGet("admin/list")]
         public async Task<IActionResult> GetOrdersAdmin(
             [FromQuery] int page = 1,

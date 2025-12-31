@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 // import { toast } from 'react-toastify'; 
 
-function SystemConfigPage() {
+function ShopInfo() {
     // State lưu trữ giá trị các cấu hình
     const [configs, setConfigs] = useState({
         StoreName: '',
@@ -255,4 +255,4 @@ function SystemConfigPage() {
     );
 };
 
-export default SystemConfigPage;
+export default ShopInfo;
