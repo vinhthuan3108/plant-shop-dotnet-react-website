@@ -179,7 +179,8 @@ const ProductDetail = () => {
                                         e.currentTarget.querySelector('img').style.transform = "scale(2)";
                                     }}
                                     onMouseLeave={(e) => {
-                                        e.currentTarget.querySelector('img').style.transform = "scale(1)";
+                                        const zoomContainer = e.currentTarget; 
+                                        zoomContainer.querySelector('img').style.transform = "scale(1)";
                                         setTimeout(() => { const img = e.currentTarget.querySelector('img'); if(img) img.style.transformOrigin = "center center"; }, 300);
                                     }}
                                 >
