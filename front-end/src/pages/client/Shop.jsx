@@ -34,6 +34,7 @@ const Shop = () => {
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const categoryId = queryParams.get('category') || queryParams.get('cate') || queryParams.get('categoryId');
+    const keyword = queryParams.get('keyword');
 
     const API_BASE = 'https://localhost:7298';
 
@@ -64,6 +65,9 @@ const Shop = () => {
                 
                 if (categoryId) {
                     productUrl += `&categoryId=${categoryId}`;
+                }
+                if (keyword) {
+                    productUrl += `&keyword=${encodeURIComponent(keyword)}`;
                 }
                 
                 // Logic gửi lọc giá:
@@ -107,7 +111,7 @@ const Shop = () => {
         };
 
         fetchData();
-    }, [categoryId, currentPage, applyFilterTrigger]); 
+    }, [categoryId, currentPage, applyFilterTrigger, keyword]); 
 
     const handlePageChange = (page) => {
         if (page >= 1 && page <= totalPages) {

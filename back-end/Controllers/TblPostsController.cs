@@ -102,6 +102,32 @@ namespace back_end.Controllers
 
             return Ok(postDto);
         }
+        // --- CHÈN ĐOẠN NÀY VÀO GIỮA GetPost VÀ CreatePost ---
+
+        // GET: api/TblPosts/search?keyword=abc
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<object>>> SearchPosts(string keyword)
+        {
+            if (string.IsNullOrEmpty(keyword)) return Ok(new List<object>());
+
+            string kw = keyword.ToLower().Trim();
+
+            // Tìm bài viết:
+            // 1. Phải là bài đã Published (hoặc Active)
+            // 2. Chưa bị xóa (IsDeleted != true)
+            // 3. Tiêu đề hoặc Mô tả chứa từ khóa
+            var posts = await _context.TblPosts
+                .Where(p => (p.Status == "Published")
+                            && (p.IsDeleted != true)
+                            && p.Title.ToLower().Contains(kw))
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(5) // Chỉ lấy 5 bài gợi ý
+                .Select(p => new
+                {
+                    Id = p.PostId,
+                    Title = p.Title,
+                    Image = p.ThumbnailUrl,
+                    Type = "blog", // Đánh dấu để Frontend biết đây là bài viết
         [HttpGet("related/{id}")]
         public async Task<ActionResult<IEnumerable<PostDto>>> GetRelatedPosts(int id)
         {
@@ -259,6 +285,7 @@ namespace back_end.Controllers
                 }
             }
             // ---------------------------------------
+
 
             _context.TblPosts.Remove(post);
             await _context.SaveChangesAsync();

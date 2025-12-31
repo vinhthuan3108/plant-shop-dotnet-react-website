@@ -221,8 +221,23 @@ const ProductDetail = () => {
                 <div style={{ flex: '1', minWidth: '350px' }}>
                     <div style={{ width: '100%', height: '450px', backgroundColor: '#fff', border: '1px solid #eee', borderRadius: '8px', position: 'relative', display: 'flex', overflow: 'hidden' }}>
                         {images.length > 0 ? (
-                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-in' }} onClick={() => setIsLightboxOpen(true)}>
-                                <img src={currentImgUrl} alt="Product" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-in' }}>
+                                <div className="zoom-container" onClick={() => setIsLightboxOpen(true)} style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}
+                                    onMouseMove={(e) => {
+                                        const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+                                        const x = ((e.pageX - left) / width) * 100;
+                                        const y = ((e.pageY - top) / height) * 100;
+                                        e.currentTarget.querySelector('img').style.transformOrigin = `${x}% ${y}%`;
+                                        e.currentTarget.querySelector('img').style.transform = "scale(2)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        const zoomContainer = e.currentTarget; 
+                                        zoomContainer.querySelector('img').style.transform = "scale(1)";
+                                        setTimeout(() => { const img = e.currentTarget.querySelector('img'); if(img) img.style.transformOrigin = "center center"; }, 300);
+                                    }}
+                                >
+                                    <img src={currentImgUrl} alt="Product" style={{ width: '100%', height: '100%', objectFit: 'contain', transition: 'transform 0.1s ease-out' }} />
+                                </div>
                             </div>
                         ) : (<span>Không có hình ảnh</span>)}
                         
