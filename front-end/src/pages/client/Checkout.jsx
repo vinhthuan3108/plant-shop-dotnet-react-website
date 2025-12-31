@@ -4,7 +4,8 @@ import axios from 'axios';
 import { CartContext } from '../../context/CartContext';
 
 const Checkout = () => {
-    const { cartItems, cartTotal, refreshCart } = useContext(CartContext);
+    // SỬA 1: Đổi cartTotal -> totalAmount để khớp với Context
+    const { cartItems, totalAmount, refreshCart } = useContext(CartContext);
     const navigate = useNavigate();
     
     // Config URL Backend
@@ -159,7 +160,8 @@ const Checkout = () => {
     const handleApplyVoucher = async () => {
         if (!voucherCode.trim()) return alert("Vui lòng nhập mã!");
         try {
-            const res = await axios.get(`${BASE_URL}/api/Orders/validate-voucher?code=${voucherCode}&orderValue=${cartTotal}`);
+            // SỬA 2: Dùng totalAmount để check điều kiện voucher
+            const res = await axios.get(`${BASE_URL}/api/Orders/validate-voucher?code=${voucherCode}&orderValue=${totalAmount}`);
             setDiscountAmount(res.data.discountAmount);
             alert(`Áp dụng mã thành công! Giảm: ${res.data.discountAmount.toLocaleString()}đ`);
         } catch (err) {
@@ -168,7 +170,6 @@ const Checkout = () => {
         }
     };
 
-    // --- HÀM ĐẶT HÀNG (QUAN TRỌNG: SỬA MAPPING ITEM) ---
     const handlePlaceOrder = async () => {
         if (cartItems.length === 0) return alert("Giỏ hàng trống!");
         if (!formData.recipientName || !formData.recipientPhone || !formData.addressDetail || !formData.province || !formData.district || !formData.ward) {
@@ -189,10 +190,8 @@ const Checkout = () => {
             voucherCode: voucherCode || null,
             paymentMethod: formData.paymentMethod,
             note: formData.note,
-            
-            // --- SỬA LỖI TẠI ĐÂY: Gửi variantId thay vì productId ---
             items: cartItems.map(item => ({
-                variantId: item.variantId, // Backend cần VariantId
+                variantId: item.variantId,
                 quantity: item.quantity
             }))
         };
@@ -212,19 +211,19 @@ const Checkout = () => {
                 }
             } else {
                 alert("Đặt hàng thành công!");
-                await refreshCart(); // Làm mới giỏ hàng
+                await refreshCart();
                 navigate('/order-success', { state: { orderId: newOrderId } });
             }
         } catch (error) {
             console.error("Lỗi đặt hàng:", error);
-            // Hiển thị thông báo lỗi chi tiết từ backend trả về
             alert("Lỗi đặt hàng: " + (error.response?.data?.message || "Có lỗi xảy ra"));
         } finally {
             setLoading(false);
         }
     };
 
-    const finalTotal = cartTotal + shippingFee - discountAmount;
+    // SỬA 3: Dùng totalAmount để tính tổng cuối
+    const finalTotal = (totalAmount || 0) + shippingFee - discountAmount;
 
     return (
         <div style={{ padding: '40px', maxWidth: '1100px', margin: '0 auto', display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
@@ -286,7 +285,8 @@ const Checkout = () => {
                 <div style={{ display: 'grid', gap: '10px', fontSize: '15px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>Tạm tính:</span>
-                        <span>{cartTotal.toLocaleString()}đ</span>
+                        {/* SỬA 4: Hiển thị totalAmount */}
+                        <span>{(totalAmount || 0).toLocaleString()}đ</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>Phí vận chuyển:</span>

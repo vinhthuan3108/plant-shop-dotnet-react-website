@@ -17,7 +17,7 @@ export const CartProvider = ({ children }) => {
 
     const isCustomer = (user) => {
         if (!user) return true; 
-        return user.roleId === 2; // Giả sử Role 2 là khách
+        return user.roleId === 2; 
     };
 
     const syncLocalStorage = (items) => {
@@ -25,6 +25,25 @@ export const CartProvider = ({ children }) => {
         if (!user) { 
             localStorage.setItem('shoppingCart', JSON.stringify(items));
         }
+    };
+
+    // --- QUAN TRỌNG: Hàm chuẩn hóa dữ liệu từ API ---
+    // Giúp đảm bảo tên biến luôn là 'image', 'price', 'productName'
+    const mapApiDataToCart = (data) => {
+        if (!Array.isArray(data)) return [];
+        return data.map(item => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            productName: item.productName,
+            variantName: item.variantName,
+            // Xử lý giá: Ưu tiên giá Sale
+            salePrice: item.salePrice, 
+            originalPrice: item.originalPrice, 
+            price: (item.salePrice && item.salePrice > 0) ? item.salePrice : (item.originalPrice || 0),
+            // Xử lý ảnh: API trả về imageUrl nhưng Frontend dùng image
+            image: item.imageUrl || item.image || '', 
+            quantity: item.quantity
+        }));
     };
 
     // --- 1. LOAD GIỎ HÀNG ---
@@ -39,7 +58,7 @@ export const CartProvider = ({ children }) => {
             fetch(`${BASE_URL}/api/Cart/get-cart/${userId}`)
                 .then(res => { if (!res.ok) return []; return res.json(); })
                 .then(data => {
-                    setCartItems(Array.isArray(data) ? data : []);
+                    setCartItems(mapApiDataToCart(data));
                 })
                 .catch(err => { console.error("Lỗi load cart:", err); setCartItems([]); });
         } else {
@@ -64,7 +83,7 @@ export const CartProvider = ({ children }) => {
                 const res = await fetch(`${BASE_URL}/api/Cart/get-cart/${userId}`);
                 if (res.ok) {
                     const data = await res.json();
-                    setCartItems(Array.isArray(data) ? data : []);
+                    setCartItems(mapApiDataToCart(data));
                 } else { setCartItems([]); }
             } catch (err) { setCartItems([]); }
         } else {
@@ -73,7 +92,7 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    // --- 2. THÊM VÀO GIỎ (SỬA LỖI item is not defined) ---
+    // --- 2. THÊM VÀO GIỎ ---
     const addToCart = async (product) => {
         const user = getUser();
         if (user && !isCustomer(user)) { alert("Quản trị viên không thể mua hàng!"); return; }
@@ -88,13 +107,13 @@ export const CartProvider = ({ children }) => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         userId: parseInt(userId), 
-                        variantId: product.variantId, // Sửa item -> product
-                        quantity: product.quantity    // Sửa item -> product
+                        variantId: product.variantId,
+                        quantity: product.quantity 
                     })
                 });
                 
                 if (res.ok) {
-                    refreshCart(); // Tải lại để đồng bộ
+                    refreshCart(); 
                     alert("Đã thêm vào giỏ hàng!");
                 } else {
                     alert("Lỗi khi thêm vào giỏ hàng (API).");
@@ -104,10 +123,9 @@ export const CartProvider = ({ children }) => {
                 alert("Lỗi kết nối server!");
             }
         } else {
-            // --- LOGIC LOCAL STORAGE (KHÁCH VÃNG LAI) ---
+            // --- LOGIC LOCAL STORAGE ---
             setCartItems(prev => {
                 const safePrev = Array.isArray(prev) ? prev : [];
-                // Sửa: Tìm theo variantId thay vì productId
                 const exist = safePrev.find(x => x.variantId === product.variantId);
                 let newCart;
                 
@@ -115,12 +133,14 @@ export const CartProvider = ({ children }) => {
                     newCart = safePrev.map(x => x.variantId === product.variantId ? { ...x, quantity: x.quantity + product.quantity } : x);
                 } else {
                     newCart = [...safePrev, { 
-                        productId: product.productId, // Vẫn lưu productId để link
-                        variantId: product.variantId, // QUAN TRỌNG
+                        productId: product.productId,
+                        variantId: product.variantId,
                         productName: product.productName,
-                        variantName: product.variantName, // Lưu tên phân loại
+                        variantName: product.variantName,
+                        originalPrice: product.originalPrice || product.price,
+                        salePrice: product.salePrice || 0,
                         price: product.price || product.salePrice || product.originalPrice, 
-                        imageUrl: product.imageUrl || '', 
+                        image: product.imageUrl || product.image || '', 
                         quantity: product.quantity 
                     }];
                 }
@@ -131,26 +151,24 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    // --- 3. XÓA SẢN PHẨM (Sửa dùng variantId) ---
+    // --- 3. XÓA SẢN PHẨM ---
     const removeFromCart = async (variantId) => {
         const user = getUser();
         const userId = user?.userId;
 
         if (userId) {
-            // Gọi API xóa theo variantId (Controller đã sửa ở bước trước)
             await fetch(`${BASE_URL}/api/Cart/remove-item?userId=${userId}&variantId=${variantId}`, { method: 'DELETE' });
         }
         
         setCartItems(prev => {
             const safePrev = Array.isArray(prev) ? prev : [];
-            // Lọc bỏ item có variantId trùng khớp
             const newCart = safePrev.filter(item => item.variantId !== variantId);
             syncLocalStorage(newCart);
             return newCart;
         });
     };
 
-    // --- 4. CẬP NHẬT SỐ LƯỢNG (Sửa dùng variantId) ---
+    // --- 4. CẬP NHẬT SỐ LƯỢNG ---
     const updateQuantity = async (variantId, newQuantity) => {
         if (newQuantity < 1) return;
 
@@ -175,12 +193,26 @@ export const CartProvider = ({ children }) => {
         });
     };
 
+    // --- TÍNH TOÁN ---
     const validItems = Array.isArray(cartItems) ? cartItems : [];
     const cartCount = validItems.reduce((total, item) => total + (item.quantity || 0), 0);
-    const cartTotal = validItems.reduce((total, item) => total + ((item.price || 0) * (item.quantity || 0)), 0);
+    
+    // Tính tổng tiền chính xác
+    const totalAmount = validItems.reduce((total, item) => {
+        const finalPrice = (item.salePrice && item.salePrice > 0) ? item.salePrice : (item.price || item.originalPrice || 0);
+        return total + (finalPrice * (item.quantity || 0));
+    }, 0);
 
     return (
-        <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, cartCount, cartTotal, refreshCart }}>
+        <CartContext.Provider value={{ 
+            cartItems, 
+            addToCart, 
+            removeFromCart, 
+            updateQuantity, 
+            cartCount, 
+            totalAmount, 
+            refreshCart 
+        }}>
             {children}
         </CartContext.Provider>
     );

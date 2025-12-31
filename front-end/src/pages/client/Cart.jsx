@@ -4,7 +4,8 @@ import { CartContext } from '../../context/CartContext';
 import { FaTrash, FaMinus, FaPlus, FaArrowLeft } from 'react-icons/fa';
 
 const Cart = () => {
-    const { cartItems, removeFromCart, updateQuantity, cartTotal } = useContext(CartContext);
+    // SỬA 1: Lấy 'totalAmount' thay vì 'cartTotal'
+    const { cartItems, removeFromCart, updateQuantity, totalAmount } = useContext(CartContext);
     const navigate = useNavigate();
     const BASE_URL = 'https://localhost:7298';
 
@@ -36,17 +37,16 @@ const Cart = () => {
                         </thead>
                         <tbody>
                             {cartItems.map((item) => (
-                                // QUAN TRỌNG: Key phải là variantId (vì 1 sp có thể có nhiều size)
                                 <tr key={item.variantId} style={{ borderBottom: '1px solid #eee' }}>
                                     <td style={{ padding: '15px 10px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                        {/* SỬA 2: Dùng 'item.image' thay vì 'item.imageUrl' để khớp với Context */}
                                         <img 
-                                            src={item.imageUrl ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${BASE_URL}${item.imageUrl}`) : 'https://via.placeholder.com/80'} 
+                                            src={item.image ? (item.image.startsWith('http') ? item.image : `${BASE_URL}${item.image}`) : 'https://via.placeholder.com/80'} 
                                             alt={item.productName} 
                                             style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px' }}
                                         />
                                         <div>
                                             <div style={{ fontWeight: 'bold' }}>{item.productName}</div>
-                                            {/* Hiển thị phân loại hàng (Size/Màu) */}
                                             {item.variantName && item.variantName !== 'Tiêu chuẩn' && (
                                                 <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
                                                     Phân loại: {item.variantName}
@@ -58,7 +58,6 @@ const Cart = () => {
                                     <td style={{ padding: '10px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #ddd', width: 'fit-content', borderRadius: '4px' }}>
                                             <button 
-                                                // Sửa: Dùng variantId
                                                 onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
                                                 style={{ padding: '5px 10px', background: 'none', border: 'none', cursor: 'pointer' }}
                                             >
@@ -66,7 +65,6 @@ const Cart = () => {
                                             </button>
                                             <span style={{ padding: '0 10px' }}>{item.quantity}</span>
                                             <button 
-                                                // Sửa: Dùng variantId
                                                 onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
                                                 style={{ padding: '5px 10px', background: 'none', border: 'none', cursor: 'pointer' }}
                                             >
@@ -79,7 +77,6 @@ const Cart = () => {
                                     </td>
                                     <td style={{ padding: '10px' }}>
                                         <button 
-                                            // Sửa: Dùng variantId
                                             onClick={() => removeFromCart(item.variantId)}
                                             style={{ color: '#999', background: 'none', border: 'none', cursor: 'pointer' }}
                                             title="Xóa"
@@ -104,7 +101,8 @@ const Cart = () => {
                     <h3>Cộng giỏ hàng</h3>
                     <div style={{ display: 'flex', justifyContent: 'space-between', margin: '20px 0', fontSize: '18px', fontWeight: 'bold' }}>
                         <span>Tổng tiền:</span>
-                        <span style={{ color: '#d32f2f' }}>{cartTotal.toLocaleString()} đ</span>
+                        {/* SỬA 3: Dùng 'totalAmount' và thêm '|| 0' để tránh lỗi crash trang */}
+                        <span style={{ color: '#d32f2f' }}>{(totalAmount || 0).toLocaleString()} đ</span>
                     </div>
                     <button 
                         onClick={() => navigate('/checkout')} 
