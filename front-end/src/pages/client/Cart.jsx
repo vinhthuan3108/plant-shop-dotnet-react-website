@@ -54,7 +54,10 @@ const Cart = () => {
                                             )}
                                         </div>
                                     </td>
-                                    <td style={{ padding: '10px' }}>{item.price.toLocaleString()} đ</td>
+                                    <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
+                                        {item.price.toLocaleString()} đ
+                                    </td>
+
                                     <td style={{ padding: '10px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #ddd', width: 'fit-content', borderRadius: '4px' }}>
                                             <button 
@@ -72,9 +75,12 @@ const Cart = () => {
                                             </button>
                                         </div>
                                     </td>
-                                    <td style={{ padding: '10px', color: '#d32f2f', fontWeight: 'bold' }}>
+
+                                    {/* --- SỬA CỘT THÀNH TIỀN (Nên thêm luôn cho đồng bộ) --- */}
+                                    <td style={{ padding: '10px', color: '#d32f2f', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
                                         {(item.price * item.quantity).toLocaleString()} đ
                                     </td>
+
                                     <td style={{ padding: '10px' }}>
                                         <button 
                                             onClick={() => removeFromCart(item.variantId)}

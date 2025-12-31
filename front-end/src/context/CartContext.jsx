@@ -26,7 +26,13 @@ export const CartProvider = ({ children }) => {
             localStorage.setItem('shoppingCart', JSON.stringify(items));
         }
     };
+    const clearCart = () => {
+        const user = getUser();
+        
+        // 1. Xóa State để giao diện cập nhật ngay lập tức
+        setCartItems([]); 
 
+<<<<<<< HEAD
     // --- QUAN TRỌNG: Hàm chuẩn hóa dữ liệu từ API ---
     // Giúp đảm bảo tên biến luôn là 'image', 'price', 'productName'
     const mapApiDataToCart = (data) => {
@@ -46,6 +52,16 @@ export const CartProvider = ({ children }) => {
         }));
     };
 
+=======
+        // 2. Nếu là khách vãng lai, xóa luôn trong LocalStorage
+        if (!user) {
+            localStorage.removeItem('shoppingCart');
+        }
+        
+        // (Nếu là User đăng nhập: Backend thường sẽ tự xóa DB khi tạo đơn hàng xong, 
+        // việc setState([]) ở trên là đủ để đồng bộ UI).
+    };
+>>>>>>> b0e97e7a387d56f4409ffc2f88900491dcd7d779
     // --- 1. LOAD GIỎ HÀNG ---
     useEffect(() => {
         const user = getUser();
@@ -123,6 +139,7 @@ export const CartProvider = ({ children }) => {
                 alert("Lỗi kết nối server!");
             }
         } else {
+<<<<<<< HEAD
             // --- LOGIC LOCAL STORAGE ---
             setCartItems(prev => {
                 const safePrev = Array.isArray(prev) ? prev : [];
@@ -148,6 +165,40 @@ export const CartProvider = ({ children }) => {
                 alert("Đã thêm vào giỏ (Local)!");
                 return newCart;
             });
+=======
+            // --- LOGIC LOCAL STORAGE (KHÁCH VÃNG LAI) ---
+            
+            // 1. Lấy state hiện tại ra để tính toán
+            const safeCart = Array.isArray(cartItems) ? cartItems : [];
+            
+            // 2. Tính toán mảng mới (New Cart)
+            const exist = safeCart.find(x => x.variantId === product.variantId);
+            let newCart;
+
+            if (exist) {
+                newCart = safeCart.map(x => x.variantId === product.variantId 
+                    ? { ...x, quantity: x.quantity + product.quantity } 
+                    : x
+                );
+            } else {
+                newCart = [...safeCart, { 
+                    productId: product.productId,
+                    variantId: product.variantId,
+                    productName: product.productName,
+                    variantName: product.variantName,
+                    price: product.price || product.salePrice || product.originalPrice, 
+                    imageUrl: product.imageUrl || '', 
+                    quantity: product.quantity 
+                }];
+            }
+
+            // 3. Cập nhật State
+            setCartItems(newCart);
+
+            // 4. Thực hiện Side Effects (Lưu storage & Alert) RA NGOÀI hàm set
+            syncLocalStorage(newCart);
+            alert("Đã thêm vào giỏ (Local)!");
+>>>>>>> b0e97e7a387d56f4409ffc2f88900491dcd7d779
         }
     };
 
@@ -204,6 +255,7 @@ export const CartProvider = ({ children }) => {
     }, 0);
 
     return (
+<<<<<<< HEAD
         <CartContext.Provider value={{ 
             cartItems, 
             addToCart, 
@@ -213,6 +265,9 @@ export const CartProvider = ({ children }) => {
             totalAmount, 
             refreshCart 
         }}>
+=======
+        <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, cartCount, cartTotal, refreshCart, clearCart }}>
+>>>>>>> b0e97e7a387d56f4409ffc2f88900491dcd7d779
             {children}
         </CartContext.Provider>
     );

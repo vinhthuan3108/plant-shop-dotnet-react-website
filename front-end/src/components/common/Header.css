@@ -316,7 +316,10 @@
   color: #2e7d32 !important; /* Chữ chuyển xanh lá */
   padding-left: 25px;        /* Đẩy chữ sang phải xíu tạo hiệu ứng động */
 }
-
+.dropdown-toggle::after {
+    display: none !important;
+    content: none !important;
+}
 /* 6. Định nghĩa hiệu ứng hiện dần (Fade In) */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }

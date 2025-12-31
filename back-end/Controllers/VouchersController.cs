@@ -86,30 +86,32 @@ namespace back_end.Controllers
         public async Task<IActionResult> UpdateVoucher(int id, VoucherCreateUpdateDto dto)
         {
             var voucher = await _context.TblVouchers
-                                        .Include(v => v.TblOrders) // Load lịch sử đơn hàng để check
-                                        .FirstOrDefaultAsync(v => v.VoucherId == id);
+                                    .Include(v => v.TblOrders)
+                                    .FirstOrDefaultAsync(v => v.VoucherId == id);
 
             if (voucher == null) return NotFound();
 
-            // Kiểm tra xem mã đã có người dùng chưa (dựa vào UsageCount hoặc bảng Order)
             bool hasUsed = voucher.UsageCount > 0 || voucher.TblOrders.Any();
 
-            // Logic: Hạn chế sửa nếu đang chạy/đã dùng
             if (hasUsed)
             {
-                // Chỉ cho phép sửa: Số lượng, Ngày kết thúc
+                // Cho phép sửa: Số lượng, Ngày kết thúc, VÀ GIÁ TRỊ ĐƠN TỐI THIỂU
                 voucher.UsageLimit = dto.UsageLimit;
                 voucher.EndDate = dto.EndDate;
 
-                // Nếu cố tình sửa Giá trị tiền hoặc Code -> Báo lỗi hoặc lờ đi (ở đây mình báo lỗi cho rõ)
+                // --- THÊM DÒNG NÀY ---
+                voucher.MinOrderValue = dto.MinOrderValue;
+                // ---------------------
+
+                // Các logic check lỗi giữ nguyên
                 if (voucher.DiscountValue != dto.DiscountValue || voucher.Code != dto.Code.ToUpper())
                 {
-                    return BadRequest("Mã đã có người sử dụng, chỉ được phép gia hạn ngày hoặc tăng số lượng.");
+                    return BadRequest("Mã đã có người sử dụng, chỉ được phép thay đổi: Số lượng, Hạn dùng và Đơn tối thiểu.");
                 }
             }
             else
             {
-                // Nếu chưa ai dùng -> Cho sửa thoải mái (cần check trùng code nếu đổi code mới)
+                // Logic cho voucher chưa dùng giữ nguyên
                 if (voucher.Code != dto.Code.ToUpper() && await _context.TblVouchers.AnyAsync(v => v.Code == dto.Code && v.IsActive == true))
                 {
                     return BadRequest("Mã code mới bị trùng.");

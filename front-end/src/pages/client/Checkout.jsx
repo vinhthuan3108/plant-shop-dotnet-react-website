@@ -4,8 +4,12 @@ import axios from 'axios';
 import { CartContext } from '../../context/CartContext';
 
 const Checkout = () => {
+<<<<<<< HEAD
     // SỬA 1: Đổi cartTotal -> totalAmount để khớp với Context
     const { cartItems, totalAmount, refreshCart } = useContext(CartContext);
+=======
+    const { cartItems, cartTotal, clearCart } = useContext(CartContext);
+>>>>>>> b0e97e7a387d56f4409ffc2f88900491dcd7d779
     const navigate = useNavigate();
     
     // Config URL Backend
@@ -21,7 +25,6 @@ const Checkout = () => {
     };
 
     const currentUser = getUserData();
-
     // --- STATE FORM DATA ---
     const [formData, setFormData] = useState({
         recipientName: '',
@@ -49,60 +52,90 @@ const Checkout = () => {
     // 1. LOAD DỮ LIỆU BAN ĐẦU
     // =========================================================================
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // 1.1 Load danh sách Tỉnh/Thành
-                const provinceRes = await axios.get('https://provinces.open-api.vn/api/?depth=1');
-                setProvinces(provinceRes.data);
-                const provinceList = provinceRes.data;
+    const fetchData = async () => {
+        try {
+            const userId = currentUser?.userId;
+            
+            // 1.1 Load danh sách Tỉnh/Thành (Public API)
+            const provinceReq = axios.get('https://provinces.open-api.vn/api/?depth=1');
 
-                // 1.2 Load địa chỉ mặc định của User
-                const userId = currentUser?.userId; 
-                const storedName = currentUser?.fullName; 
+            // Chuẩn bị các Promise
+            let addrReq = null;
+            let profileReq = null;
+
+            if (userId) {
+                // 1.2 Gọi API lấy sổ địa chỉ
+                addrReq = axios.get(`${BASE_URL}/api/Profile/${userId}/addresses`);
                 
-                if (userId) {
-                    const addrRes = await axios.get(`${BASE_URL}/api/Profile/${userId}/addresses`);
-                    const addresses = addrRes.data;
-                    const defaultAddr = addresses.find(a => a.isDefault === true);
+                // 1.3 Gọi API lấy thông tin cá nhân (để lấy SĐT gốc từ bảng User)
+                // LƯU Ý: Bạn cần thay đường dẫn này đúng với API lấy chi tiết User của bạn
+                // Ví dụ: api/Users/detail/5 hoặc api/Profile/info/5
+                profileReq = axios.get(`${BASE_URL}/api/Users/${userId}`); 
+            }
 
-                    if (defaultAddr) {
-                        setFormData(prev => ({
-                            ...prev,
-                            recipientName: defaultAddr.recipientName || storedName,
-                            recipientPhone: defaultAddr.phoneNumber || '',
-                            addressDetail: defaultAddr.addressDetail || '',
-                            province: defaultAddr.province || '',
-                            district: defaultAddr.district || '',
-                            ward: defaultAddr.ward || '',
-                        }));
+            // Chạy song song các request để tối ưu tốc độ
+            const [provinceRes, addrRes, profileRes] = await Promise.all([
+                provinceReq,
+                addrReq ? addrReq.catch(err => ({ data: [] })) : Promise.resolve({ data: [] }), // Nếu lỗi thì trả mảng rỗng
+                profileReq ? profileReq.catch(err => ({ data: null })) : Promise.resolve({ data: null }) // Nếu lỗi thì trả null
+            ]);
 
-                        // Auto-load Huyện/Xã
-                        if (defaultAddr.province) {
-                            const selectedProv = provinceList.find(p => p.name === defaultAddr.province);
-                            if (selectedProv) {
-                                const distRes = await axios.get(`https://provinces.open-api.vn/api/p/${selectedProv.code}?depth=2`);
-                                setDistricts(distRes.data.districts);
+            setProvinces(provinceRes.data);
+            const provinceList = provinceRes.data;
 
-                                if (defaultAddr.district) {
-                                    const selectedDist = distRes.data.districts.find(d => d.name === defaultAddr.district);
-                                    if (selectedDist) {
-                                        const wardRes = await axios.get(`https://provinces.open-api.vn/api/d/${selectedDist.code}?depth=2`);
-                                        setWards(wardRes.data.wards);
-                                    }
+            // --- XỬ LÝ DỮ LIỆU USER ---
+            if (userId) {
+                const addresses = Array.isArray(addrRes.data) ? addrRes.data : [];
+                const userProfile = profileRes.data; // Dữ liệu lấy từ bảng User/Customer
+                
+                // Ưu tiên 1: Địa chỉ mặc định trong sổ địa chỉ
+                const defaultAddr = addresses.find(a => a.isDefault === true);
+
+                if (defaultAddr) {
+                    setFormData(prev => ({
+                        ...prev,
+                        recipientName: defaultAddr.recipientName || userProfile?.fullName || currentUser?.fullName || '',
+                        recipientPhone: defaultAddr.phoneNumber || userProfile?.phoneNumber || currentUser?.phoneNumber || '',
+                        addressDetail: defaultAddr.addressDetail || '',
+                        province: defaultAddr.province || '',
+                        district: defaultAddr.district || '',
+                        ward: defaultAddr.ward || '',
+                    }));
+
+                    // Logic auto-load Huyện/Xã khi có địa chỉ mặc định (Giữ nguyên code cũ của bạn)
+                    if (defaultAddr.province) {
+                        const selectedProv = provinceList.find(p => p.name === defaultAddr.province);
+                        if (selectedProv) {
+                            const distRes = await axios.get(`https://provinces.open-api.vn/api/p/${selectedProv.code}?depth=2`);
+                            setDistricts(distRes.data.districts);
+
+                            if (defaultAddr.district) {
+                                const selectedDist = distRes.data.districts.find(d => d.name === defaultAddr.district);
+                                if (selectedDist) {
+                                    const wardRes = await axios.get(`https://provinces.open-api.vn/api/d/${selectedDist.code}?depth=2`);
+                                    setWards(wardRes.data.wards);
                                 }
                             }
                         }
-                    } else {
-                        setFormData(prev => ({ ...prev, recipientName: storedName || '' }));
                     }
-                }
-            } catch (err) {
-                console.error("Lỗi khởi tạo:", err);
-            }
-        };
 
-        fetchData();
-    }, []);
+                } else {
+                    // Ưu tiên 2: Nếu KHÔNG có địa chỉ mặc định -> Lấy SĐT từ bảng User (Database)
+                    // userProfile lấy từ API sẽ chính xác hơn localStorage
+                    setFormData(prev => ({
+                        ...prev,
+                        recipientName: userProfile?.fullName || currentUser?.fullName || '',
+                        recipientPhone: userProfile?.phoneNumber || userProfile?.phone || currentUser?.phoneNumber || '' // Check kỹ case (hoa/thường) backend trả về
+                    }));
+                }
+            }
+        } catch (err) {
+            console.error("Lỗi khởi tạo:", err);
+        }
+    };
+
+    fetchData();
+}, []);
 
     // --- CÁC HÀM XỬ LÝ LOCATION ---
     const handleProvinceChange = async (e) => {
@@ -211,7 +244,11 @@ const Checkout = () => {
                 }
             } else {
                 alert("Đặt hàng thành công!");
+<<<<<<< HEAD
                 await refreshCart();
+=======
+                await clearCart(); // Làm mới giỏ hàng
+>>>>>>> b0e97e7a387d56f4409ffc2f88900491dcd7d779
                 navigate('/order-success', { state: { orderId: newOrderId } });
             }
         } catch (error) {

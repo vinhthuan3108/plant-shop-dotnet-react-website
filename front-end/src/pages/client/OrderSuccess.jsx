@@ -10,7 +10,7 @@ const OrderSuccess = () => {
         <div style={{ textAlign: 'center', padding: '100px 20px' }}>
             <FaCheckCircle size={80} color="#2e7d32" style={{ marginBottom: '20px' }} />
             <h1 style={{ color: '#2e7d32' }}>ĐẶT HÀNG THÀNH CÔNG!</h1>
-            <p style={{ fontSize: '18px', margin: '20px 0' }}>Cảm ơn bạn đã mua sắm tại Vườn Cây Việt.</p>
+            <p style={{ fontSize: '18px', margin: '20px 0' }}>Cảm ơn bạn đã mua sắm tại Cây Cảnh Nha Trang.</p>
             <p>Mã đơn hàng của bạn là: <strong>#{orderId}</strong></p>
             
             <div style={{ marginTop: '40px' }}>
