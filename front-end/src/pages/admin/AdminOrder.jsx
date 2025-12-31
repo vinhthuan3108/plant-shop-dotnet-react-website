@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'; // Thêm useRef
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
@@ -67,9 +67,11 @@ const AdminOrders = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(false);
     
-    // Filters
+    // Filters & Pagination
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const itemsPerPage = 10; // Cố định số lượng để tính STT
+    
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [fromDate, setFromDate] = useState('');
@@ -93,29 +95,25 @@ const AdminOrders = () => {
     const fetchOrders = async () => {
         setLoading(true);
         try {
-            // Chỉ gửi minPrice/maxPrice nếu không phải là lần load đầu (để lấy maxPrice gốc về trước)
-            // Hoặc gửi luôn, backend sẽ xử lý maxPrice toàn cục trả về
             const params = {
-                page, pageSize: 10, search, status: statusFilter,
+                page, pageSize: itemsPerPage, search, status: statusFilter,
                 fromDate: fromDate || null, toDate: toDate || null,
             };
-
-            // Nếu không phải lần đầu mới gửi kèm bộ lọc giá (để tránh lọc sai khi chưa biết max)
+            // Nếu không phải lần đầu mới gửi kèm bộ lọc giá
             if (!isFirstLoad.current) {
                 params.minPrice = priceRange[0];
                 params.maxPrice = priceRange[1];
             }
 
             const res = await axios.get(`https://localhost:7298/api/Orders/admin/list`, { params });
-            
             setOrders(res.data.data);
             setTotalPages(res.data.totalPages);
 
             // --- CẬP NHẬT SLIDER THEO GIÁ CAO NHẤT ---
             if (isFirstLoad.current) {
-                const serverMaxPrice = res.data.maxPrice || 50000000; // Lấy MaxPrice từ API trả về
-                setMaxPriceBound(serverMaxPrice); // Set giới hạn thanh trượt
-                setPriceRange([0, serverMaxPrice]); // Set khoảng chọn full
+                const serverMaxPrice = res.data.maxPrice || 50000000;
+                setMaxPriceBound(serverMaxPrice);
+                setPriceRange([0, serverMaxPrice]);
                 isFirstLoad.current = false;
             }
         } catch (error) {
@@ -127,19 +125,18 @@ const AdminOrders = () => {
     useEffect(() => {
         fetchOrders();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, statusFilter, filterTrigger]); // filterTrigger thay đổi khi bấm nút Lọc
+    }, [page, statusFilter, filterTrigger]);
 
     const handleSearch = (e) => {
         e.preventDefault();
         setPage(1);
-        setFilterTrigger(prev => prev + 1); // Trigger useEffect gọi lại API
+        setFilterTrigger(prev => prev + 1);
     };
 
     const handleSliderChange = (value) => {
         setPriceRange(value);
     };
 
-    // ... (Giữ nguyên các hàm handleViewDetail, handleUpdateStatus...)
     const handleViewDetail = async (id) => {
         try {
             const res = await axios.get(`https://localhost:7298/api/Orders/admin/detail/${id}`);
@@ -203,6 +200,9 @@ const AdminOrders = () => {
         }
     };
 
+    // Hàm đổi trang (để khớp với logic copy từ Product)
+    const paginate = (pageNumber) => setPage(pageNumber);
+
     return (
         <div style={{ padding: '24px', backgroundColor: '#f4f6f9', minHeight: '100vh' }}>
             <div style={{ marginBottom: '24px' }}>
@@ -258,7 +258,7 @@ const AdminOrders = () => {
                                 <Slider 
                                     range 
                                     min={0} 
-                                    max={maxPriceBound} // Sử dụng Max Price động từ API
+                                    max={maxPriceBound} 
                                     step={50000} 
                                     value={priceRange} 
                                     onChange={handleSliderChange} 
@@ -289,6 +289,8 @@ const AdminOrders = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                     <thead style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
                         <tr>
+                            {/* --- THÊM CỘT STT --- */}
+                            <th style={{ padding: '16px', textAlign: 'center', color: '#495057', width: '50px' }}>STT</th>
                             <th style={{ padding: '16px', textAlign: 'left', color: '#495057' }}>ID</th>
                             <th style={{ padding: '16px', textAlign: 'left', color: '#495057' }}>Khách hàng</th>
                             <th style={{ padding: '16px', textAlign: 'left', color: '#495057' }}>Ngày đặt</th>
@@ -299,79 +301,165 @@ const AdminOrders = () => {
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>Đang tải dữ liệu...</td></tr>
-                        ) : orders.map(order => (
-                            <tr 
-                                key={order.orderId} 
-                                style={{ borderBottom: '1px solid #f1f1f1', transition: 'background-color 0.2s' }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-                            >
-                                <td style={{ padding: '16px', fontWeight: 'bold', color: '#0d6efd' }}>#{order.orderId}</td>
-                                <td style={{ padding: '16px' }}>
-                                    <div style={{ fontWeight: '600', color: '#333' }}>{order.customerName}</div>
-                                    <div style={{ fontSize: '12px', color: '#888' }}>{order.phone}</div>
-                                </td>
-                                <td style={{ padding: '16px' }}>{new Date(order.orderDate).toLocaleString('vi-VN')}</td>
-                                <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: '#198754' }}>
-                                    {formatCurrency(order.totalAmount)}
-                                </td>
-                                <td style={{ padding: '16px', textAlign: 'center' }}>
-                                    <StatusSelect 
-                                        orderId={order.orderId}
-                                        currentStatus={order.orderStatus}
-                                        onUpdate={handleQuickUpdateStatus}
-                                    />
-                                </td>
-                                <td style={{ padding: '16px', textAlign: 'center' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                                        <button 
-                                            onClick={() => handleViewDetail(order.orderId)}
-                                            style={{ width: '36px', height: '36px', border: '1px solid #4e73df', borderRadius: '6px', backgroundColor: 'white', color: '#4e73df', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
-                                        >
-                                            <Icons.Eye />
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDelete(order.orderId, order.orderStatus)} 
-                                            title="Xóa đơn hàng"
-                                            style={{ 
-                                                width: '36px', height: '36px', 
-                                                border: '1px solid #f5c2c7', borderRadius: '6px',
-                                                opacity: (order.orderStatus === 'Pending' || order.orderStatus === 'Cancelled') ? 1 : 0.5,
-                                                backgroundColor: 'white', color: '#dc3545', cursor: 'pointer',
-                                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                                            }}
-                                        >
-                                            <Icons.Trash />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                            <tr><td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>Đang tải dữ liệu...</td></tr>
+                        ) : orders.map((order, index) => {
+                            // --- TÍNH TOÁN STT ---
+                            const stt = (page - 1) * itemsPerPage + index + 1;
+                            
+                            return (
+                                <tr 
+                                    key={order.orderId} 
+                                    style={{ borderBottom: '1px solid #f1f1f1', transition: 'background-color 0.2s' }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                                >
+                                    {/* HIỂN THỊ STT */}
+                                    <td style={{ padding: '16px', textAlign: 'center', fontWeight: 'bold', color: '#888' }}>{stt}</td>
+                                    
+                                    <td style={{ padding: '16px', fontWeight: 'bold', color: '#0d6efd' }}>#{order.orderId}</td>
+                                    <td style={{ padding: '16px' }}>
+                                        <div style={{ fontWeight: '600', color: '#333' }}>{order.customerName}</div>
+                                        <div style={{ fontSize: '12px', color: '#888' }}>{order.phone}</div>
+                                    </td>
+                                    <td style={{ padding: '16px' }}>{new Date(order.orderDate).toLocaleString('vi-VN')}</td>
+                                    <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: '#198754' }}>
+                                        {formatCurrency(order.totalAmount)}
+                                    </td>
+                                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                                        <StatusSelect 
+                                            orderId={order.orderId}
+                                            currentStatus={order.orderStatus}
+                                            onUpdate={handleQuickUpdateStatus}
+                                        />
+                                    </td>
+                                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                                            <button 
+                                                onClick={() => handleViewDetail(order.orderId)}
+                                                style={{ width: '36px', height: '36px', border: '1px solid #4e73df', borderRadius: '6px', backgroundColor: 'white', color: '#4e73df', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+                                            >
+                                                <Icons.Eye />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDelete(order.orderId, order.orderStatus)} 
+                                                title="Xóa đơn hàng"
+                                                style={{ 
+                                                    width: '36px', height: '36px', 
+                                                    border: '1px solid #f5c2c7', borderRadius: '6px',
+                                                    opacity: (order.orderStatus === 'Pending' || order.orderStatus === 'Cancelled') ? 1 : 0.5,
+                                                    backgroundColor: 'white', color: '#dc3545', cursor: 'pointer',
+                                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                                }}
+                                            >
+                                                <Icons.Trash />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )
+                        })}
                          {orders.length === 0 && !loading && (
-                            <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>Không tìm thấy đơn hàng nào.</td></tr>
+                            <tr><td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>Không tìm thấy đơn hàng nào.</td></tr>
                         )}
                     </tbody>
                 </table>
-                 
+              
+                {/* --- UI PHÂN TRANG MỚI (THEO KIỂU ADMIN PRODUCTS) --- */}
                 {totalPages > 1 && (
-                    <div style={{ padding: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'center', borderTop: '1px solid #eee' }}>
-                        <span style={{ fontSize: '14px', color: '#666', marginRight: '10px' }}>Trang {page} / {totalPages}</span>
-                        <button 
-                            disabled={page === 1} 
-                            onClick={() => setPage(page - 1)}
-                            style={{ padding: '6px 12px', background: 'white', border: '1px solid #dee2e6', borderRadius: '4px', cursor: page === 1 ? 'not-allowed' : 'pointer', color: page === 1 ? '#ccc' : '#333' }}
-                        >
-                            Trước
-                        </button>
-                        <button 
-                            disabled={page === totalPages} 
-                            onClick={() => setPage(page + 1)}
-                            style={{ padding: '6px 12px', background: 'white', border: '1px solid #dee2e6', borderRadius: '4px', cursor: page === totalPages ? 'not-allowed' : 'pointer', color: page === totalPages ? '#ccc' : '#333' }}
-                        >
-                            Sau
-                        </button>
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px 0', gap: '5px', borderTop: '1px solid #eee' }}>
+                        
+                        {/* NHÓM NÚT TRÁI */}
+                        {page > 1 && (
+                            <>
+                                {/* Nút về Trang đầu */}
+                                <button 
+                                    onClick={() => paginate(1)} 
+                                    style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', color: '#4e73df', fontWeight: 'bold' }}
+                                    title="Về trang đầu"
+                                >
+                                    &#171; Đầu
+                                </button>
+
+                                {/* Nút Trước */}
+                                <button 
+                                    onClick={() => paginate(page - 1)} 
+                                    style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px' }}
+                                >
+                                    &lsaquo; Trước
+                                </button>
+                            </>
+                        )}
+
+                        {/* DANH SÁCH SỐ TRANG */}
+                        {(() => {
+                            let startPage, endPage;
+                            // Nếu tổng số trang <= 10 thì hiện hết
+                            if (totalPages <= 10) {
+                                startPage = 1;
+                                endPage = totalPages;
+                            } else {
+                                // Nếu tổng > 10, tính toán cửa sổ trượt
+                                if (page <= 6) {
+                                    startPage = 1;
+                                    endPage = 10;
+                                } else if (page + 4 >= totalPages) {
+                                    startPage = totalPages - 9;
+                                    endPage = totalPages;
+                                } else {
+                                    startPage = page - 5;
+                                    endPage = page + 4;
+                                }
+                            }
+
+                            // Tạo mảng số trang để map
+                            const pages = [];
+                            for (let i = startPage; i <= endPage; i++) {
+                                pages.push(i);
+                            }
+
+                            return pages.map(number => (
+                                <button 
+                                    key={number} 
+                                    onClick={() => paginate(number)}
+                                    style={{ 
+                                        padding: '6px 12px', 
+                                        border: '1px solid #ddd', 
+                                        background: page === number ? '#4e73df' : 'white', 
+                                        color: page === number ? 'white' : '#333',
+                                        cursor: 'pointer', 
+                                        borderRadius: '4px',
+                                        fontWeight: page === number ? 'bold' : 'normal',
+                                        fontSize: '13px',
+                                        minWidth: '32px'
+                                    }}
+                                >
+                                    {number}
+                                </button>
+                            ));
+                        })()}
+
+                        {/* NHÓM NÚT PHẢI */}
+                        {page < totalPages && (
+                            <>
+                                {/* Nút Sau */}
+                                <button 
+                                    onClick={() => paginate(page + 1)} 
+                                    style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px' }}
+                                >
+                                    Sau &rsaquo;
+                                </button>
+
+                                {/* Nút đến Trang cuối */}
+                                <button 
+                                    onClick={() => paginate(totalPages)} 
+                                    style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', color: '#4e73df', fontWeight: 'bold' }}
+                                    title="Đến trang cuối"
+                                >
+                                    Cuối &#187;
+                                </button>
+                            </>
+                        )}
                     </div>
                 )}
             </div>

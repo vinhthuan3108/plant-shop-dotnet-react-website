@@ -100,11 +100,11 @@ function AdminBanners() {
             <table border="1" style={{ width: '100%', borderCollapse: 'collapse', borderColor: '#ddd', fontSize: '14px' }}>
                 <thead style={{ backgroundColor: '#f8f9fa' }}>
                     <tr>
-                        <th style={{ padding: '10px', width: '120px' }}>Hình ảnh</th>
+                        <th style={{ padding: '10px', width: '120px', textAlign: 'center' }}>Hình ảnh</th>
                         <th style={{ padding: '10px' }}>Tiêu đề</th>
-                        <th style={{ padding: '10px', width: '100px' }}>Thứ tự</th>
-                        <th style={{ padding: '10px', width: '120px' }}>Trạng thái</th>
-                        <th style={{ padding: '10px', width: '150px' }}>Thao tác</th>
+                        <th style={{ padding: '10px', width: '100px', textAlign: 'center' }}>Thứ tự</th>
+                        <th style={{ padding: '10px', width: '120px', textAlign: 'center' }}>Trạng thái</th>
+                        <th style={{ padding: '10px', width: '150px', textAlign: 'center' }}>Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>

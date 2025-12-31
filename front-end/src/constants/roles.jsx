@@ -1,6 +1,6 @@
 // src/constants/roles.js
 
-// 1. ĐỊNH NGHĨA ROLE ID (Khớp với Database của bạn)
+// 1. ĐỊNH NGHĨA ROLE ID
 export const ROLES = {
   ADMIN: 1,
   CUSTOMER: 2,
@@ -14,13 +14,11 @@ export const MENU_ITEMS = [
     id: 'products',
     title: "🌿 Quản lý sản phẩm",
     path: "/admin/products",
-    // Cả Admin, Bán hàng, Kho đều cần xem sản phẩm để làm việc
     permissions: [ROLES.ADMIN, ROLES.SALES, ROLES.WAREHOUSE],
   },
   {
     id: 'stats',
     title: "📊 Báo cáo & Thống kê",
-    // Kho không cần xem doanh thu
     permissions: [ROLES.ADMIN, ROLES.SALES],
     children: [
       { title: "💰 Doanh thu", path: "/admin/statistics", permissions: [ROLES.ADMIN, ROLES.SALES] },
@@ -31,7 +29,7 @@ export const MENU_ITEMS = [
     id: 'orders',
     title: "🧾 Quản lý đơn hàng",
     path: "/admin/orders",
-    permissions: [ROLES.ADMIN, ROLES.SALES], // Kho chỉ xuất hàng, ko xử lý đơn
+    permissions: [ROLES.ADMIN, ROLES.SALES],
   },
   {
     id: 'vouchers',
@@ -54,7 +52,7 @@ export const MENU_ITEMS = [
   {
     id: 'inventory',
     title: "🏭 Quản lý Kho",
-    permissions: [ROLES.ADMIN, ROLES.WAREHOUSE], // Bán hàng không được vào
+    permissions: [ROLES.ADMIN, ROLES.WAREHOUSE],
     children: [
       { title: "📥 Tạo Phiếu nhập", path: "/admin/imports", permissions: [ROLES.ADMIN, ROLES.WAREHOUSE] },
       { title: "📜 Lịch sử nhập kho", path: "/admin/import-history", permissions: [ROLES.ADMIN, ROLES.WAREHOUSE] },
@@ -68,34 +66,41 @@ export const MENU_ITEMS = [
     path: "/admin/banners",
     permissions: [ROLES.ADMIN, ROLES.SALES],
   },
-   {
+  {
     id: 'testimonial',
-    title: "🖼️ Quản lý đánh giá giả",
+    title: "⭐ Quản lý đánh giá giả", // Đổi icon sang ⭐ cho hợp ngữ cảnh đánh giá
     path: "/admin/testimonial",
     permissions: [ROLES.ADMIN, ROLES.SALES],
   },
+  // --- PHẦN ĐÃ SỬA ĐỔI ---
   {
-    id: 'config',
-    title: "⚙️ Quản lý cấu hình",
-    path: "/admin/shop-info",
-    permissions: [ROLES.ADMIN], // Chỉ Admin
+    id: 'settings',
+    title: "⚙️ Cài đặt hệ thống",
+    permissions: [ROLES.ADMIN], // Chỉ Admin mới thấy mục cha này
+    children: [
+      { 
+        title: "🏪 Thông tin cửa hàng", // Logo, Favicon, Hotline, Zalo...
+        path: "/admin/shop-info", 
+        permissions: [ROLES.ADMIN] 
+      },
+      { 
+        title: "🔌 Tích hợp & Kết nối", // App Password, Email, API Keys...
+        path: "/admin/system-integration", 
+        permissions: [ROLES.ADMIN] 
+      },
+    ]
   },
-    {
-    id: 'integration',
-    title: "⚙️ Quản lý cấu hình hệ thống",
-    path: "/admin/system-integration",
-    permissions: [ROLES.ADMIN], // Chỉ Admin
-  },
+  // -----------------------
   {
     id: 'users',
     title: "👥 Quản lý Tài khoản",
     path: "/admin/users",
-    permissions: [ROLES.ADMIN], // Chỉ Admin
+    permissions: [ROLES.ADMIN],
   },
   {
     id: 'backup',
     title: "💾 Backup Dữ liệu",
     path: "/admin/backup",
-    permissions: [ROLES.ADMIN], // Chỉ Admin
+    permissions: [ROLES.ADMIN],
   },
 ];
