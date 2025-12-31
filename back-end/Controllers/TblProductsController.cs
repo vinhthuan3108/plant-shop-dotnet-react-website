@@ -423,9 +423,13 @@ namespace back_end.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTblProduct(int id)
         {
-            var tblProduct = await _context.TblProducts.Include(p => p.TblProductImages).FirstOrDefaultAsync(p => p.ProductId == id);
+            var tblProduct = await _context.TblProducts
+                .Include(p => p.TblProductImages)
+                .FirstOrDefaultAsync(p => p.ProductId == id);
+
             if (tblProduct == null) return NotFound();
 
+            // Xóa file ảnh vật lý (giữ nguyên logic cũ của bạn)
             if (tblProduct.TblProductImages != null)
             {
                 foreach (var image in tblProduct.TblProductImages)
@@ -440,7 +444,29 @@ namespace back_end.Controllers
             }
 
             _context.TblProducts.Remove(tblProduct);
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                // Kiểm tra xem lỗi có phải do ràng buộc khóa ngoại không (FK Constraint)
+                if (ex.InnerException != null && ex.InnerException.Message.Contains("REFERENCE constraint"))
+                {
+                    // Trả về lỗi 409 (Conflict) kèm thông báo rõ ràng cho người dùng
+                    return StatusCode(409, new
+                    {
+                        title = "Không thể xóa sản phẩm này vì đã có dữ liệu liên quan (Đơn hàng, Nhập kho...). Vui lòng chọn 'Ngừng bán' thay vì xóa."
+                    });
+                }
+                else
+                {
+                    // Lỗi khác thì báo lỗi server chung 
+                    return StatusCode(500, new { title = "Lỗi hệ thống: " + ex.Message });
+                }
+            }
+
             return NoContent();
         }
     }

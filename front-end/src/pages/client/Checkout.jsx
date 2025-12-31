@@ -4,12 +4,8 @@ import axios from 'axios';
 import { CartContext } from '../../context/CartContext';
 
 const Checkout = () => {
-<<<<<<< HEAD
     // SỬA 1: Đổi cartTotal -> totalAmount để khớp với Context
     const { cartItems, totalAmount, refreshCart } = useContext(CartContext);
-=======
-    const { cartItems, cartTotal, clearCart } = useContext(CartContext);
->>>>>>> b0e97e7a387d56f4409ffc2f88900491dcd7d779
     const navigate = useNavigate();
     
     // Config URL Backend
@@ -244,11 +240,7 @@ const Checkout = () => {
                 }
             } else {
                 alert("Đặt hàng thành công!");
-<<<<<<< HEAD
                 await refreshCart();
-=======
-                await clearCart(); // Làm mới giỏ hàng
->>>>>>> b0e97e7a387d56f4409ffc2f88900491dcd7d779
                 navigate('/order-success', { state: { orderId: newOrderId } });
             }
         } catch (error) {

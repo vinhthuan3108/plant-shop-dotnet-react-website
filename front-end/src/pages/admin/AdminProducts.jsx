@@ -151,11 +151,20 @@ function Products() {
     const handleDelete = async (item) => {
         if (window.confirm(`Bạn có chắc muốn xóa sản phẩm này không?\n\n- Mã: ${item.productCode}\n- Tên: ${item.productName}`)) {
             try {
-                await fetch(`${API_URL}/${item.productId}`, { method: 'DELETE' });
-                fetchProducts();
+                const res = await fetch(`${API_URL}/${item.productId}`, { method: 'DELETE' });
+                
+                // KIỂM TRA KẾT QUẢ TRẢ VỀ TỪ SERVER
+                if (res.ok) {
+                    alert("Xóa sản phẩm thành công!");
+                    fetchProducts(); // Tải lại danh sách
+                } else {
+                    // Nếu lỗi, đọc nội dung lỗi JSON từ Backend gửi sang
+                    const errData = await res.json(); 
+                    alert(`Lỗi xóa: ${errData.title || "Không thể xóa sản phẩm này."}`);
+                }
             } catch (error) {
                 console.error("Lỗi khi xóa:", error);
-                alert("Đã xảy ra lỗi khi xóa sản phẩm.");
+                alert("Lỗi kết nối đến máy chủ (Network Error).");
             }
         }
     };
