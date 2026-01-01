@@ -48,6 +48,9 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<back_end.Services.EmailService>();
 builder.Services.AddScoped<back_end.Services.IShippingCalculatorService, back_end.Services.ShippingCalculatorService>();
 builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddHttpClient();
+
 var app = builder.Build();
 
 app.UseCors("AllowReactApp");

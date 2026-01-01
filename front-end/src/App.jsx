@@ -17,6 +17,8 @@ import VerifyOtp from './pages/auth/VerifyOtp';
 //
 import IntroPage from './pages/client/IntroPage';
 import Contact from './pages/client/Contact';
+//
+import PlantCare from './pages/client/PlantCare';
 
 // Admin Pages
 import AdminProducts from './pages/admin/AdminProducts';
@@ -116,6 +118,7 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/guide" element={<GuidePage />} />
         <Route path="shop" element={<Shop />} />
+        <Route path="/plant-care" element={<PlantCare />} />
       </Route>
 
       {/* --- NHÓM 2: DÀNH CHO ADMIN (Dùng AdminLayout) --- */}
