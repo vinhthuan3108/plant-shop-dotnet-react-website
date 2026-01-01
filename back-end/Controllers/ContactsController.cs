@@ -83,13 +83,59 @@ namespace back_end.Controllers
 
         // 5. API User gửi tin (Giữ nguyên)
         [HttpPost]
-        public async Task<ActionResult<TblContact>> CreateContact(TblContact contact)
+        public async Task<IActionResult> CreateContact([FromBody] ContactSubmissionDto request)
         {
-            contact.SentAt = DateTime.Now;
-            contact.Status = "New";
+            // 1. Kiểm tra Captcha với Google
+            string secretKey = "6Lc37zwsAAAAABz0cJwRpYRqkl0c1kz7_DsXRBFg"; // <-- Thay Secret Key vào đây
+            var isCaptchaValid = await VerifyCaptcha(request.RecaptchaToken, secretKey);
+
+            if (!isCaptchaValid)
+            {
+                return BadRequest(new { message = "Xác thực Captcha thất bại. Vui lòng thử lại." });
+            }
+
+            // 2. Nếu Captcha đúng, tiến hành lưu vào DB
+            var contact = new TblContact
+            {
+                FullName = request.FullName,
+                Email = request.Email,
+                PhoneNumber = request.PhoneNumber,
+                Message = request.Message,
+                Subject = request.Subject, // Nếu DB có cột này
+                SentAt = DateTime.Now,
+                Status = "New"
+            };
+
             _context.TblContacts.Add(contact);
             await _context.SaveChangesAsync();
+
             return CreatedAtAction("GetContact", new { id = contact.ContactId }, contact);
+        }
+
+        // Hàm phụ trợ để gọi sang Google (Copy hàm này vào trong Class Controller)
+        // Sửa lại hàm này trong ContactsController.cs
+        private async Task<bool> VerifyCaptcha(string token, string secretKey)
+        {
+            if (string.IsNullOrEmpty(token)) return false;
+
+            using (var client = new HttpClient())
+            {
+                var response = await client.GetStringAsync($"https://www.google.com/recaptcha/api/siteverify?secret={secretKey}&response={token}");
+
+                // Deserialize ra dynamic object
+                var jsonResult = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(response);
+
+                // SỬA LỖI Ở ĐÂY:
+                // Ép kiểu về bool thay vì so sánh với chuỗi "true"
+                try
+                {
+                    return (bool)jsonResult.success;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
         }
 
         // 6. API Phản hồi liên hệ (SỬA ĐỔI QUAN TRỌNG)
@@ -133,5 +179,14 @@ namespace back_end.Controllers
     {
         public string Subject { get; set; }
         public string Message { get; set; }
+    }
+    public class ContactSubmissionDto
+    {
+        public string FullName { get; set; }
+        public string Email { get; set; }
+        public string PhoneNumber { get; set; }
+        public string Message { get; set; }
+        public string Subject { get; set; }
+        public string RecaptchaToken { get; set; } // Nhận token từ React
     }
 }

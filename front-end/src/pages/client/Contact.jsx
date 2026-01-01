@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 function Contact() {
     // State lưu dữ liệu form
@@ -9,31 +10,107 @@ function Contact() {
         phoneNumber: '',
         message: ''
     });
+    const [status, setStatus] = useState(''); 
+    const [captchaToken, setCaptchaToken] = useState(null);
+    
+    // 1. State lưu SiteKey Recaptcha
+    const [siteKey, setSiteKey] = useState(null);
 
-    const [status, setStatus] = useState(''); // Thông báo thành công/thất bại
+    // 2. State lưu thông tin cửa hàng
+    const [shopInfo, setShopInfo] = useState({
+        storeName: 'Đang tải...',
+        address: 'Đang tải...',
+        email: 'Đang tải...',
+        hotline: 'Đang tải...'
+    });
 
-    // Xử lý khi nhập liệu (chung cho các trường)
+    // 3. (MỚI) State lưu danh sách câu hỏi thường gặp
+    const [qandas, setQandas] = useState([]);
+
+    const recaptchaRef = useRef(null);
+    const BASE_URL = 'https://localhost:7298'; 
+
+    // FETCH DỮ LIỆU TỪ BACKEND
+    useEffect(() => {
+        // Hàm lấy cấu hình hệ thống
+        const fetchConfig = async () => {
+            try {
+                const res = await axios.get(`${BASE_URL}/api/TblSystemConfig`);
+                const data = res.data; 
+
+                const getValue = (key) => {
+                    const item = data.find(x => x.configKey === key);
+                    return item ? item.configValue : '';
+                };
+
+                setShopInfo({
+                    storeName: getValue('StoreName'),
+                    address: getValue('Address'),
+                    email: getValue('Email'),
+                    hotline: getValue('Hotline')
+                });
+
+                const recaptchaConfig = data.find(x => x.configKey === 'Recaptcha_SiteKey');
+                if (recaptchaConfig && recaptchaConfig.configValue) {
+                    setSiteKey(recaptchaConfig.configValue);
+                }
+
+            } catch (error) {
+                console.error("Lỗi khi lấy cấu hình hệ thống:", error);
+            }
+        };
+
+        // (MỚI) Hàm lấy danh sách câu hỏi thường gặp
+        const fetchQandA = async () => {
+            try {
+                // Gọi API Active: Backend đã xử lý việc lọc IsActive=true và sắp xếp theo DisplayOrder
+                const res = await axios.get(`${BASE_URL}/api/QandA/Active`);
+                setQandas(res.data);
+            } catch (error) {
+                console.error("Lỗi khi lấy danh sách Q&A:", error);
+            }
+        };
+
+        fetchConfig();
+        fetchQandA(); // Gọi hàm lấy Q&A
+    }, []);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
+        if (name === 'phoneNumber') {
+            if (!/^\d*$/.test(value)) return;
+        }
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Xử lý gửi form
+    const handleCaptchaChange = (token) => {
+        setCaptchaToken(token);
+        setStatus(''); 
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!captchaToken) {
+            alert('Vui lòng xác nhận bạn không phải là robot!');
+            return;
+        }
+        if (formData.phoneNumber.length < 10 || formData.phoneNumber.length > 11) {
+            alert('Số điện thoại phải từ 10 đến 11 số!');
+            return;
+        }
+
         setStatus('sending');
-
         try {
-            // Gọi API CreateContact
-            await axios.post('https://localhost:7298/api/Contacts', {
+            await axios.post(`${BASE_URL}/api/Contacts`, {
                 ...formData,
-                subject: 'Liên hệ từ khách hàng'
+                subject: 'Liên hệ từ khách hàng',
+                recaptchaToken: captchaToken
             });
-
             alert('Gửi tin nhắn thành công!');
             setStatus('success');
-            // Reset form
             setFormData({ fullName: '', email: '', phoneNumber: '', message: '' });
+            if (recaptchaRef.current) recaptchaRef.current.reset();
+            setCaptchaToken(null);
         } catch (error) {
             console.error(error);
             alert('Có lỗi xảy ra, vui lòng thử lại.');
@@ -61,30 +138,53 @@ function Contact() {
                 {/* Cột trái: Thông tin liên hệ */}
                 <div style={{ flex: 1, minWidth: '300px' }}>
                     <h3 style={{ color: '#333', marginBottom: '20px', borderBottom: '2px solid #ddd', paddingBottom: '10px' }}>Địa chỉ liên hệ</h3>
+                    
                     <ul style={{ listStyle: 'none', padding: 0, lineHeight: '2' }}>
-                        <li><strong>Vườn Cây Việt:</strong> Chuyên cung cấp các loại cây cảnh...</li>
-                        <li><strong>Hotline:</strong> 0987.654.321</li>
-                        <li><strong>Email:</strong> lienhe@plantsh.com</li>
-                        <li><strong>Địa chỉ:</strong> 15 đường số 3, Khu dân cư Gia Hòa, TP.HCM</li>
+                        <li>
+                            <strong>Tên cửa hàng: </strong> {shopInfo.storeName}
+                        </li>
+                        <li>
+                            <strong>Hotline: </strong> 
+                            <a href={`tel:${shopInfo.hotline}`} style={{color: 'inherit', textDecoration: 'none'}}>
+                                {shopInfo.hotline}
+                            </a>
+                        </li>
+                        <li>
+                            <strong>Email: </strong> 
+                            <a href={`mailto:${shopInfo.email}`} style={{color: 'inherit', textDecoration: 'none'}}>
+                                {shopInfo.email}
+                            </a>
+                        </li>
+                        <li>
+                            <strong>Địa chỉ: </strong> {shopInfo.address}
+                        </li>
                     </ul>
 
+                    {/* --- (MỚI) PHẦN CÂU HỎI THƯỜNG GẶP ĐỘNG --- */}
                     <div style={{ marginTop: '30px' }}>
                         <h4 style={{ marginBottom: '15px' }}>Câu hỏi thường gặp</h4>
-                        <details style={{ marginBottom: '10px', cursor: 'pointer' }}>
-                            <summary>Vườn Cây Việt có bán sỉ cây cảnh không?</summary>
-                            <p style={{ paddingLeft: '20px', color: '#666' }}>Có, chúng tôi có chính sách giá sỉ hấp dẫn.</p>
-                        </details>
-                        <details style={{ marginBottom: '10px', cursor: 'pointer' }}>
-                            <summary>Có giao hàng toàn quốc không?</summary>
-                            <p style={{ paddingLeft: '20px', color: '#666' }}>Chúng tôi hỗ trợ giao hàng trên toàn quốc.</p>
-                        </details>
+                        
+                        {qandas.length > 0 ? (
+                            qandas.map((item) => (
+                                <details key={item.id} style={{ marginBottom: '10px', cursor: 'pointer' }}>
+                                    <summary style={{fontWeight: 'bold'}}>{item.question}</summary>
+                                    <p style={{ paddingLeft: '20px', color: '#666', marginTop:'5px', lineHeight: '1.5' }}>
+                                        {item.answer}
+                                    </p>
+                                </details>
+                            ))
+                        ) : (
+                            <p style={{ color: '#999', fontSize: '14px', fontStyle: 'italic' }}>
+                                Đang cập nhật câu hỏi...
+                            </p>
+                        )}
                     </div>
+                    {/* ------------------------------------------- */}
                 </div>
 
-                {/* Cột phải: Form liên hệ */}
+                {/* Cột phải: Form liên hệ (Giữ nguyên không đổi) */}
                 <div style={{ flex: 1, minWidth: '300px' }}>
                     <h3 style={{ color: '#333', marginBottom: '20px', borderBottom: '2px solid #ddd', paddingBottom: '10px' }}>Form liên hệ</h3>
-                    
                     <form onSubmit={handleSubmit}>
                         <div style={{ marginBottom: '15px' }}>
                             <label style={{ display: 'block', marginBottom: '5px' }}>Tên của bạn</label>
@@ -94,7 +194,7 @@ function Contact() {
                                 value={formData.fullName}
                                 onChange={(e) => {
                                     handleChange(e);
-                                    e.target.setCustomValidity(''); // Xóa lỗi khi gõ lại
+                                    e.target.setCustomValidity(''); 
                                 }}
                                 onInvalid={(e) => e.target.setCustomValidity('Vui lòng nhập họ và tên của bạn')}
                                 style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
@@ -102,7 +202,6 @@ function Contact() {
                             />
                         </div>
 
-                        {/* --- PHẦN XỬ LÝ EMAIL TIẾNG VIỆT & CHECK FORMAT --- */}
                         <div style={{ marginBottom: '15px' }}>
                             <label style={{ display: 'block', marginBottom: '5px' }}>Email của bạn</label>
                             <input 
@@ -110,18 +209,13 @@ function Contact() {
                                 name="email" 
                                 value={formData.email}
                                 onChange={(e) => {
-                                    handleChange(e); // 1. Lưu state
-                                    
-                                    // 2. Xóa lỗi cũ để trình duyệt check lại
+                                    handleChange(e);
                                     e.target.setCustomValidity(''); 
-
-                                    // 3. Kiểm tra ngay lập tức khi gõ (nếu sai format thì báo lỗi ngầm định, đợi submit hoặc blur sẽ hiện)
                                     if (e.target.validity.typeMismatch) {
                                         e.target.setCustomValidity('Vui lòng nhập đúng định dạng email (ví dụ: abc@gmail.com)');
                                     }
                                 }}
                                 onInvalid={(e) => {
-                                    // 4. Xử lý khi bấm nút Gửi mà bị lỗi
                                     if (e.target.validity.valueMissing) {
                                         e.target.setCustomValidity('Vui lòng nhập email, không được để trống');
                                     } else {
@@ -132,7 +226,6 @@ function Contact() {
                                 required
                             />
                         </div>
-                        {/* -------------------------------------------------- */}
 
                         <div style={{ marginBottom: '15px' }}>
                             <label style={{ display: 'block', marginBottom: '5px' }}>Số điện thoại</label>
@@ -140,8 +233,14 @@ function Contact() {
                                 type="text" 
                                 name="phoneNumber" 
                                 value={formData.phoneNumber}
-                                onChange={handleChange}
+                                onChange={(e) => {
+                                    handleChange(e);
+                                    e.target.setCustomValidity(''); 
+                                }} 
+                                onInvalid={(e) => e.target.setCustomValidity('Vui lòng nhập số điện thoại')}
+                                placeholder="Nhập số điện thoại (10-11 số)"
                                 style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
+                                required 
                             />
                         </div>
 
@@ -160,7 +259,19 @@ function Contact() {
                                 required
                             ></textarea>
                         </div>
-
+                        
+                        <div style={{ marginBottom: '15px' }}>
+                            {siteKey ? (
+                                <ReCAPTCHA
+                                    ref={recaptchaRef} 
+                                    sitekey={siteKey} 
+                                    onChange={handleCaptchaChange}
+                                />
+                            ) : (
+                                <p style={{color: '#666', fontStyle: 'italic'}}>Đang tải mã bảo mật...</p>
+                            )}
+                        </div>
+                        
                         <button 
                             type="submit" 
                             style={{ 
@@ -173,7 +284,7 @@ function Contact() {
                                 fontWeight: 'bold',
                                 fontSize: '16px'
                             }}
-                            disabled={status === 'sending'}
+                            disabled={status === 'sending' || !siteKey}
                         >
                             {status === 'sending' ? 'Đang gửi...' : 'GỬI'}
                         </button>

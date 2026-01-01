@@ -186,18 +186,18 @@ const CreateImportReceipt = () => {
             {/* HEADER PHIẾU */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: '20px', background: '#ecf0f1', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
                 <div>
-                    <label style={{fontWeight:'bold', display:'block', marginBottom:'5px'}}>Nhà cung cấp (*)</label>
+                    <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Nhà cung cấp (*)</label>
                     <select value={supplierId} onChange={e => setSupplierId(e.target.value)} style={inputStyle}>
                         <option value="">-- Chọn NCC --</option>
                         {suppliers.map(s => <option key={s.supplierId} value={s.supplierId}>{s.supplierName}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label style={{fontWeight:'bold', display:'block', marginBottom:'5px'}}>Ngày nhập</label>
+                    <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Ngày nhập</label>
                     <input type="date" value={importDate} onChange={e => setImportDate(e.target.value)} style={inputStyle} />
                 </div>
                 <div>
-                    <label style={{fontWeight:'bold', display:'block', marginBottom:'5px'}}>Ghi chú</label>
+                    <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Ghi chú</label>
                     <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Nhập ghi chú..." style={inputStyle} />
                 </div>
             </div>
@@ -211,7 +211,7 @@ const CreateImportReceipt = () => {
                             <th style={{ padding: '12px', width: '25%' }}>2. Sản phẩm</th>
                             <th style={{ padding: '12px', width: '20%' }}>3. Phân loại (Variant)</th>
                             <th style={{ padding: '12px', width: '10%', textAlign: 'center' }}>Số lượng</th>
-                            <th style={{ padding: '12px', width: '15%', textAlign: 'right' }}>Giá nhập</th>
+                            <th style={{ padding: '12px', width: '15%', textAlign: 'center' }}>Giá nhập</th>
                             <th style={{ padding: '12px', width: '5%', textAlign: 'center' }}>Xóa</th>
                         </tr>
                     </thead>
@@ -222,11 +222,13 @@ const CreateImportReceipt = () => {
                             const filteredVariants = getVariantsByProduct(row.tempProductId);
 
                             return (
-                                <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                                /* --- SỬA: Thêm verticalAlign: 'top' để chống lệch dòng --- */
+                                <tr key={index} style={{ borderBottom: '1px solid #eee', verticalAlign: 'top' }}>
+                                    
                                     {/* Cột 1: Danh mục */}
                                     <td style={{ padding: '10px' }}>
-                                        <select 
-                                            value={row.tempCategoryId} 
+                                        <select
+                                            value={row.tempCategoryId}
                                             onChange={e => handleRowChange(index, 'tempCategoryId', e.target.value)}
                                             style={tableInputStyle}
                                         >
@@ -235,10 +237,10 @@ const CreateImportReceipt = () => {
                                         </select>
                                     </td>
 
-                                    {/* Cột 2: Sản phẩm (Filter theo Danh mục) */}
+                                    {/* Cột 2: Sản phẩm */}
                                     <td style={{ padding: '10px' }}>
-                                        <select 
-                                            value={row.tempProductId} 
+                                        <select
+                                            value={row.tempProductId}
                                             onChange={e => handleRowChange(index, 'tempProductId', e.target.value)}
                                             style={tableInputStyle}
                                             disabled={!row.tempCategoryId}
@@ -250,12 +252,12 @@ const CreateImportReceipt = () => {
                                         </select>
                                     </td>
 
-                                    {/* Cột 3: Variant (Filter theo Sản phẩm) - QUAN TRỌNG */}
+                                    {/* Cột 3: Variant */}
                                     <td style={{ padding: '10px' }}>
-                                        <select 
-                                            value={row.variantId} 
+                                        <select
+                                            value={row.variantId}
                                             onChange={e => handleRowChange(index, 'variantId', e.target.value)}
-                                            style={{...tableInputStyle, border: !row.variantId ? '1px solid orange' : '1px solid #ddd'}}
+                                            style={{ ...tableInputStyle, border: !row.variantId ? '1px solid orange' : '1px solid #ddd' }}
                                             disabled={!row.tempProductId}
                                         >
                                             <option value="">-- Chọn Size/Màu --</option>
@@ -273,30 +275,36 @@ const CreateImportReceipt = () => {
 
                                     {/* Cột 4: Số lượng */}
                                     <td style={{ padding: '10px', textAlign: 'center' }}>
-                                        <input 
-                                            type="number" min="1" 
-                                            value={row.quantity} 
+                                        <input
+                                            type="number" min="1"
+                                            value={row.quantity}
                                             onChange={e => handleRowChange(index, 'quantity', e.target.value)}
-                                            style={{...tableInputStyle, textAlign: 'center'}}
+                                            style={{ ...tableInputStyle, textAlign: 'center' }}
                                         />
                                     </td>
 
-                                    {/* Cột 5: Giá nhập */}
-                                    <td style={{ padding: '10px', textAlign: 'right' }}>
-                                        <input 
-                                            type="number" min="0" 
-                                            value={row.importPrice} 
-                                            onChange={e => handleRowChange(index, 'importPrice', e.target.value)}
-                                            style={{...tableInputStyle, textAlign: 'right'}}
-                                        />
-                                        <div style={{fontSize: '11px', color: '#888', marginTop: '2px'}}>
-                                            {(row.quantity * row.importPrice).toLocaleString()} đ
+                                    {/* Cột 5: Giá nhập (SỬA CSS) */}
+                                    <td style={{ padding: '10px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                            <input
+                                                type="number" min="0"
+                                                value={row.importPrice}
+                                                onChange={e => handleRowChange(index, 'importPrice', e.target.value)}
+                                                style={{ ...tableInputStyle, textAlign: 'right', width: '100%' }}
+                                            />
+                                            {/* Phần tổng tiền nhỏ */}
+                                            <div style={{ fontSize: '12px', color: '#666', marginTop: '5px', fontWeight: '500', fontStyle: 'italic' }}>
+                                                {(row.quantity * row.importPrice).toLocaleString()} đ
+                                            </div>
                                         </div>
                                     </td>
 
-                                    {/* Cột 6: Xóa */}
+                                    {/* Cột 6: Xóa (SỬA CSS: thêm marginTop để cân đối với input) */}
                                     <td style={{ padding: '10px', textAlign: 'center' }}>
-                                        <button onClick={() => removeRow(index)} style={{ color: '#e74a3b', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>
+                                        <button 
+                                            onClick={() => removeRow(index)} 
+                                            style={{ color: '#e74a3b', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', marginTop: '8px' }}
+                                        >
                                             <FaTrash />
                                         </button>
                                     </td>
@@ -317,7 +325,7 @@ const CreateImportReceipt = () => {
                 <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
                     Tổng tiền: <span style={{ color: '#e74a3b', fontSize: '24px' }}>{totalAmount.toLocaleString()} VNĐ</span>
                 </div>
-                <button 
+                <button
                     onClick={handleSubmit}
                     style={{ background: '#27ae60', color: 'white', padding: '12px 30px', border: 'none', borderRadius: '4px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
                 >

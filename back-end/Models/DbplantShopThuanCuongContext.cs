@@ -45,9 +45,9 @@ public partial class DbplantShopThuanCuongContext : DbContext
     public virtual DbSet<TblProductVariant> TblProductVariants { get; set; }
 
     public virtual DbSet<TblRole> TblRoles { get; set; }
-
+    public virtual DbSet<TblShippingRule> TblShippingRules { get; set; }
     public virtual DbSet<TblSupplier> TblSuppliers { get; set; }
-
+    public virtual DbSet<TblQandA> TblQandAs { get; set; }
     public virtual DbSet<TblSystemConfig> TblSystemConfigs { get; set; }
 
     public virtual DbSet<TblUser> TblUsers { get; set; }
@@ -153,7 +153,11 @@ public partial class DbplantShopThuanCuongContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__TblImport__Suppl__5CD6CB2B");
         });
-
+        modelBuilder.Entity<TblShippingRule>(entity =>
+        {
+            entity.HasKey(e => e.RuleId);
+            entity.ToTable("TblShippingRules");
+        });
         modelBuilder.Entity<TblImportReceiptDetail>(entity =>
         {
             entity.HasKey(e => e.DetailId).HasName("PK__TblImpor__135C316DF56D9E1E");

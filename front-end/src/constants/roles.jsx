@@ -32,6 +32,12 @@ export const MENU_ITEMS = [
     permissions: [ROLES.ADMIN, ROLES.SALES],
   },
   {
+    id: 'ships',
+    title: "🧾 Quản lý phí ship",
+    path: "/admin/shipping-config",
+    permissions: [ROLES.ADMIN, ROLES.SALES],
+  },
+  {
     id: 'vouchers',
     title: "🎟️ Quản lý mã giảm giá",
     path: "/admin/vouchers",
@@ -57,6 +63,7 @@ export const MENU_ITEMS = [
       { title: "📥 Tạo Phiếu nhập", path: "/admin/imports", permissions: [ROLES.ADMIN, ROLES.WAREHOUSE] },
       { title: "📜 Lịch sử nhập kho", path: "/admin/import-history", permissions: [ROLES.ADMIN, ROLES.WAREHOUSE] },
       { title: "⚖️ Điều chỉnh tồn kho", path: "/admin/inventory-adjustment", permissions: [ROLES.ADMIN, ROLES.WAREHOUSE] },
+      { title: "⚖️ Lịch sử chỉnh tồn kho", path: "/admin/inventory-adjust-history", permissions: [ROLES.ADMIN, ROLES.WAREHOUSE] },
       { title: "🤝 Quản lý nhà cung cấp", path: "/admin/suppliers", permissions: [ROLES.ADMIN, ROLES.WAREHOUSE] },
     ]
   },
@@ -70,6 +77,12 @@ export const MENU_ITEMS = [
     id: 'testimonial',
     title: "⭐ Quản lý đánh giá giả", // Đổi icon sang ⭐ cho hợp ngữ cảnh đánh giá
     path: "/admin/testimonial",
+    permissions: [ROLES.ADMIN, ROLES.SALES],
+  },
+   {
+    id: 'questionandanswer',
+    title: "⭐ Quản lý Q&A", // Đổi icon sang ⭐ cho hợp ngữ cảnh đánh giá
+    path: "/admin/questionandanswer",
     permissions: [ROLES.ADMIN, ROLES.SALES],
   },
   // --- PHẦN ĐÃ SỬA ĐỔI ---

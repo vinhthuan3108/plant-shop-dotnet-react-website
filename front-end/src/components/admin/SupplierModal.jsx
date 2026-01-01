@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 function SupplierModal({ isOpen, onClose, onSave, selectedSupplier }) {
 
     const [supplierName, setSupplierName] = useState('');
+    // 1. Thêm State cho Email
+    const [email, setEmail] = useState(''); 
     const [phoneNumber, setPhoneNumber] = useState('');
     const [address, setAddress] = useState('');
     const [note, setNote] = useState('');
@@ -10,11 +12,15 @@ function SupplierModal({ isOpen, onClose, onSave, selectedSupplier }) {
     useEffect(() => {
         if (selectedSupplier) {
             setSupplierName(selectedSupplier.supplierName);
+            // 2. Load Email khi sửa (nếu có thì lấy, không thì rỗng)
+            setEmail(selectedSupplier.email || ''); 
             setPhoneNumber(selectedSupplier.phoneNumber || '');
             setAddress(selectedSupplier.address || '');
             setNote(selectedSupplier.note || '');
         } else {
             setSupplierName('');
+            // 3. Reset Email khi thêm mới
+            setEmail('');
             setPhoneNumber('');
             setAddress('');
             setNote('');
@@ -28,11 +34,12 @@ function SupplierModal({ isOpen, onClose, onSave, selectedSupplier }) {
 
         const formData = {
             supplierName,
+            email, // 4. Đưa Email vào dữ liệu gửi đi
             phoneNumber,
             address,
             note
         };
-        // Giữ lại logic ID nếu đang sửa để parent xử lý
+        
         if (selectedSupplier) formData.supplierId = selectedSupplier.supplierId;
         
         onSave(formData);
@@ -52,6 +59,18 @@ function SupplierModal({ isOpen, onClose, onSave, selectedSupplier }) {
                         type="text" 
                         value={supplierName} 
                         onChange={e => setSupplierName(e.target.value)} 
+                        style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }} 
+                    />
+                </div>
+
+                {/* 5. UI nhập Email - Đặt cạnh hoặc dưới Tên */}
+                <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Email:</label>
+                    <input 
+                        type="email" 
+                        value={email} 
+                        onChange={e => setEmail(e.target.value)} 
+                        placeholder="example@gmail.com"
                         style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }} 
                     />
                 </div>

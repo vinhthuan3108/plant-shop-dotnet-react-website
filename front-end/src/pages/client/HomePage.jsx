@@ -15,6 +15,7 @@ function HomePage() {
   
   // --- STATE DỮ LIỆU ---
   const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [bestSellerProducts, setBestSellerProducts] = useState([]);
   const [banners, setBanners] = useState([]);
   const [testimonials, setTestimonials] = useState([]); 
   const [testimonialStartIndex, setTestimonialStartIndex] = useState(0);
@@ -41,7 +42,16 @@ function HomePage() {
       })
       .catch(err => console.error("Lỗi fetch banner:", err));
   }, []);
-
+  useEffect(() => {
+    fetch(`${BASE_URL}/api/TblProducts/best-sellers?top=8`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+            setBestSellerProducts(data);
+        }
+      })
+      .catch(err => console.error("Lỗi fetch best sellers:", err));
+  }, []);
   useEffect(() => {
     if (banners.length === 0) return;
     const slideInterval = setInterval(() => nextSlide(), 5000);
@@ -187,6 +197,30 @@ function HomePage() {
         </div>
       </section>
 
+      <section className="section-container" style={{ backgroundColor: '#fff' }}>
+        <div style={{textAlign: 'center', marginBottom: '30px'}}>
+             <h2 className="section-title" style={{display: 'inline-block', borderBottom: '3px solid #2e7d32', paddingBottom: '5px'}}>
+                <FaMedal style={{color: '#f1c40f', marginRight: '10px'}} />
+                TOP BÁN CHẠY
+             </h2>
+             <p className="section-desc">Những sản phẩm được yêu thích nhất tại Plant Shop</p>
+        </div>
+        
+        <div className="product-list-grid">
+          {bestSellerProducts.length > 0 ? (
+            bestSellerProducts.map(product => (
+                <HomeProductCard 
+                    key={product.productId} 
+                    product={product} 
+                    addToCart={addToCart} 
+                    baseUrl={BASE_URL} 
+                />
+            ))
+          ) : (
+              <p style={{textAlign: 'center', width: '100%', gridColumn: '1 / -1', color: '#888'}}>Đang cập nhật dữ liệu bán chạy...</p>
+          )}
+        </div>
+      </section>
       {/* 4. SẢN PHẨM MỚI NHẤT */}
       <section className="section-container">
         <h2 className="section-title">SẢN PHẨM MỚI NHẤT</h2>
