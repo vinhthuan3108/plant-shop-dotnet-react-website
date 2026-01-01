@@ -27,6 +27,7 @@ public class SuppliersController : ControllerBase
         var supplier = new TblSupplier
         {
             SupplierName = dto.SupplierName,
+            Email = dto.Email, // <--- THÊM DÒNG NÀY
             PhoneNumber = dto.PhoneNumber,
             Address = dto.Address,
             Note = dto.Note
@@ -45,6 +46,7 @@ public class SuppliersController : ControllerBase
         if (supplier == null) return NotFound();
 
         supplier.SupplierName = dto.SupplierName;
+        supplier.Email = dto.Email; // <--- THÊM DÒNG NÀY
         supplier.PhoneNumber = dto.PhoneNumber;
         supplier.Address = dto.Address;
         supplier.Note = dto.Note;

@@ -228,7 +228,65 @@ namespace back_end.Controllers
                 totalItems = totalItems
             });
         }
+        // GET: api/TblProducts/best-sellers
+        // GET: api/TblProducts/best-sellers
+        [HttpGet("best-sellers")]
+        public async Task<IActionResult> GetBestSellingProducts(int top = 8)
+        {
+            // BƯỚC 1: Chỉ lấy ra ProductId và Số lượng bán (Để SQL dễ xử lý)
+            var topStats = await _context.TblOrderDetails
+                .Include(d => d.Order)
+                .Include(d => d.Variant)
+                    .ThenInclude(v => v.Product)
+                .Where(d => d.Order.OrderStatus == "Completed"
+                            && d.Variant.Product.IsActive == true
+                            && (d.Variant.Product.IsDeleted == false || d.Variant.Product.IsDeleted == null))
+                .GroupBy(d => d.Variant.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    TotalSold = g.Sum(x => x.Quantity)
+                })
+                .OrderByDescending(x => x.TotalSold)
+                .Take(top)
+                .ToListAsync();
 
+            if (!topStats.Any()) return Ok(new List<object>());
+
+            // Lấy danh sách ID
+            var topIds = topStats.Select(x => x.ProductId).ToList();
+
+            // BƯỚC 2: Query lấy thông tin chi tiết sản phẩm dựa trên List ID vừa tìm được
+            var products = await _context.TblProducts
+                .Include(p => p.TblProductImages)
+                .Include(p => p.TblProductVariants)
+                .Where(p => topIds.Contains(p.ProductId))
+                .ToListAsync();
+
+            // BƯỚC 3: Map dữ liệu trả về và Sắp xếp lại đúng thứ tự bán chạy
+            // (Vì bước 2 query theo ID có thể không trả về đúng thứ tự ban đầu)
+            var result = products
+                .Select(p => new
+                {
+                    p.ProductId,
+                    p.ProductName,
+                    OriginalPrice = p.TblProductVariants.OrderBy(v => v.OriginalPrice).Select(v => v.OriginalPrice).FirstOrDefault(),
+                    SalePrice = p.TblProductVariants.OrderBy(v => v.OriginalPrice).Select(v => v.SalePrice).FirstOrDefault(),
+                    StockQuantity = p.TblProductVariants.Sum(v => v.StockQuantity ?? 0),
+                    thumbnail = p.TblProductImages
+                                .Where(img => img.IsThumbnail == true)
+                                .Select(img => img.ImageUrl)
+                                .FirstOrDefault()
+                                ?? p.TblProductImages.Select(img => img.ImageUrl).FirstOrDefault(),
+                    p.CategoryId,
+                    // Lấy số lượng bán từ list stats để sort
+                    SortOrder = topStats.FirstOrDefault(s => s.ProductId == p.ProductId)?.TotalSold ?? 0
+                })
+                .OrderByDescending(x => x.SortOrder) // Sắp xếp lại lần cuối
+                .ToList();
+
+            return Ok(result);
+        }
         // GET: api/TblProducts/5
         [HttpGet("{id}")]
         public async Task<ActionResult<TblProduct>> GetTblProduct(int id)
@@ -382,11 +440,15 @@ namespace back_end.Controllers
             {
                 if (v.VariantId == 0)
                 {
+                    // CASE 1: THÊM BIẾN THỂ MỚI VÀO SẢN PHẨM CŨ
                     existingProduct.TblProductVariants.Add(new TblProductVariant
                     {
                         VariantName = v.VariantName,
                         OriginalPrice = v.OriginalPrice,
                         SalePrice = v.SalePrice,
+                        
+                        Weight = v.Weight, // <--- 1. THÊM DÒNG NÀY
+                        
                         StockQuantity = v.StockQuantity,
                         MinStockAlert = v.MinStockAlert,
                         IsActive = true
@@ -394,12 +456,16 @@ namespace back_end.Controllers
                 }
                 else
                 {
+                    // CASE 2: CẬP NHẬT BIẾN THỂ ĐANG CÓ
                     var existingVar = existingProduct.TblProductVariants.FirstOrDefault(x => x.VariantId == v.VariantId);
                     if (existingVar != null)
                     {
                         existingVar.VariantName = v.VariantName;
                         existingVar.OriginalPrice = v.OriginalPrice;
                         existingVar.SalePrice = v.SalePrice;
+                        
+                        existingVar.Weight = v.Weight; // <--- 2. THÊM DÒNG NÀY
+                        
                         existingVar.StockQuantity = v.StockQuantity;
                         existingVar.MinStockAlert = v.MinStockAlert;
                     }

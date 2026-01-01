@@ -18,6 +18,11 @@ public class PayOsSettingsDto
     public string ApiKey { get; set; }
     public string ChecksumKey { get; set; }
 }
+public class RecaptchaSettingsDto
+{
+    public string SiteKey { get; set; }   // Thêm cái này
+    public string SecretKey { get; set; }
+}
 namespace back_end.Controllers
 {
     [Route("api/[controller]")]
@@ -175,6 +180,53 @@ namespace back_end.Controllers
 
             await _context.SaveChangesAsync();
             return Ok(new { message = "Cập nhật cấu hình PayOS thành công!" });
+        }
+        [HttpPost("UpdateRecaptchaSettings")]
+        public async Task<IActionResult> UpdateRecaptchaSettings([FromBody] RecaptchaSettingsDto request)
+        {
+            string appSecretKey = _configuration["AppSettings:SecretKey"];
+            if (string.IsNullOrEmpty(appSecretKey)) return BadRequest("Server chưa cấu hình SecretKey!");
+
+            // --- 1. LƯU SITE KEY (KHÔNG MÃ HÓA) ---
+            // Frontend cần đọc trực tiếp giá trị này nên ta lưu plain text
+            if (!string.IsNullOrEmpty(request.SiteKey))
+            {
+                var siteKeyConfig = await _context.TblSystemConfigs
+                    .FirstOrDefaultAsync(x => x.ConfigKey == "Recaptcha_SiteKey");
+
+                if (siteKeyConfig == null)
+                {
+                    siteKeyConfig = new TblSystemConfig
+                    {
+                        ConfigKey = "Recaptcha_SiteKey",
+                        Description = "Khóa công khai Google Recaptcha (Site Key)"
+                    };
+                    _context.TblSystemConfigs.Add(siteKeyConfig);
+                }
+                siteKeyConfig.ConfigValue = request.SiteKey; // Lưu trực tiếp
+            }
+
+            // --- 2. LƯU SECRET KEY (CÓ MÃ HÓA) ---
+            if (!string.IsNullOrEmpty(request.SecretKey))
+            {
+                var secretKeyConfig = await _context.TblSystemConfigs
+                    .FirstOrDefaultAsync(x => x.ConfigKey == "Recaptcha_SecretKey");
+
+                if (secretKeyConfig == null)
+                {
+                    secretKeyConfig = new TblSystemConfig
+                    {
+                        ConfigKey = "Recaptcha_SecretKey",
+                        Description = "Khóa bí mật Google Recaptcha (Secret Key"
+                    };
+                    _context.TblSystemConfigs.Add(secretKeyConfig);
+                }
+                // Mã hóa trước khi lưu
+                secretKeyConfig.ConfigValue = SecurityHelper.Encrypt(request.SecretKey, appSecretKey);
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Cập nhật cấu hình Recaptcha thành công!" });
         }
     }
 

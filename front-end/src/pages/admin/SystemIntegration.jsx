@@ -9,18 +9,28 @@ function SystemIntegration() {
         Password: '' 
     });
 
-    // 2. Config PayOS (THÊM MỚI)
+    // 2. Config PayOS
     const [payOsConfig, setPayOsConfig] = useState({
         ClientId: '',
         ApiKey: '',
         ChecksumKey: ''
     });
 
-    // State phụ để hiển thị trạng thái đã có cấu hình hay chưa (UX tốt hơn)
-    const [payOsStatus, setPayOsStatus] = useState({
+    // 3. Config Recaptcha (THÊM MỚI)
+    const [recaptchaConfig, setRecaptchaConfig] = useState({
+        siteKey: '',
+        secretKey: ''
+    });
+
+    // State phụ để hiển thị trạng thái đã có cấu hình hay chưa
+    const [statusFlags, setStatusFlags] = useState({
+        // PayOS
         hasClientId: false,
         hasApiKey: false,
-        hasChecksumKey: false
+        hasChecksumKey: false,
+        // Recaptcha
+        hasSiteKey: false,
+        hasSecretKey: false
     });
 
     const BASE_URL = 'https://localhost:7298'; 
@@ -43,44 +53,62 @@ function SystemIntegration() {
             }));
 
             // --- Xử lý PayOS ---
-            // Kiểm tra xem trong DB đã có các key này chưa (để hiện dấu tích xanh)
-            // Lưu ý: ConfigValue lúc này là chuỗi mã hóa, nên ta không load vào ô input
             const hasClient = data.some(x => x.configKey === 'PayOS_ClientId' && x.configValue);
             const hasApi = data.some(x => x.configKey === 'PayOS_ApiKey' && x.configValue);
             const hasCheck = data.some(x => x.configKey === 'PayOS_ChecksumKey' && x.configValue);
 
-            setPayOsStatus({
+            // --- Xử lý Recaptcha (THÊM MỚI) ---
+            // SiteKey: Không mã hóa -> Lấy value hiển thị luôn
+            const siteKeySetting = data.find(x => x.configKey === 'Recaptcha_SiteKey');
+            const hasSecretRecaptcha = data.some(x => x.configKey === 'Recaptcha_SecretKey' && x.configValue);
+
+            setStatusFlags({
                 hasClientId: hasClient,
                 hasApiKey: hasApi,
-                hasChecksumKey: hasCheck
+                hasChecksumKey: hasCheck,
+                hasSiteKey: !!siteKeySetting,
+                hasSecretKey: hasSecretRecaptcha
             });
 
-            // Reset form về rỗng để bảo mật tuyệt đối
+            // Reset PayOS inputs
             setPayOsConfig({ ClientId: '', ApiKey: '', ChecksumKey: '' });
+
+            // Set Recaptcha inputs (Hiển thị SiteKey cũ nếu có, SecretKey để rỗng)
+            setRecaptchaConfig({
+                siteKey: siteKeySetting ? siteKeySetting.configValue : '',
+                secretKey: '' 
+            });
 
         } catch (error) {
             console.error(error);
         }
     };
 
-    // Handler cho Email
+    // --- HANDLERS ---
+
     const handleChangeMail = (e) => {
         const { name, value } = e.target;
         setMailConfig(prev => ({ ...prev, [name]: value }));
     };
 
-    // Handler cho PayOS (THÊM MỚI)
     const handleChangePayOS = (e) => {
         const { name, value } = e.target;
         setPayOsConfig(prev => ({ ...prev, [name]: value }));
     };
+
+    // Handler cho Recaptcha
+    const handleChangeRecaptcha = (e) => {
+        const { name, value } = e.target;
+        setRecaptchaConfig(prev => ({ ...prev, [name]: value }));
+    };
+
+    // --- SAVE FUNCTIONS ---
 
     const handleSaveMail = async () => {
         if (!mailConfig.Email) {
             alert("Vui lòng nhập Email!");
             return;
         }
-
         try {
             await axios.post(`${BASE_URL}/api/TblSystemConfig/UpdateMailSettings`, {
                 Email: mailConfig.Email,
@@ -94,27 +122,21 @@ function SystemIntegration() {
         }
     };
 
-    // Hàm lưu PayOS (THÊM MỚI)
     const handleSavePayOs = async () => {
-        // Validation: Nếu chưa từng cấu hình (lần đầu) thì bắt buộc nhập đủ 3 cái
-        const isFirstTime = !payOsStatus.hasClientId || !payOsStatus.hasApiKey || !payOsStatus.hasChecksumKey;
+        const isFirstTime = !statusFlags.hasClientId || !statusFlags.hasApiKey || !statusFlags.hasChecksumKey;
         if (isFirstTime) {
              if (!payOsConfig.ClientId || !payOsConfig.ApiKey || !payOsConfig.ChecksumKey) {
-                alert("Đây là lần cấu hình đầu tiên, vui lòng nhập đầy đủ Client ID, API Key và Checksum Key!");
+                alert("Lần đầu cấu hình vui lòng nhập đủ 3 trường!");
                 return;
              }
         }
-
         try {
-            // Gửi dữ liệu lên API (Backend sẽ tự lo việc mã hóa cả 3 trường)
             await axios.post(`${BASE_URL}/api/TblSystemConfig/UpdatePayOsSettings`, {
                 ClientId: payOsConfig.ClientId,
                 ApiKey: payOsConfig.ApiKey,
                 ChecksumKey: payOsConfig.ChecksumKey
             });
-            alert('Cập nhật cấu hình PayOS thành công!');
-            
-            // Reload lại để cập nhật trạng thái (dấu tích xanh)
+            alert('Cập nhật PayOS thành công!');
             fetchConfigs(); 
         } catch (error) {
             console.error(error);
@@ -122,82 +144,43 @@ function SystemIntegration() {
         }
     };
 
-    // --- STYLES ---
-    const containerStyle = {
-        padding: '20px',
-        maxWidth: '1000px',
-        margin: '0 auto'
+    // Lưu Recaptcha (THÊM MỚI)
+    const handleSaveRecaptcha = async () => {
+        // Validation: SiteKey bắt buộc phải có (hoặc đã có trong DB)
+        if (!recaptchaConfig.siteKey) {
+            alert("Vui lòng nhập Site Key!");
+            return;
+        }
+        
+        // Nếu chưa từng có Secret Key thì bắt buộc phải nhập
+        if (!statusFlags.hasSecretKey && !recaptchaConfig.secretKey) {
+            alert("Vui lòng nhập Secret Key (Lần đầu cấu hình)!");
+            return;
+        }
+
+        try {
+            await axios.post(`${BASE_URL}/api/TblSystemConfig/UpdateRecaptchaSettings`, {
+                SiteKey: recaptchaConfig.siteKey,
+                SecretKey: recaptchaConfig.secretKey
+            });
+            alert('Cập nhật Recaptcha thành công!');
+            fetchConfigs();
+        } catch (error) {
+            console.error(error);
+            alert('Lỗi lưu cấu hình Recaptcha');
+        }
     };
 
-    const sectionStyle = {
-        backgroundColor: '#fff',
-        padding: '20px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        marginBottom: '20px'
-    };
-
-    const headerStyle = {
-        borderBottom: '1px solid #eee',
-        paddingBottom: '10px',
-        marginBottom: '15px',
-        fontSize: '18px',
-        fontWeight: 'bold',
-        color: '#333',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-    };
-
-    const formGroupStyle = {
-        marginBottom: '15px'
-    };
-
-    const labelStyle = {
-        display: 'block',
-        marginBottom: '5px',
-        fontWeight: '500',
-        fontSize: '14px'
-    };
-
-    const inputStyle = {
-        width: '100%',
-        padding: '10px 12px',
-        borderRadius: '4px',
-        border: '1px solid #ccc',
-        fontSize: '14px',
-        boxSizing: 'border-box'
-    };
-
-    const buttonStyle = {
-        padding: '8px 20px', 
-        background: '#007bff', 
-        color: 'white', 
-        border: 'none', 
-        borderRadius: '4px', 
-        cursor: 'pointer', 
-        fontWeight: 'bold',
-        fontSize: '14px'
-    };
-
-    const noteStyle = {
-        fontSize: '12px',
-        color: '#666',
-        marginTop: '5px',
-        fontStyle: 'italic'
-    };
-
-    // Style cho badge trạng thái (Đã cấu hình)
-    const statusBadge = {
-        fontSize: '12px',
-        color: '#155724',
-        marginLeft: '10px',
-        fontWeight: 'normal',
-        background: '#d4edda',
-        padding: '2px 8px',
-        borderRadius: '10px',
-        border: '1px solid #c3e6cb'
-    };
+    // --- STYLES (Giữ nguyên như cũ) ---
+    const containerStyle = { padding: '20px', maxWidth: '1000px', margin: '0 auto' };
+    const sectionStyle = { backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '20px' };
+    const headerStyle = { borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '15px', fontSize: '18px', fontWeight: 'bold', color: '#333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
+    const formGroupStyle = { marginBottom: '15px' };
+    const labelStyle = { display: 'block', marginBottom: '5px', fontWeight: '500', fontSize: '14px' };
+    const inputStyle = { width: '100%', padding: '10px 12px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px', boxSizing: 'border-box' };
+    const buttonStyle = { padding: '8px 20px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' };
+    const noteStyle = { fontSize: '12px', color: '#666', marginTop: '5px', fontStyle: 'italic' };
+    const statusBadge = { fontSize: '12px', color: '#155724', marginLeft: '10px', fontWeight: 'normal', background: '#d4edda', padding: '2px 8px', borderRadius: '10px', border: '1px solid #c3e6cb' };
 
     return (
         <div style={containerStyle}>
@@ -214,52 +197,41 @@ function SystemIntegration() {
                     <div style={formGroupStyle}>
                         <label style={labelStyle}>Email gửi hệ thống (Gmail)</label>
                         <input 
-                            type="email" 
-                            name="Email" 
-                            value={mailConfig.Email} 
-                            onChange={handleChangeMail} 
+                            type="email" name="Email" 
+                            value={mailConfig.Email} onChange={handleChangeMail} 
                             placeholder="vd: shopcaycanh@gmail.com"
                             style={inputStyle}
                         />
                     </div>
-                    
                     <div style={formGroupStyle}>
                         <label style={labelStyle}>Mật khẩu ứng dụng (App Password)</label>
                         <input 
-                            type="password" 
-                            name="Password" 
-                            value={mailConfig.Password} 
-                            onChange={handleChangeMail} 
-                            placeholder="Chỉ nhập nếu muốn đổi mật khẩu mới..."
+                            type="password" name="Password" 
+                            value={mailConfig.Password} onChange={handleChangeMail} 
+                            placeholder="Nhập để đổi mật khẩu mới..."
                             style={inputStyle}
                         />
-                        <div style={noteStyle}>
-                            * Lưu ý: Đây là App Password (16 ký tự), không phải mật khẩu đăng nhập Gmail.
-                        </div>
+                        <div style={noteStyle}>* Lưu ý: Đây là App Password (16 ký tự).</div>
                     </div>
                 </div>
             </div>
 
-            {/* KHỐI 2: CẤU HÌNH PAYOS (ĐÃ HOÀN THIỆN) */}
+            {/* KHỐI 2: CẤU HÌNH PAYOS */}
             <div style={sectionStyle}>
                 <div style={headerStyle}>
                     <span>💳 Cấu hình Thanh toán (PayOS)</span>
-                    {/* Nút lưu màu xanh lá để phân biệt */}
                     <button onClick={handleSavePayOs} style={{...buttonStyle, background: '#28a745'}}>💾 Lưu PayOS</button>
                 </div>
                 
                 {/* Client ID */}
                 <div style={formGroupStyle}>
                     <label style={labelStyle}>
-                        Client ID
-                        {payOsStatus.hasClientId && <span style={statusBadge}>✓ Đã được cấu hình</span>}
+                        Client ID {statusFlags.hasClientId && <span style={statusBadge}>✓ Đã cấu hình</span>}
                     </label>
                     <input 
-                        type="text" 
-                        name="ClientId" 
-                        value={payOsConfig.ClientId} 
-                        onChange={handleChangePayOS} 
-                        placeholder={payOsStatus.hasClientId ? "************** (Nhập để thay đổi)" : "Nhập Client ID..."}
+                        type="text" name="ClientId" 
+                        value={payOsConfig.ClientId} onChange={handleChangePayOS} 
+                        placeholder={statusFlags.hasClientId ? "************** (Nhập để thay đổi)" : "Nhập Client ID..."}
                         style={inputStyle}
                     />
                 </div>
@@ -268,40 +240,76 @@ function SystemIntegration() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                     <div style={formGroupStyle}>
                         <label style={labelStyle}>
-                            API Key
-                            {payOsStatus.hasApiKey && <span style={statusBadge}>✓ Đã được cấu hình</span>}
+                            API Key {statusFlags.hasApiKey && <span style={statusBadge}>✓ Đã cấu hình</span>}
                         </label>
                         <input 
-                            type="password" 
-                            name="ApiKey" 
-                            value={payOsConfig.ApiKey} 
-                            onChange={handleChangePayOS} 
-                            placeholder={payOsStatus.hasApiKey ? "************** (Nhập để thay đổi)" : "Nhập API Key..."}
+                            type="password" name="ApiKey" 
+                            value={payOsConfig.ApiKey} onChange={handleChangePayOS} 
+                            placeholder={statusFlags.hasApiKey ? "************** (Nhập để thay đổi)" : "Nhập API Key..."}
                             style={inputStyle}
                         />
                     </div>
                     
                     <div style={formGroupStyle}>
                         <label style={labelStyle}>
-                            Checksum Key
-                            {payOsStatus.hasChecksumKey && <span style={statusBadge}>✓ Đã được cấu hình</span>}
+                            Checksum Key {statusFlags.hasChecksumKey && <span style={statusBadge}>✓ Đã cấu hình</span>}
                         </label>
                         <input 
-                            type="password" 
-                            name="ChecksumKey" 
-                            value={payOsConfig.ChecksumKey} 
-                            onChange={handleChangePayOS} 
-                            placeholder={payOsStatus.hasChecksumKey ? "************** (Nhập để thay đổi)" : "Nhập Checksum Key..."}
+                            type="password" name="ChecksumKey" 
+                            value={payOsConfig.ChecksumKey} onChange={handleChangePayOS} 
+                            placeholder={statusFlags.hasChecksumKey ? "************** (Nhập để thay đổi)" : "Nhập Checksum Key..."}
                             style={inputStyle}
                         />
                     </div>
                 </div>
-                <div style={noteStyle}>
-                    * Bảo mật: ClientID, API Key và Checksum Key sẽ được <b>mã hóa</b> trước khi lưu vào cơ sở dữ liệu.
-                    <br/>
-                    * Để bảo mật, hệ thống sẽ không hiển thị lại các khóa này sau khi lưu.
+                <div style={noteStyle}>* Các Key PayOS sẽ được mã hóa trước khi lưu.</div>
+            </div>
+
+            {/* KHỐI 3: CẤU HÌNH GOOGLE RECAPTCHA (MỚI) */}
+            <div style={sectionStyle}>
+                <div style={headerStyle}>
+                    <span>🤖 Cấu hình Google Recaptcha (Chống Spam)</span>
+                    <button onClick={handleSaveRecaptcha} style={{...buttonStyle, background: '#ffc107', color: '#000'}}>💾 Lưu Key</button>
+                </div>
+
+                {/* Site Key (Public) */}
+                <div style={formGroupStyle}>
+                    <label style={labelStyle}>
+                        Site Key (Public) 
+                        {/* Site Key không cần giấu vì nó công khai trên frontend */}
+                        {statusFlags.hasSiteKey && <span style={statusBadge}>✓ Đã cấu hình</span>}
+                    </label>
+                    <input 
+                        type="text" 
+                        name="siteKey"
+                        value={recaptchaConfig.siteKey} 
+                        onChange={handleChangeRecaptcha} 
+                        placeholder="Nhập Site Key (Hiện công khai trên web)..."
+                        style={inputStyle}
+                    />
+                     <div style={noteStyle}>* Key này dùng cho Frontend (React) để hiển thị Captcha.</div>
+                </div>
+
+                {/* Secret Key (Private) */}
+                <div style={formGroupStyle}>
+                    <label style={labelStyle}>
+                        Secret Key (Private)
+                        {statusFlags.hasSecretKey && <span style={statusBadge}>✓ Đã cấu hình</span>}
+                    </label>
+                    <input 
+                        type="password" 
+                        name="secretKey"
+                        value={recaptchaConfig.secretKey} 
+                        onChange={handleChangeRecaptcha} 
+                        placeholder={statusFlags.hasSecretKey ? "************** (Nhập để thay đổi)" : "Nhập Secret Key..."}
+                        style={inputStyle}
+                    />
+                    <div style={noteStyle}>
+                        * Key này dùng cho Backend để xác thực với Google. Sẽ được <b>mã hóa</b> an toàn.
+                    </div>
                 </div>
             </div>
+
         </div>
     );
 };

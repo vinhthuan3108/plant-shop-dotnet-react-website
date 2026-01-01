@@ -26,14 +26,17 @@ export const CartProvider = ({ children }) => {
             localStorage.setItem('shoppingCart', JSON.stringify(items));
         }
     };
+
+    // --- FIX VẤN ĐỀ 2: HOÀN THIỆN HÀM CLEAR CART ---
     const clearCart = () => {
-        const user = getUser();
-        
-        // 1. Xóa State để giao diện cập nhật ngay lập tức
+        // 1. Xóa State
         setCartItems([]); 
+        
+        // 2. Xóa Local Storage (cho khách vãng lai)
+        localStorage.removeItem('shoppingCart');
+    };
 
     // --- QUAN TRỌNG: Hàm chuẩn hóa dữ liệu từ API ---
-    // Giúp đảm bảo tên biến luôn là 'image', 'price', 'productName'
     const mapApiDataToCart = (data) => {
         if (!Array.isArray(data)) return [];
         return data.map(item => ({
@@ -41,16 +44,14 @@ export const CartProvider = ({ children }) => {
             variantId: item.variantId,
             productName: item.productName,
             variantName: item.variantName,
-            // Xử lý giá: Ưu tiên giá Sale
             salePrice: item.salePrice, 
             originalPrice: item.originalPrice, 
             price: (item.salePrice && item.salePrice > 0) ? item.salePrice : (item.originalPrice || 0),
-            // Xử lý ảnh: API trả về imageUrl nhưng Frontend dùng image
             image: item.imageUrl || item.image || '', 
             quantity: item.quantity
         }));
     };
-    }
+
     // --- 1. LOAD GIỎ HÀNG ---
     useEffect(() => {
         const user = getUser();
@@ -97,7 +98,7 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    // --- 2. THÊM VÀO GIỎ ---
+    // --- 2. THÊM VÀO GIỎ (ĐÃ SỬA LỖI DOUBLE ALERT) ---
     const addToCart = async (product) => {
         const user = getUser();
         if (user && !isCustomer(user)) { alert("Quản trị viên không thể mua hàng!"); return; }
@@ -105,14 +106,14 @@ export const CartProvider = ({ children }) => {
         const userId = user?.userId;
 
         if (userId) {
-            // --- LOGIC DB ---
+            // --- LOGIC DB (GIỮ NGUYÊN) ---
             try {
                 const res = await fetch(`${BASE_URL}/api/Cart/add-to-cart`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         userId: parseInt(userId), 
-                        variantId: product.variantId,
+                        variantId: product.variantId, 
                         quantity: product.quantity 
                     })
                 });
@@ -128,31 +129,40 @@ export const CartProvider = ({ children }) => {
                 alert("Lỗi kết nối server!");
             }
         } else {
-            // --- LOGIC LOCAL STORAGE ---
-            setCartItems(prev => {
-                const safePrev = Array.isArray(prev) ? prev : [];
-                const exist = safePrev.find(x => x.variantId === product.variantId);
-                let newCart;
-                
-                if (exist) {
-                    newCart = safePrev.map(x => x.variantId === product.variantId ? { ...x, quantity: x.quantity + product.quantity } : x);
-                } else {
-                    newCart = [...safePrev, { 
-                        productId: product.productId,
-                        variantId: product.variantId,
-                        productName: product.productName,
-                        variantName: product.variantName,
-                        originalPrice: product.originalPrice || product.price,
-                        salePrice: product.salePrice || 0,
-                        price: product.price || product.salePrice || product.originalPrice, 
-                        image: product.imageUrl || product.image || '', 
-                        quantity: product.quantity 
-                    }];
-                }
-                syncLocalStorage(newCart);
-                alert("Đã thêm vào giỏ (Local)!");
-                return newCart;
-            });
+            // --- LOGIC LOCAL STORAGE (ĐÃ SỬA) ---
+            // 1. Tính toán giỏ hàng mới dựa trên state hiện tại
+            let currentCart = [...cartItems];
+            const existIndex = currentCart.findIndex(x => x.variantId === product.variantId);
+            
+            if (existIndex !== -1) {
+                // Nếu đã tồn tại -> Tăng số lượng
+                currentCart[existIndex] = {
+                    ...currentCart[existIndex],
+                    quantity: currentCart[existIndex].quantity + product.quantity
+                };
+            } else {
+                // Nếu chưa -> Thêm mới
+                currentCart.push({ 
+                    productId: product.productId,
+                    variantId: product.variantId,
+                    productName: product.productName,
+                    variantName: product.variantName,
+                    originalPrice: product.originalPrice || product.price,
+                    salePrice: product.salePrice || 0,
+                    price: product.price || product.salePrice || product.originalPrice, 
+                    image: product.imageUrl || product.image || '', 
+                    quantity: product.quantity 
+                });
+            }
+
+            // 2. Cập nhật State
+            setCartItems(currentCart);
+
+            // 3. Đồng bộ LocalStorage
+            syncLocalStorage(currentCart);
+
+            // 4. Alert 1 lần duy nhất
+            alert("Đã thêm vào giỏ (Local)!");
         }
     };
 
@@ -202,7 +212,6 @@ export const CartProvider = ({ children }) => {
     const validItems = Array.isArray(cartItems) ? cartItems : [];
     const cartCount = validItems.reduce((total, item) => total + (item.quantity || 0), 0);
     
-    // Tính tổng tiền chính xác
     const totalAmount = validItems.reduce((total, item) => {
         const finalPrice = (item.salePrice && item.salePrice > 0) ? item.salePrice : (item.price || item.originalPrice || 0);
         return total + (finalPrice * (item.quantity || 0));
@@ -216,7 +225,8 @@ export const CartProvider = ({ children }) => {
             updateQuantity, 
             cartCount, 
             totalAmount, 
-            refreshCart 
+            refreshCart,
+            clearCart // <-- Đã export hàm này để dùng ở trang Checkout
         }}>
             {children}
         </CartContext.Provider>

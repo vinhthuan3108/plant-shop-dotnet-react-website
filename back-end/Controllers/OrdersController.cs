@@ -2,7 +2,7 @@
 using back_end.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
+using back_end.Services;
 namespace back_end.Controllers
 {
     [Route("api/[controller]")]
@@ -10,10 +10,11 @@ namespace back_end.Controllers
     public class OrdersController : ControllerBase
     {
         private readonly DbplantShopThuanCuongContext _context;
-
-        public OrdersController(DbplantShopThuanCuongContext context)
+        private readonly IShippingCalculatorService _shippingService;
+        public OrdersController(DbplantShopThuanCuongContext context, IShippingCalculatorService shippingService)
         {
             _context = context;
+            _shippingService = shippingService;
         }
 
         // POST: api/Orders/checkout
@@ -33,6 +34,7 @@ namespace back_end.Controllers
                 // BƯỚC 1: XỬ LÝ SẢN PHẨM & TÍNH TỔNG TIỀN (LOGIC VARIANTS)
                 // ---------------------------------------------------------
                 decimal subTotal = 0;
+                decimal totalWeight = 0; // <--- BIẾN MỚI: TÍNH TỔNG CÂN NẶNG
                 var orderDetailsList = new List<TblOrderDetail>();
 
                 foreach (var item in request.Items)
@@ -81,6 +83,12 @@ namespace back_end.Controllers
 
                     subTotal += price * item.Quantity;
 
+                    // --- TÍNH TỔNG CÂN NẶNG ---
+                    // Giả sử variant.Weight đã được cấu hình trong DB (đơn vị KG)
+                    // Nếu Weight chưa setup thì mặc định là 0
+                    totalWeight += (variant.Weight) * item.Quantity;
+                    // --------------------------
+
                     // Tạo chi tiết đơn hàng
                     orderDetailsList.Add(new TblOrderDetail
                     {
@@ -98,9 +106,14 @@ namespace back_end.Controllers
                 }
 
                 // ---------------------------------------------------------
-                // BƯỚC 2: TÍNH PHÍ VẬN CHUYỂN
+                // BƯỚC 2: TÍNH PHÍ VẬN CHUYỂN (LOGIC MỚI)
                 // ---------------------------------------------------------
-                decimal shippingFee = CalculateShippingFee(request.Province);
+                // Gọi Service để tính dựa trên Mã tỉnh khách hàng và Tổng cân nặng
+                // Lưu ý: Frontend cần gửi ProvinceCode (VD: "79"), nếu null thì truyền chuỗi rỗng
+                string customerProvCode = request.ProvinceCode ?? "";
+
+                decimal shippingFee = await _shippingService.CalculateShippingFeeAsync(customerProvCode, totalWeight);
+                // ---------------------------------------------------------
 
                 // ---------------------------------------------------------
                 // BƯỚC 3: ÁP DỤNG VOUCHER
@@ -148,8 +161,8 @@ namespace back_end.Controllers
                     OrderDate = DateTime.Now,
                     RecipientName = request.RecipientName,
                     RecipientPhone = request.RecipientPhone,
-                    ShippingAddress = $"{request.ShippingAddress}, {request.District}, {request.Province}",
-
+                    //ShippingAddress = $"{request.ShippingAddress}, {request.District}, {request.Province}",
+                    ShippingAddress = $"{request.ShippingAddress}, {request.Ward}, {request.District}, {request.Province}",
                     SubTotal = subTotal,
                     ShippingFee = shippingFee,
                     DiscountAmount = discountAmount,
@@ -205,14 +218,70 @@ namespace back_end.Controllers
                 return StatusCode(500, "Lỗi server: " + ex.Message);
             }
         }
+        // File: back_end/Controllers/OrdersController.cs
 
-        private decimal CalculateShippingFee(string province)
+        // Thêm API này vào trong class OrdersController
+        [HttpPost("calculate-fee")]
+        public async Task<IActionResult> CalculateShippingFeePreview([FromBody] ShippingFeeRequest request)
         {
-            if (string.IsNullOrEmpty(province)) return 30000;
-            string p = province.ToLower();
-            if (p.Contains("hồ chí minh") || p.Contains("sài gòn")) return 15000;
-            return 30000;
+            try
+            {
+                // 1. Nếu chưa có mã tỉnh, trả về 0 luôn (không báo lỗi)
+                if (string.IsNullOrEmpty(request.ProvinceCode))
+                {
+                    return Ok(new { ShippingFee = 0 });
+                }
+
+                decimal totalWeight = 0;
+
+                // 2. Tính tổng cân nặng
+                if (request.Items != null && request.Items.Count > 0)
+                {
+                    // Lấy danh sách VariantId từ request
+                    var variantIds = request.Items.Select(i => i.VariantId).ToList();
+
+                    var variants = await _context.TblProductVariants
+                        .Where(v => variantIds.Contains(v.VariantId))
+                        .ToListAsync();
+
+                    foreach (var item in request.Items)
+                    {
+                        var variant = variants.FirstOrDefault(v => v.VariantId == item.VariantId);
+                        if (variant != null)
+                        {
+                            // Weight mặc định là 0 nếu null
+                            totalWeight += (variant.Weight) * item.Quantity;
+                        }
+                    }
+                }
+
+                // 3. Gọi Service tính phí (Nhớ inject IShippingCalculatorService vào constructor)
+                // Nếu bạn chưa inject Service, hãy xem lại hướng dẫn Bước 2 ở các câu trả lời trước
+                // Tạm thời nếu chưa có Service, tôi để logic cứng ở đây để code chạy được:
+
+                // --- LOGIC TẠM (NẾU CHƯA CÓ SERVICE) ---
+                // decimal fee = 30000; 
+                // if (request.ProvinceCode == "79") fee = 15000; // HCM
+                // return Ok(new { ShippingFee = fee });
+                // ----------------------------------------
+
+                // --- LOGIC CHUẨN (NẾU ĐÃ CÓ SERVICE) ---
+                decimal fee = await _shippingService.CalculateShippingFeeAsync(request.ProvinceCode, totalWeight);
+                return Ok(new { ShippingFee = fee });
+                // ----------------------------------------
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
+        //private decimal CalculateShippingFee(string province)
+        //{
+        //    if (string.IsNullOrEmpty(province)) return 30000;
+        //    string p = province.ToLower();
+        //    if (p.Contains("hồ chí minh") || p.Contains("sài gòn")) return 15000;
+        //    return 30000;
+        //}
 
         // --- CÁC API KHÁC CHO ADMIN & USER ---
 
