@@ -134,7 +134,7 @@ const Shop = () => {
     return (
         <div className="container py-5">
             <div className="row">
-                {/* --- SIDEBAR TRÁI --- */}
+                {/* --- SIDEBAR TRÁI (BỘ LỌC) --- */}
                 <div className="col-md-3 mb-4">
                     
                     {/* 1. LỌC THEO GIÁ */}
@@ -196,28 +196,30 @@ const Shop = () => {
                     </div>
                 </div>
 
-                {/* --- DANH SÁCH SẢN PHẨM --- */}
+                {/* --- DANH SÁCH SẢN PHẨM (BÊN PHẢI) --- */}
                 <div className="col-md-9">
-                    {/* Header: Tiêu đề + Dropdown Sắp xếp */}
-                    <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+                    
+                    {/* HEADER: TIÊU ĐỀ + SẮP XẾP (Đã thêm class để xử lý Mobile) */}
+                    <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2 shop-header-row">
                         
-                        {/* Tiêu đề bên trái */}
-                        <h3 className="mb-0 section-title" style={{margin: 0, fontSize: '24px', textAlign: 'left', color: '#2e7d32', fontWeight: 'bold'}}>
+                        {/* Tiêu đề: Thêm class 'shop-page-title' để ẩn trên mobile */}
+                        <h3 className="mb-0 section-title shop-page-title" style={{margin: 0, fontSize: '24px', textAlign: 'left', color: '#2e7d32', fontWeight: 'bold'}}>
                             {categoryId 
                                 ? categories.find(c => c.categoryId === parseInt(categoryId))?.categoryName || "Sản phẩm"
                                 : "Tất cả sản phẩm"
                             }
                         </h3>
 
-                        {/* Cụm bên phải: Dropdown + Số trang */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        {/* Cụm hành động: Dropdown + Số trang */}
+                        <div className="shop-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                            {/* Dropdown: Thêm class 'shop-sort-select' để full width trên mobile */}
                             <select 
-                                className="form-select form-select-sm" 
+                                className="form-select form-select-sm shop-sort-select" 
                                 style={{ width: '200px', cursor: 'pointer', borderColor: '#2e7d32' }}
                                 value={sortBy}
                                 onChange={(e) => {
                                     setSortBy(e.target.value);
-                                    setCurrentPage(1); // Reset về trang 1 khi đổi kiểu sắp xếp
+                                    setCurrentPage(1); 
                                 }}
                             >
                                 <option value="default">Thứ tự mặc định</option>
@@ -228,11 +230,14 @@ const Shop = () => {
                                 <option value="name_za">Tên: Z - A</option>
                             </select>
                             
-                            <span className="text-muted small" style={{whiteSpace: 'nowrap'}}>
+                            {/* Số trang: Thêm class 'shop-page-number' để ẩn trên mobile */}
+                            <span className="text-muted small shop-page-number" style={{whiteSpace: 'nowrap'}}>
                                 Trang {currentPage} / {totalPages}
                             </span>
                         </div>
                     </div>
+
+                    {/* NỘI DUNG GRID SẢN PHẨM */}
                     {loading ? (
                         <div className="text-center py-5">
                             <div className="spinner-border text-success" role="status"></div>
@@ -257,6 +262,7 @@ const Shop = () => {
                                 </div>
                             )}
 
+                            {/* PHÂN TRANG */}
                             {totalPages > 1 && (
                                 <nav className="mt-5">
                                     <ul className="pagination justify-content-center">

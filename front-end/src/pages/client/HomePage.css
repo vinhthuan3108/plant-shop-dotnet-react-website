@@ -2,6 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800&family=Roboto:wght@400;700&display=swap');
 * {
   font-family: 'Roboto', sans-serif; /* Dùng Roboto cho văn bản thường */
+  box-sizing: border-box;
 }
 
 /* Tùy chọn: Dùng font Montserrat cho các tiêu đề để đẹp hơn */
@@ -411,155 +412,6 @@
   .section-container { padding: 50px 15px; }
   .hp-img { height: 180px; } /* Ảnh nhỏ lại trên mobile */
 }
-/* --- 4*****. SẢN PHẨM BÁN CHẠY (CARD ĐẸP) --- */
-.product-list-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 30px;
-}
-
-.home-product-card {
-  background: white;
-  border-radius: 15px; /* Bo góc mềm mại */
-  overflow: hidden;
-  transition: all 0.3s ease;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.05); /* Đổ bóng nhẹ thay vì viền */
-  position: relative;
-  padding-bottom: 15px;
-  border: none;
-}
-
-.home-product-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-}
-
-/* Container ảnh để xử lý kích thước chuẩn */
-.product-img-wrap {
-  width: 100%;
-  height: 260px;
-  overflow: hidden;
-  position: relative;
-  background: #f9f9f9;
-}
-
-.hp-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* Đảm bảo ảnh luôn đầy khung */
-  transition: transform 0.5s ease;
-}
-
-.home-product-card:hover .hp-img {
-  transform: scale(1.1); /* Phóng to ảnh nhẹ khi hover */
-}
-
-/* Nhãn giảm giá */
-.sale-badge {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  background: #d32f2f;
-  color: white;
-  font-size: 12px;
-  font-weight: bold;
-  padding: 4px 10px;
-  border-radius: 4px;
-  z-index: 5;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-.hp-info {
-  padding: 15px;
-  text-align: center;
-}
-
-.hp-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #333;
-  margin: 10px 0;
-  display: -webkit-box;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  height: 44px;
-  transition: color 0.2s;
-}
-
-.home-product-card:hover .hp-name {
-  color: #2e7d32;
-}
-
-.hp-price-box {
-  margin-bottom: 15px;
-  min-height: 25px;
-}
-
-.hp-price {
-  color: #d32f2f;
-  font-weight: 800;
-  font-size: 18px;
-}
-
-.hp-old-price {
-  text-decoration: line-through;
-  color: #999;
-  font-size: 14px;
-  margin-right: 10px;
-  font-weight: normal;
-}
-
-/* Nút thêm giỏ hàng */
-.hp-btn {
-  width: 80%;
-  background: white;
-  color: #2e7d32;
-  border: 2px solid #2e7d32;
-  padding: 10px 0;
-  border-radius: 30px;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.3s;
-  text-transform: uppercase;
-  margin: 0 auto;
-  display: block;
-}
-
-.home-product-card:hover .hp-btn {
-  background: #2e7d32;
-  color: white;
-  box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
-}
-
-/* Nút xem tất cả */
-.view-all-btn {
-  display: inline-block;
-  margin-top: 40px;
-  padding: 12px 40px;
-  background: white;
-  border: 2px solid #2e7d32;
-  color: #2e7d32;
-  font-weight: 700;
-  border-radius: 50px;
-  text-decoration: none;
-  transition: 0.3s;
-}
-.view-all-btn:hover {
-  background: #2e7d32;
-  color: white;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .hero-banner { height: 400px; }
-  .hero-title { font-size: 32px; }
-  .features-grid, .category-grid { grid-template-columns: 1fr; }
-  .product-list-grid { grid-template-columns: repeat(2, 1fr); gap: 15px;}
-  .section-container { padding: 50px 15px; }
-  .hp-img { height: 180px; } /* Ảnh nhỏ lại trên mobile */
-}
 /* --- 5. TESTIMONIALS (Khách hàng đánh giá) --- */
 .testimonial-grid {
   display: grid;
@@ -732,6 +584,7 @@
 
 /* --- RESPONSIVE (Cho điện thoại) --- */
 @media (max-width: 768px) {
+  
   .testimonial-grid {
       grid-template-columns: 1fr; /* Mobile: 1 cột */
   }
@@ -801,4 +654,110 @@
 /* Ẩn nút cũ nếu còn sót */
 .hp-btn {
   display: none;
+}
+/* src/pages/client/HomePage.css */
+
+/* --- 1. CLASS CHUNG CHO NÚT MŨI TÊN (ĐẸP & TRÒN) --- */
+.slider-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: #2e7d32; /* Màu xanh chủ đạo */
+    color: white;
+    border: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.3s ease;
+    opacity: 0.9;
+}
+
+.slider-nav-btn:hover {
+    background: #1b5e20;
+    transform: translateY(-50%) scale(1.1);
+    opacity: 1;
+}
+
+/* --- 2. VỊ TRÍ TRÊN PC (Màn hình lớn > 1280px) --- */
+/* Nằm tách hẳn ra ngoài khung nội dung */
+.nav-prev { left: -60px; }
+.nav-next { right: -60px; }
+
+/* --- 3. FIX LỖI IPAD / TABLET / LAPTOP NHỎ (Từ 768px đến 1280px) --- */
+/* Thu nút vào trong để không bị mất */
+@media screen and (max-width: 1280px) {
+    .nav-prev { 
+        left: -20px; /* Thu vào gần sát mép */
+    }
+    .nav-next { 
+        right: -20px; 
+    }
+}
+
+/* Với iPad dọc hoặc màn hình nhỏ hơn nữa (dưới 1024px) */
+@media screen and (max-width: 1024px) {
+    .nav-prev { 
+        left: 0; /* Đè lên mép trái ảnh */
+    }
+    .nav-next { 
+        right: 0; /* Đè lên mép phải ảnh */
+    }
+    .slider-nav-btn {
+        width: 35px; /* Nút nhỏ lại xíu cho đỡ chiếm chỗ */
+        height: 35px;
+        font-size: 14px;
+    }
+}
+/* --- RESPONSIVE MOBILE --- */
+@media (max-width: 768px) {
+    /* 1. Đưa nút mũi tên vào trong ảnh/khung vì mobile ko có lề */
+
+    
+    /* 2. Đảm bảo Card hiển thị 1 cái thì full chiều rộng */
+    .testimonial-grid, .blog-grid {
+        grid-template-columns: 1fr !important; /* Bắt buộc 1 cột */
+        gap: 0 !important; /* Không cần khoảng cách vì chỉ có 1 cái */
+    }
+
+    .testimonial-card, .blog-card {
+        margin: 0 5px; /* Thêm lề nhỏ để không dính sát viền màn hình */
+    }
+}
+@media (max-width: 768px) {
+    /* 1. Ẩn tiêu đề danh mục trên mobile */
+    .shop-page-title {
+        display: none !important;
+    }
+
+    /* 2. Ẩn số trang (Trang 1/2) trên mobile */
+    .shop-page-number {
+        display: none !important;
+    }
+
+    /* 3. Chỉnh lại khung chứa header thành block để dropdown full width */
+    .shop-header-row {
+        display: block !important; /* Phá vỡ flexbox ngang */
+        border-bottom: none !important; /* Có thể bỏ gạch chân nếu muốn thoáng hơn */
+        margin-bottom: 15px !important;
+        padding-bottom: 0 !important;
+    }
+
+    .shop-header-actions {
+        width: 100%;
+        display: block !important; /* Để dropdown chiếm hết dòng */
+    }
+
+    /* 4. Dropdown sắp xếp full màn hình cho dễ bấm */
+    .shop-sort-select {
+        width: 100% !important; /* Chiếm 100% chiều ngang */
+        height: 45px; /* Cao hơn một chút cho dễ chạm */
+        font-size: 14px;
+    }
 }

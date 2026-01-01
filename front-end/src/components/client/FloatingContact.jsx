@@ -1,24 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom'; // Import Link để chuyển trang
 import axios from 'axios';
 import './FloatingContact.css';
 
-// Import ảnh icon mạng xã hội (Giữ nguyên của bạn)
-import iconZalo from '../../assets/images/zalo.jpg';
-import iconFacebook from '../../assets/images/facebook.jpg';
-import iconMessenger from '../../assets/images/messenger.jpg';
+// Import các icon từ react-icons (cho nhẹ và nét)
+import { FaHome, FaFacebookF, FaArrowUp } from 'react-icons/fa';
 
-// Icon Mũi tên lên (Vẽ bằng SVG cho nét)
-const ArrowUpIcon = () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 19V5"></path>
-        <path d="M5 12L12 5L19 12"></path>
-    </svg>
-);
+// Import ảnh icon cũ (cho Zalo/Messenger nếu muốn giữ màu gốc)
+import iconZalo from '../../assets/images/zalo.jpg';
+import iconMessenger from '../../assets/images/messenger.jpg';
 
 const FloatingContact = () => {
     const [isOpen, setIsOpen] = useState(true);
-    const [showScroll, setShowScroll] = useState(false); // State để ẩn hiện nút Scroll
-    
+    const [showScroll, setShowScroll] = useState(false);
     const [links, setLinks] = useState({
         zalo: '',
         facebook: '',
@@ -27,7 +21,6 @@ const FloatingContact = () => {
 
     const BASE_URL = 'https://localhost:7298';
 
-    // 1. Lấy cấu hình link
     useEffect(() => {
         const fetchConfigs = async () => {
             try {
@@ -47,23 +40,13 @@ const FloatingContact = () => {
         fetchConfigs();
     }, []);
 
-    // 2. Lắng nghe sự kiện cuộn chuột
     useEffect(() => {
         const handleScroll = () => {
-            // Nếu cuộn quá 300px thì hiện nút
-            if (window.scrollY > 300) {
-                setShowScroll(true);
-            } else {
-                setShowScroll(false);
-            }
+            if (window.scrollY > 300) setShowScroll(true);
+            else setShowScroll(false);
         };
-
         window.addEventListener('scroll', handleScroll);
-
-        // Dọn dẹp sự kiện khi component bị hủy
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-        };
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
     const getZaloLink = (input) => {
@@ -72,23 +55,13 @@ const FloatingContact = () => {
         return input;
     };
 
-    const handleToggle = () => {
-        setIsOpen(!isOpen);
-    };
-
-    // Hàm cuộn lên đầu trang
     const scrollToTop = () => {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth' // Cuộn mượt
-        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    if (!links.zalo && !links.facebook && !links.messenger) return null;
-
-    return (
-        <div className="floating-contact-container">
-            {/* Danh sách nút con */}
+    // --- GIAO DIỆN 1: FLOATING BUTTON (Dành cho PC) ---
+    const renderDesktopFloating = () => (
+        <div className="floating-contact-container desktop-only">
             <div className={`contact-list ${isOpen ? 'show' : 'hide'}`}>
                 {links.zalo && (
                     <a href={getZaloLink(links.zalo)} target="_blank" rel="noreferrer" className="contact-btn item-shake" title="Chat Zalo">
@@ -102,25 +75,70 @@ const FloatingContact = () => {
                 )}
                 {links.facebook && (
                     <a href={links.facebook} target="_blank" rel="noreferrer" className="contact-btn item-shake" title="Facebook">
-                        <img src={iconFacebook} alt="Facebook" />
+                        <FaFacebookF style={{color:'#1877F2', fontSize:'24px'}} />
                     </a>
                 )}
             </div>
 
-            {/* Nút Toggle (X / +) */}
-            <button className={`main-toggle-btn ${isOpen ? 'open' : ''}`} onClick={handleToggle}>
+            <button className={`main-toggle-btn ${isOpen ? 'open' : ''}`} onClick={() => setIsOpen(!isOpen)}>
                 <span className="plus-icon"></span>
             </button>
 
-            {/* Nút Scroll To Top (Chỉ hiện khi showScroll = true) */}
-            <button 
-                className={`scroll-top-btn ${showScroll ? 'visible' : ''}`} 
-                onClick={scrollToTop}
-                title="Lên đầu trang"
-            >
-                <ArrowUpIcon />
+            <button className={`scroll-top-btn ${showScroll ? 'visible' : ''}`} onClick={scrollToTop}>
+                <FaArrowUp />
             </button>
         </div>
+    );
+
+    // --- GIAO DIỆN 2: BOTTOM BAR (Dành cho Mobile/Tablet dọc) ---
+    const renderMobileBottomBar = () => (
+        <div className="mobile-bottom-bar mobile-only">
+            {/* 1. Trang chủ */}
+            <Link to="/" className="bottom-item">
+                <div className="bottom-icon-circle" style={{backgroundColor: '#ff6b00'}}>
+                    <FaHome />
+                </div>
+                <span className="bottom-label">Trang chủ</span>
+            </Link>
+
+            {/* 2. Fanpage (Thay cho Gọi điện) */}
+            {links.facebook && (
+                <a href={links.facebook} target="_blank" rel="noreferrer" className="bottom-item">
+                    <div className="bottom-icon-circle" style={{backgroundColor: '#1877f2'}}>
+                        <FaFacebookF />
+                    </div>
+                    <span className="bottom-label">Fanpage</span>
+                </a>
+            )}
+
+            {/* 3. Zalo */}
+            {links.zalo && (
+                <a href={getZaloLink(links.zalo)} target="_blank" rel="noreferrer" className="bottom-item">
+                     {/* Giữ nguyên icon ảnh Zalo nhưng bo tròn */}
+                    <div className="bottom-icon-img">
+                         <img src={iconZalo} alt="Zalo" />
+                    </div>
+                    <span className="bottom-label">Zalo</span>
+                </a>
+            )}
+
+            {/* 4. Messenger */}
+            {links.messenger && (
+                <a href={links.messenger} target="_blank" rel="noreferrer" className="bottom-item">
+                    <div className="bottom-icon-img">
+                        <img src={iconMessenger} alt="Mess" />
+                    </div>
+                    <span className="bottom-label">Messenger</span>
+                </a>
+            )}
+        </div>
+    );
+
+    return (
+        <>
+            {renderDesktopFloating()}
+            {renderMobileBottomBar()}
+        </>
     );
 };
 

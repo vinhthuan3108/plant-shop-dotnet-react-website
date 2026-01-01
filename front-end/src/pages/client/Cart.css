@@ -1,0 +1,306 @@
+/* src/pages/client/Cart.css */
+
+/* --- Cấu trúc chung --- */
+.cart-container {
+    padding: 40px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: 'Roboto', sans-serif;
+}
+
+.cart-title {
+    margin-bottom: 20px;
+    color: #2e7d32;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.cart-layout {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+}
+
+/* --- Phần danh sách sản phẩm (Bên trái) --- */
+.cart-items-section {
+    flex: 3;
+    width: 100%; /* Đảm bảo co giãn */
+}
+
+/* Table Styles (Desktop) */
+.cart-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.cart-table th {
+    padding: 15px 10px;
+    border-bottom: 2px solid #ddd;
+    text-align: left;
+    font-weight: 700;
+    color: #333;
+}
+
+.cart-table td {
+    padding: 20px 10px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+/* Ảnh và Tên sản phẩm */
+.product-info-cell {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.cart-img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #f0f0f0;
+}
+
+.product-name {
+    font-weight: 700;
+    color: #333;
+    font-size: 15px;
+}
+
+.product-variant {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+
+/* Bộ đếm số lượng */
+.quantity-control {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    width: fit-content;
+    border-radius: 4px;
+    background-color: #fff;
+}
+
+.qty-btn {
+    padding: 5px 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #333;
+    display: flex;
+    align-items: center;
+    height: 32px;
+}
+
+.qty-btn:hover {
+    background-color: #f5f5f5;
+}
+
+.qty-value {
+    padding: 0 10px;
+    font-weight: 600;
+    min-width: 30px;
+    text-align: center;
+}
+
+/* Giá tiền */
+.total-price-cell {
+    color: #d32f2f;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+/* Nút xóa */
+.remove-btn {
+    color: #999;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    transition: 0.3s;
+    padding: 8px;
+}
+
+.remove-btn:hover {
+    color: #d32f2f;
+    background-color: #ffebee;
+    border-radius: 50%;
+}
+
+/* Nút quay lại */
+.continue-shopping {
+    margin-top: 25px;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: #555;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.back-link:hover {
+    color: #2e7d32;
+}
+
+/* --- Phần Tổng tiền (Bên phải) --- */
+.cart-summary-section {
+    flex: 1;
+    background-color: #f9f9f9;
+    padding: 25px;
+    border-radius: 12px;
+    position: sticky;
+    top: 90px; /* Dính khi cuộn trên PC */
+    min-width: 300px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.summary-title {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 18px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    font-size: 16px;
+}
+
+.summary-total {
+    color: #d32f2f;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.checkout-btn {
+    width: 100%;
+    padding: 15px;
+    background-color: #2e7d32;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 16px;
+    text-transform: uppercase;
+    transition: 0.3s;
+    box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
+}
+
+.checkout-btn:hover {
+    background-color: #1b5e20;
+    transform: translateY(-2px);
+}
+
+/* --- RESPONSIVE MOBILE (QUAN TRỌNG) --- */
+@media (max-width: 768px) {
+    .cart-container {
+        padding: 20px 15px;
+    }
+
+    .cart-layout {
+        flex-direction: column; /* Xếp dọc layout chính */
+        gap: 20px;
+    }
+
+    .cart-items-section, .cart-summary-section {
+        min-width: 100%;
+        flex: auto;
+    }
+
+    /* Biến bảng thành thẻ (Card view) */
+    .cart-table, .cart-table tbody, .cart-table tr, .cart-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .cart-table thead {
+        display: none; /* Ẩn tiêu đề cột */
+    }
+
+    .cart-table tr {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        padding: 15px;
+        position: relative;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .cart-table td {
+        padding: 5px 0;
+        border: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+    }
+
+    /* CSS tạo tiêu đề giả cho từng dòng trên mobile */
+    .cart-table td::before {
+        content: attr(data-label); /* Lấy nội dung từ attribute data-label */
+        font-weight: 600;
+        color: #777;
+        font-size: 13px;
+        text-align: left;
+    }
+
+    /* Tùy chỉnh riêng cho ô sản phẩm */
+    .cart-table td:first-child {
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+        justify-content: flex-start; /* Căn trái lại */
+    }
+    
+    .cart-table td:first-child::before {
+        display: none; /* Ẩn label 'Sản phẩm' đi cho đẹp */
+    }
+
+    /* Nút xóa trên mobile: Đẩy lên góc trên cùng bên phải */
+    .cart-table td:last-child {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: auto;
+        padding: 0;
+    }
+    
+    /* Chỉnh lại tổng tiền cho nổi bật */
+    .total-price-cell {
+        font-size: 18px;
+    }
+
+    .cart-summary-section {
+        position: static; /* Bỏ dính trên mobile */
+    }
+    
+    .checkout-btn {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        border-radius: 0;
+        z-index: 100;
+        padding: 18px;
+        font-size: 18px;
+    }
+    
+    /* Tạo khoảng trống dưới cùng để không bị nút thanh toán che */
+    .cart-layout {
+        padding-bottom: 60px;
+    }
+}

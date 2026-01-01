@@ -1,3 +1,5 @@
+/* --- ProfilePage.css (ĐÃ CẬP NHẬT FIX MOBILE) --- */
+
 /* Sidebar menu style */
 .menu-item {
     padding: 12px 15px;
@@ -6,17 +8,11 @@
     margin-bottom: 5px;
     transition: all 0.2s;
     color: #333;
+    white-space: nowrap;
 }
 
-.menu-item:hover {
-    background-color: #f5f5f5;
-}
-
-.menu-item.active {
-    background-color: #e8f5e9; /* Màu xanh nhạt */
-    color: #2e7d32; /* Màu xanh đậm */
-    font-weight: bold;
-}
+.menu-item:hover { background-color: #f5f5f5; }
+.menu-item.active { background-color: #e8f5e9; color: #2e7d32; font-weight: bold; }
 
 /* Badge trạng thái */
 .badge {
@@ -25,65 +21,61 @@
     font-size: 12px;
     font-weight: bold;
     color: white;
+    display: inline-block;
 }
+.badge-warning { background-color: #fbc02d; color: #333; }
+.badge-info { background-color: #0288d1; }
+.badge-primary { background-color: #00796b; }
+.badge-success { background-color: #388e3c; }
+.badge-danger { background-color: #d32f2f; }
+.badge-secondary { background-color: #757575; }
 
-.badge-warning { background-color: #fbc02d; color: #333; } /* Vàng - Pending */
-.badge-info { background-color: #0288d1; } /* Xanh dương - Processing */
-.badge-primary { background-color: #00796b; } /* Xanh Teal - Shipped */
-.badge-success { background-color: #388e3c; } /* Xanh lá - Delivered */
-.badge-danger { background-color: #d32f2f; } /* Đỏ - Cancelled */
-.badge-secondary { background-color: #757575; } /* Xám - Khác */
-
-
-/* aaa */
+/* Tabs trạng thái đơn hàng */
 .order-status-tabs {
     display: flex;
     background: #fff;
     border-bottom: 1px solid #ddd;
-    overflow-x: auto; /* Cho phép cuộn ngang trên mobile */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 15px; /* Thêm khoảng cách dưới tabs */
 }
+.order-status-tabs::-webkit-scrollbar { height: 4px; }
+.order-status-tabs::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
 
 .status-tab-item {
-    flex: 1; /* Chia đều độ rộng 5 tab */
+    flex: 1;
+    min-width: 110px; /* Giảm min-width một chút để vừa màn hình nhỏ hơn */
     text-align: center;
-    padding: 15px 5px;
+    padding: 12px 5px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px; /* Giảm font size tab trên mobile */
     color: #555;
     position: relative;
     white-space: nowrap;
     transition: all 0.3s;
     user-select: none;
 }
+.status-tab-item:hover { color: #2e7d32; background-color: #f9fff9; }
+.status-tab-item.active { color: #2e7d32; font-weight: bold; border-bottom: 2px solid #2e7d32; }
 
-.status-tab-item:hover {
-    color: #2e7d32;
-    background-color: #f9fff9;
-}
-
-/* Tab đang được chọn */
-.status-tab-item.active {
-    color: #2e7d32;
-    font-weight: bold;
-    border-bottom: 2px solid #2e7d32;
-}
-
-/* --- CSS CHO THẺ ĐƠN HÀNG (CARD) --- */
+/* Card Đơn hàng */
 .order-card {
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     margin-bottom: 20px;
     background: #fff;
     box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    overflow: hidden; /* Đảm bảo nội dung không tràn ra ngoài bo góc */
 }
 
 .order-header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 12px 15px;
     border-bottom: 1px solid #f0f0f0;
     background-color: #fafafa;
-    border-radius: 8px 8px 0 0;
+    gap: 10px;
 }
 
 .order-date {
@@ -93,19 +85,15 @@
     font-weight: normal;
 }
 
-.order-items {
-    padding: 15px;
-}
+.order-items { padding: 15px; }
 
 .order-item-row {
     display: flex;
     gap: 15px;
     margin-bottom: 15px;
+    align-items: flex-start; /* Căn hàng đầu để text dài không bị lệch ảnh */
 }
-
-.order-item-row:last-child {
-    margin-bottom: 0;
-}
+.order-item-row:last-child { margin-bottom: 0; }
 
 .order-item-row img {
     width: 70px;
@@ -113,67 +101,166 @@
     object-fit: cover;
     border-radius: 4px;
     border: 1px solid #eee;
+    flex-shrink: 0;
 }
 
-.item-info {
-    flex: 1;
+.item-info { 
+    flex: 1; 
+    min-width: 0; /* Quan trọng: Giúp text wrap chính xác trong flex container */
 }
 
 .item-name {
     font-weight: 500;
     margin-bottom: 5px;
     color: #333;
-}
-
-.item-meta {
-    font-size: 13px;
-    color: #777;
-}
-
-.item-price {
     font-size: 14px;
-    color: #2e7d32;
-    margin-top: 5px;
+    line-height: 1.3; /* Tăng line-height để dễ đọc khi xuống dòng */
 }
+
+.item-meta { font-size: 13px; color: #777; }
+.item-price { font-size: 14px; color: #2e7d32; margin-top: 5px; font-weight: 500; }
 
 .order-footer {
     padding: 12px 15px;
     border-top: 1px solid #f0f0f0;
     text-align: right;
-}
-
-.total-price {
-    font-size: 15px;
-}
-
-.total-price span {
-    font-size: 18px;
-    font-weight: bold;
-    color: #d32f2f;
-    margin-left: 5px;
-}
-
-.order-actions button {
-    margin-left: 10px;
-    padding: 6px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 13px;
-    border: 1px solid #ddd;
     background: #fff;
 }
 
-.btn-buy-again {
-    background-color: #2e7d32 !important;
-    color: white !important;
-    border: none !important;
-}
+.total-price { font-size: 15px; }
+.total-price span { font-size: 18px; font-weight: bold; color: #d32f2f; margin-left: 5px; }
 
-.btn-cancel {
-    color: #d32f2f !important;
-    border-color: #d32f2f !important;
+.btn-detail {
+    margin-left: 10px;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    border: 1px solid #007bff;
+    background: #fff;
+    color: #007bff;
+    transition: all 0.2s;
 }
+.btn-detail:hover { background-color: #e7f1ff; }
 
-.btn-cancel:hover {
-    background-color: #fff5f5 !important;
+/* Layout chính */
+.profile-container {
+    display: flex;
+    gap: 20px;
+    margin-top: 30px;
+    align-items: flex-start;
+}
+.profile-sidebar { width: 250px; background: #f9f9f9; padding: 15px; border-radius: 8px; flex-shrink: 0; }
+.profile-content { flex: 1; background: #fff; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.05); min-width: 0; }
+.form-row-responsive { display: flex; gap: 20px; margin-bottom: 15px; }
+.form-col { flex: 1; }
+
+/* Class mới để giới hạn chiều rộng form đổi mật khẩu trên desktop */
+.password-form-container { max-width: 600px; width: 100%; }
+
+/* --- MEDIA QUERY CHO MOBILE (Dưới 768px) --- */
+@media (max-width: 768px) {
+    .profile-container {
+        flex-direction: column;
+        margin-top: 15px;
+        padding: 0 10px;
+        gap: 15px;
+        align-items: stretch; /* THÊM DÒNG NÀY: Ép các phần tử con giãn full chiều ngang */
+    }
+
+    .profile-sidebar {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 0;
+    }
+    .profile-sidebar ul { display: flex; overflow-x: auto; padding-bottom: 5px; gap: 8px; }
+    .profile-sidebar li { white-space: nowrap; background: #fff; border: 1px solid #eee; border-radius: 20px; padding: 8px 12px !important; font-size: 13px; }
+
+    .profile-content { padding: 15px; } /* Giảm padding content bên trong */
+
+    .form-row-responsive { flex-direction: column; gap: 15px; }
+
+    /* FIX LỖI DƯ KHOẢNG TRẮNG TAB MẬT KHẨU */
+    .password-form-container { 
+    max-width: 100% !important; /* Dùng !important để ghi đè mọi thiết lập khác nếu có */
+    width: 100%;
+    margin: 0; /* Đảm bảo không có margin lạ */
+} /* Trên mobile cho full width */
+.password-form-container input {
+        width: 100% !important;
+        box-sizing: border-box; /* Đảm bảo padding không làm vỡ khung */
+    }
+    /* FIX RESPONSIVE ĐƠN HÀNG */
+    .order-header {
+        flex-direction: column; /* Xếp chồng header */
+        align-items: flex-start;
+        gap: 8px;
+    }
+    /* Dòng chứa Mã đơn + Ngày */
+    .order-header > div:first-child {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .order-date { font-size: 12px; }
+
+    .order-item-row { gap: 10px; } /* Giảm khoảng cách giữa ảnh và text */
+    .order-item-row img { width: 60px; height: 60px; } /* Ảnh nhỏ hơn xíu */
+    .item-name { font-size: 13px; }
+
+    .order-footer {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-end; /* Căn phải */
+    }
+    .order-actions { margin-top: 0 !important; width: 100%; }
+    .btn-detail {
+        width: 100%; /* Nút chi tiết full width trên mobile cho dễ bấm */
+        margin-left: 0;
+        text-align: center;
+        padding: 10px;
+    }
+    .order-status-tabs {
+        display: flex;
+        flex-wrap: wrap;       /* Quan trọng: Cho phép rớt dòng khi hết chỗ */
+        overflow-x: hidden;    /* Tắt thanh cuộn ngang */
+        border-bottom: none;   /* Bỏ đường kẻ dưới chung cho đỡ rối */
+        gap: 8px;              /* Khoảng cách giữa các tab */
+        justify-content: center; /* Căn giữa các tab */
+        padding-bottom: 10px;
+    }
+
+    .status-tab-item {
+        /* Chia thành 3 cột (mỗi ô khoảng 30%) hoặc auto để vừa nội dung */
+        flex: 0 0 calc(33.33% - 6px); 
+        min-width: auto;       /* GỠ BỎ min-width: 110px CŨ (nguyên nhân gây lỗi) */
+        width: auto;
+        
+        /* Trang trí lại thành dạng nút bấm cho đẹp */
+        border: 1px solid #eee;
+        border-radius: 4px;
+        padding: 8px 2px;      /* Giảm padding ngang */
+        font-size: 12px;       /* Chữ nhỏ hơn xíu cho vừa */
+        white-space: normal;   /* Cho phép chữ trong tab xuống dòng nếu quá dài */
+        line-height: 1.2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #fafafa;
+    }
+
+    /* Style cho tab đang được chọn */
+    .status-tab-item.active {
+        background-color: #e8f5e9;
+        border: 1px solid #2e7d32;
+        color: #2e7d32;
+        font-weight: bold;
+        /* Bỏ border-bottom cũ đi vì giờ là dạng nút */
+        border-bottom: 1px solid #2e7d32; 
+    }
+    /* Modal styles */
+    .modal-content-responsive { width: 95% !important; padding: 15px !important; max-height: 85vh !important; }
+    .modal-grid-responsive { grid-template-columns: 1fr !important; gap: 10px !important; }
 }

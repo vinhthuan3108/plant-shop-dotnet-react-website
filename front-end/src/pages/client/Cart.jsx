@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { FaTrash, FaMinus, FaPlus, FaArrowLeft } from 'react-icons/fa';
+import './Cart.css'; // Import file CSS vừa tạo
 
 const Cart = () => {
     // SỬA 1: Lấy 'totalAmount' thay vì 'cartTotal'
@@ -11,81 +12,94 @@ const Cart = () => {
 
     if (cartItems.length === 0) {
         return (
-            <div style={{ textAlign: 'center', padding: '50px' }}>
+            <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+                <img src="https://cdn-icons-png.flaticon.com/512/11329/11329060.png" alt="Empty Cart" style={{width: '100px', marginBottom: '20px', opacity: 0.5}}/>
                 <h2>Giỏ hàng của bạn đang trống</h2>
-                <Link to="/shop" style={{ color: '#2e7d32', fontWeight: 'bold' }}>Quay lại mua sắm</Link>
+                <p style={{color: '#666', marginBottom: '30px'}}>Hãy thêm vài món đồ xanh vào không gian của bạn nhé!</p>
+                <Link to="/shop" className="checkout-btn" style={{display: 'inline-block', width: 'auto', textDecoration: 'none', padding: '12px 30px'}}>
+                    Quay lại mua sắm
+                </Link>
             </div>
         );
     }
 
     return (
-        <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
-            <h2 style={{ marginBottom: '20px', color: '#2e7d32' }}>Giỏ Hàng Của Bạn</h2>
+        <div className="cart-container">
+            <h2 className="cart-title">Giỏ Hàng Của Bạn</h2>
 
-            <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap' }}>
-                {/* Danh sách sản phẩm */}
-                <div style={{ flex: 3, minWidth: '600px' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="cart-layout">
+                {/* --- Danh sách sản phẩm (Bên trái) --- */}
+                <div className="cart-items-section">
+                    <table className="cart-table">
                         <thead>
-                            <tr style={{ borderBottom: '2px solid #ddd', textAlign: 'left' }}>
-                                <th style={{ padding: '10px' }}>Sản phẩm</th>
-                                <th style={{ padding: '10px' }}>Đơn giá</th>
-                                <th style={{ padding: '10px' }}>Số lượng</th>
-                                <th style={{ padding: '10px' }}>Thành tiền</th>
-                                <th style={{ padding: '10px' }}></th>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>Đơn giá</th>
+                                <th>Số lượng</th>
+                                <th>Thành tiền</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
                             {cartItems.map((item) => (
-                                <tr key={item.variantId} style={{ borderBottom: '1px solid #eee' }}>
-                                    <td style={{ padding: '15px 10px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                        {/* SỬA 2: Dùng 'item.image' thay vì 'item.imageUrl' để khớp với Context */}
-                                        <img 
-                                            src={item.image ? (item.image.startsWith('http') ? item.image : `${BASE_URL}${item.image}`) : 'https://via.placeholder.com/80'} 
-                                            alt={item.productName} 
-                                            style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px' }}
-                                        />
-                                        <div>
-                                            <div style={{ fontWeight: 'bold' }}>{item.productName}</div>
-                                            {item.variantName && item.variantName !== 'Tiêu chuẩn' && (
-                                                <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                                                    Phân loại: {item.variantName}
-                                                </div>
-                                            )}
+                                <tr key={item.variantId}>
+                                    {/* 1. Hình ảnh & Tên */}
+                                    <td data-label="Sản phẩm">
+                                        <div className="product-info-cell">
+                                            {/* SỬA 2: Dùng 'item.image' */}
+                                            <img 
+                                                src={item.image ? (item.image.startsWith('http') ? item.image : `${BASE_URL}${item.image}`) : 'https://via.placeholder.com/80'} 
+                                                alt={item.productName} 
+                                                className="cart-img"
+                                            />
+                                            <div>
+                                                <div className="product-name">{item.productName}</div>
+                                                {item.variantName && item.variantName !== 'Tiêu chuẩn' && (
+                                                    <div className="product-variant">
+                                                        Phân loại: {item.variantName}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
-                                    <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
+
+                                    {/* 2. Đơn giá */}
+                                    <td data-label="Đơn giá" style={{whiteSpace: 'nowrap'}}>
                                         {item.price.toLocaleString()} đ
                                     </td>
 
-                                    <td style={{ padding: '10px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #ddd', width: 'fit-content', borderRadius: '4px' }}>
+                                    {/* 3. Số lượng */}
+                                    <td data-label="Số lượng">
+                                        <div className="quantity-control">
                                             <button 
+                                                className="qty-btn"
                                                 onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
-                                                style={{ padding: '5px 10px', background: 'none', border: 'none', cursor: 'pointer' }}
                                             >
                                                 <FaMinus size={10} />
                                             </button>
-                                            <span style={{ padding: '0 10px' }}>{item.quantity}</span>
+                                            <span className="qty-value">{item.quantity}</span>
                                             <button 
+                                                className="qty-btn"
                                                 onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
-                                                style={{ padding: '5px 10px', background: 'none', border: 'none', cursor: 'pointer' }}
                                             >
                                                 <FaPlus size={10} />
                                             </button>
                                         </div>
                                     </td>
 
-                                    {/* --- SỬA CỘT THÀNH TIỀN (Nên thêm luôn cho đồng bộ) --- */}
-                                    <td style={{ padding: '10px', color: '#d32f2f', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-                                        {(item.price * item.quantity).toLocaleString()} đ
+                                    {/* 4. Thành tiền */}
+                                    <td data-label="Thành tiền">
+                                        <span className="total-price-cell">
+                                            {(item.price * item.quantity).toLocaleString()} đ
+                                        </span>
                                     </td>
 
-                                    <td style={{ padding: '10px' }}>
+                                    {/* 5. Nút xóa */}
+                                    <td>
                                         <button 
+                                            className="remove-btn"
                                             onClick={() => removeFromCart(item.variantId)}
-                                            style={{ color: '#999', background: 'none', border: 'none', cursor: 'pointer' }}
-                                            title="Xóa"
+                                            title="Xóa sản phẩm"
                                         >
                                             <FaTrash />
                                         </button>
@@ -95,24 +109,25 @@ const Cart = () => {
                         </tbody>
                     </table>
                     
-                    <div style={{ marginTop: '20px' }}>
-                        <Link to="/shop" style={{ display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none', color: '#333' }}>
+                    <div className="continue-shopping">
+                        <Link to="/shop" className="back-link">
                             <FaArrowLeft /> Tiếp tục mua sắm
                         </Link>
                     </div>
                 </div>
 
-                {/* Tổng tiền & Thanh toán */}
-                <div style={{ flex: 1, backgroundColor: '#f9f9f9', padding: '20px', borderRadius: '8px', height: 'fit-content' }}>
-                    <h3>Cộng giỏ hàng</h3>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', margin: '20px 0', fontSize: '18px', fontWeight: 'bold' }}>
+                {/* --- Tổng tiền & Thanh toán (Bên phải) --- */}
+                <div className="cart-summary-section">
+                    <h3 className="summary-title">Cộng giỏ hàng</h3>
+                    <div className="summary-row">
                         <span>Tổng tiền:</span>
-                        {/* SỬA 3: Dùng 'totalAmount' và thêm '|| 0' để tránh lỗi crash trang */}
-                        <span style={{ color: '#d32f2f' }}>{(totalAmount || 0).toLocaleString()} đ</span>
+                        {/* SỬA 3: Dùng 'totalAmount' */}
+                        <span className="summary-total">{(totalAmount || 0).toLocaleString()} đ</span>
                     </div>
+                    
                     <button 
+                        className="checkout-btn"
                         onClick={() => navigate('/checkout')} 
-                        style={{ width: '100%', padding: '15px', backgroundColor: '#2e7d32', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}
                     >
                         TIẾN HÀNH THANH TOÁN
                     </button>
