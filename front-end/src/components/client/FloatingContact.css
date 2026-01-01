@@ -1,162 +1,150 @@
-/* Container chính */
+/* --- PHẦN 1: CSS CHO PC (Floating Buttons cũ) --- */
+.desktop-only {
+    display: flex; /* Hiện trên PC */
+}
+.mobile-only {
+    display: none; /* Ẩn trên PC */
+}
+
 .floating-contact-container {
     position: fixed;
     bottom: 30px;
     right: 20px;
     z-index: 9999;
-    display: flex;
     flex-direction: column;
     align-items: center;
-    /* Không set gap ở đây để tránh lỗi khoảng trắng khi ẩn hiện */
 }
 
-/* --- NÚT CON (Zalo, FB, Mess) --- */
+/* ... (Giữ nguyên các class .contact-btn, .contact-list, .main-toggle-btn cũ của bạn ở đây) ... */
 .contact-btn {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    overflow: hidden;
-    padding: 8px;
-    box-sizing: border-box;
-    /* QUAN TRỌNG: Xoá margin-bottom ở đây để tránh cộng dồn khoảng cách */
-    margin-bottom: 0; 
+    width: 45px; height: 45px; border-radius: 50%; background: #fff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: flex; justify-content: center;
+    align-items: center; text-decoration: none; transition: all 0.3s ease;
+    padding: 8px; margin-bottom: 0;
 }
+.contact-btn img { width: 100%; height: 100%; object-fit: contain; }
+.contact-btn:hover { transform: scale(1.1); }
 
-.contact-btn img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-.contact-btn:hover {
-    transform: scale(1.1);
-}
-
-/* --- LIST ẨN HIỆN --- */
 .contact-list {
-    display: flex;
-    flex-direction: column-reverse; 
+    display: flex; flex-direction: column-reverse; opacity: 0;
+    transform: translateY(20px) scale(0.8); pointer-events: none;
+    max-height: 0; gap: 12px; padding-bottom: 2px;
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    opacity: 0;
-    transform: translateY(20px) scale(0.8);
-    pointer-events: none;
-    max-height: 0;
-    margin-bottom: 0;
-    
-    /* MỚI: Dùng gap để chia đều khoảng cách các nút con bên trong */
-    gap: 12px; 
-    /* Padding bottom nhỏ để tránh bị cắt bóng đổ của nút dưới cùng */
-    padding-bottom: 2px; 
 }
-
 .contact-list.show {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    pointer-events: auto;
-    max-height: 500px;
-    
-    /* Khoảng cách giữa List và nút Toggle chính */
-    /* Phải bằng giá trị gap ở trên (12px) để đều nhau */
-    margin-bottom: 12px; 
+    opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
+    max-height: 500px; margin-bottom: 12px;
 }
 
-/* --- NÚT CHÍNH (TOGGLE) --- */
 .main-toggle-btn {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    background-color: #007bff; /* Mặc định xanh */
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: background-color 0.3s, transform 0.3s;
-    z-index: 10;
+    width: 45px; height: 45px; border-radius: 50%; background-color: #007bff;
+    border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+    display: flex; justify-content: center; align-items: center; z-index: 10;
 }
-
-/* Khi mở thì đổi màu đỏ */
-.main-toggle-btn.open {
-    background-color: #DC3545;
-    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
-}
-
-.main-toggle-btn:hover {
-    transform: scale(1.1);
-}
-
-/* Các phần Animation rung và icon giữ nguyên như cũ */
-.item-shake { animation: shake-hard 3s infinite; }
-@keyframes shake-hard {
-    0% { transform: rotate(0) scale(1); }
-    5% { transform: rotate(-5deg) scale(1); }
-    10% { transform: rotate(5deg) scale(1); }
-    15% { transform: rotate(-5deg) scale(1); }
-    20% { transform: rotate(5deg) scale(1); }
-    25% { transform: rotate(0) scale(1); }
-    100% { transform: rotate(0) scale(1); }
-}
-
+.main-toggle-btn.open { background-color: #DC3545; box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4); }
 .plus-icon {
-    position: relative;
-    width: 24px;
-    height: 24px;
-    display: block;
-    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    position: relative; width: 24px; height: 24px; display: block;
+    transition: transform 0.4s;
 }
 .plus-icon::before, .plus-icon::after {
-    content: '';
-    position: absolute;
-    background-color: white;
-    border-radius: 4px;
+    content: ''; position: absolute; background-color: white; border-radius: 4px;
 }
 .plus-icon::before { top: 50%; left: 0; width: 100%; height: 3px; transform: translateY(-50%); }
 .plus-icon::after { top: 0; left: 50%; width: 3px; height: 100%; transform: translateX(-50%); }
-
 .main-toggle-btn.open .plus-icon { transform: rotate(135deg); }
-.main-toggle-btn:not(.open) .plus-icon { transform: rotate(0deg); }
 
-
-/* --- NÚT SCROLL TO TOP --- */
 .scroll-top-btn {
-    width: 45px;
-    height: 0; 
-    margin-top: 0;
-    opacity: 0;
-    border-radius: 50%;
-    background-color: #DC3545;
-    color: white;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0;
-    overflow: hidden;
-    box-shadow: none;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    width: 45px; height: 0; opacity: 0; border-radius: 50%;
+    background-color: #DC3545; color: white; border: none; cursor: pointer;
+    display: flex; justify-content: center; align-items: center; overflow: hidden;
+    transition: all 0.4s; margin-top: 0;
+}
+.scroll-top-btn.visible { height: 45px; opacity: 1; margin-top: 12px; }
+
+/* Animation rung */
+.item-shake { animation: shake-hard 3s infinite; }
+@keyframes shake-hard {
+    0% { transform: rotate(0) scale(1); } 5% { transform: rotate(-5deg) scale(1); }
+    10% { transform: rotate(5deg) scale(1); } 15% { transform: rotate(-5deg) scale(1); }
+    20% { transform: rotate(5deg) scale(1); } 25% { transform: rotate(0) scale(1); }
+    100% { transform: rotate(0) scale(1); }
 }
 
-.scroll-top-btn.visible {
-    height: 45px;
-    opacity: 1;
-    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
-    transform: scale(1);
+/* --- PHẦN 2: CSS CHO MOBILE BOTTOM BAR (MỚI) --- */
+
+/* Khi màn hình < 1024px (iPad dọc và Mobile) thì hiện Bottom Bar */
+@media screen and (max-width: 1024px) {
+    .desktop-only {
+        display: none !important; /* Ẩn nút nổi */
+    }
+
+    .mobile-only {
+        display: flex !important; /* Hiện thanh dưới đáy */
+    }
+
+    .mobile-bottom-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: white;
+        height: 60px;
+        /* Tăng z-index lên cao nhất để đảm bảo không gì đè lên được */
+        z-index: 9999 !important; 
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding: 5px 0;
+        border-top: 1px solid #eee;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        
+        /* Thêm dòng này để chắc chắn nó không bị ẩn do hiệu ứng nào khác */
+        visibility: visible !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .bottom-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        color: #555;
+        font-size: 11px;
+        flex: 1; /* Chia đều click area */
+    }
+
+    /* Icon tròn màu (Home, Facebook) */
+    .bottom-icon-circle {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 16px;
+        margin-bottom: 3px;
+    }
+
+    /* Icon dạng ảnh (Zalo, Mess) */
+    .bottom-icon-img {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        overflow: hidden;
+        margin-bottom: 3px;
+        /* Nếu ảnh zalo/mess của bạn là hình vuông, dòng này sẽ bo tròn nó */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+    }
     
-    /* Khoảng cách giữa nút Toggle và nút Scroll */
-    /* Phải bằng giá trị gap (12px) để đều nhau */
-    margin-top: 12px; 
-}
+    .bottom-icon-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
 
-.scroll-top-btn:hover {
-    background-color: #bb2d3b;
-    transform: scale(1.1);
+    .bottom-label {
+        font-weight: 600;
+    }
 }

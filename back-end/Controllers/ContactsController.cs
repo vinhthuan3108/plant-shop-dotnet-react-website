@@ -2,7 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using back_end.Models;
 using back_end.Services; // 1. Nhớ using namespace chứa EmailService
-
+using back_end.Helpers; // 1. Thêm namespace chứa SecurityHelper
+using Microsoft.Extensions.Configuration;
 namespace back_end.Controllers
 {
     [Route("api/[controller]")]
@@ -11,12 +12,16 @@ namespace back_end.Controllers
     {
         private readonly DbplantShopThuanCuongContext _context;
         private readonly EmailService _emailService; // 2. Khai báo service
-
+        private readonly IConfiguration _configuration;
         // 3. Inject EmailService vào Constructor
-        public ContactsController(DbplantShopThuanCuongContext context, EmailService emailService)
+        public ContactsController(
+            DbplantShopThuanCuongContext context,
+            EmailService emailService,
+            IConfiguration configuration)
         {
             _context = context;
             _emailService = emailService;
+            _configuration = configuration;
         }
 
         // 1. Lấy danh sách liên hệ (Giữ nguyên)
@@ -85,29 +90,61 @@ namespace back_end.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateContact([FromBody] ContactSubmissionDto request)
         {
-            // 1. Kiểm tra Captcha với Google
-            string secretKey = "6Lc37zwsAAAAABz0cJwRpYRqkl0c1kz7_DsXRBFg"; // <-- Thay Secret Key vào đây
-            var isCaptchaValid = await VerifyCaptcha(request.RecaptchaToken, secretKey);
+            // --- BƯỚC 1: LẤY SECRET KEY TỪ DB VÀ GIẢI MÃ ---
+
+            // a. Lấy cấu hình đã mã hóa từ DB
+            var configRecaptcha = await _context.TblSystemConfigs
+                .FirstOrDefaultAsync(x => x.ConfigKey == "Recaptcha_SecretKey");
+
+            if (configRecaptcha == null || string.IsNullOrEmpty(configRecaptcha.ConfigValue))
+            {
+                // Nếu chưa cấu hình trong DB thì báo lỗi server (hoặc log lại)
+                return StatusCode(500, new { message = "Lỗi hệ thống: Chưa cấu hình Recaptcha Secret Key." });
+            }
+
+            // b. Lấy Master Key từ appsettings.json để giải mã
+            string appSecretKey = _configuration["AppSettings:SecretKey"];
+            if (string.IsNullOrEmpty(appSecretKey))
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống: Chưa cấu hình App Secret Key." });
+            }
+
+            // c. Giải mã để lấy Google Secret Key thật
+            string googleSecretKey;
+            try
+            {
+                googleSecretKey = SecurityHelper.Decrypt(configRecaptcha.ConfigValue, appSecretKey);
+            }
+            catch
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống: Không thể giải mã key bảo mật." });
+            }
+
+            // --- BƯỚC 2: GỌI HÀM VERIFY VỚI KEY VỪA LẤY ĐƯỢC ---
+            var isCaptchaValid = await VerifyCaptcha(request.RecaptchaToken, googleSecretKey);
 
             if (!isCaptchaValid)
             {
                 return BadRequest(new { message = "Xác thực Captcha thất bại. Vui lòng thử lại." });
             }
 
-            // 2. Nếu Captcha đúng, tiến hành lưu vào DB
+            // --- BƯỚC 3: LƯU VÀO DB (NHƯ CŨ) ---
             var contact = new TblContact
             {
                 FullName = request.FullName,
                 Email = request.Email,
                 PhoneNumber = request.PhoneNumber,
                 Message = request.Message,
-                Subject = request.Subject, // Nếu DB có cột này
+                Subject = request.Subject,
                 SentAt = DateTime.Now,
                 Status = "New"
             };
 
             _context.TblContacts.Add(contact);
             await _context.SaveChangesAsync();
+
+            // Gửi email thông báo cho Admin (Optional - nếu muốn)
+            // await _emailService.SendEmailAsync("admin@domain.com", "Có liên hệ mới", "...");
 
             return CreatedAtAction("GetContact", new { id = contact.ContactId }, contact);
         }
@@ -120,13 +157,11 @@ namespace back_end.Controllers
 
             using (var client = new HttpClient())
             {
+                // Dùng secretKey được truyền vào (đã giải mã)
                 var response = await client.GetStringAsync($"https://www.google.com/recaptcha/api/siteverify?secret={secretKey}&response={token}");
 
-                // Deserialize ra dynamic object
                 var jsonResult = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(response);
 
-                // SỬA LỖI Ở ĐÂY:
-                // Ép kiểu về bool thay vì so sánh với chuỗi "true"
                 try
                 {
                     return (bool)jsonResult.success;
@@ -137,6 +172,9 @@ namespace back_end.Controllers
                 }
             }
         }
+
+        // ... [Giữ nguyên API ReplyContact] ...
+    
 
         // 6. API Phản hồi liên hệ (SỬA ĐỔI QUAN TRỌNG)
         [HttpPost("reply/{id}")]

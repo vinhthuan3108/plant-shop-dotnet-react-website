@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaSearch, FaShoppingCart, FaUserCircle, FaSignOutAlt, FaChevronDown, FaTools, FaTimes } from 'react-icons/fa'; 
+import { FaSearch, FaShoppingCart, FaUserCircle, FaSignOutAlt, FaChevronDown, FaTools, FaTimes, FaBars } from 'react-icons/fa';
 import { CartContext } from '../../context/CartContext';
 import axios from 'axios'; 
 import './Header.css';
-import defaultLogo from '../../assets/images/logo.png'; 
+import defaultLogo from '../../assets/images/logo.png';
 
-// Component hỗ trợ in đậm từ khóa
+// Component hỗ trợ in đậm từ khóa tìm kiếm
 const HighlightText = ({ text, highlight }) => {
     if (!highlight.trim()) return <span>{text}</span>;
     const regex = new RegExp(`(${highlight})`, 'gi');
@@ -21,21 +21,23 @@ const HighlightText = ({ text, highlight }) => {
 };
 
 const Header = () => {
+    // --- STATE & CONTEXT ---
     const [user, setUser] = useState(null); 
-    const [config, setConfig] = useState({}); 
+    const [config, setConfig] = useState({});
     const [categories, setCategories] = useState([]); 
     
+    // State cho Mobile Menu
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
     // State tìm kiếm
     const [keyword, setKeyword] = useState("");
-    const [searchCate, setSearchCate] = useState(""); 
+    const [searchCate, setSearchCate] = useState("");
     const [searchResults, setSearchResults] = useState([]); 
     const [showSuggestions, setShowSuggestions] = useState(false); 
     
     const navigate = useNavigate();
-    
-    // Lấy dữ liệu từ Context (Đã có đủ biến)
     const { cartCount, refreshCart, cartItems, removeFromCart, totalAmount } = useContext(CartContext);
-    
     const API_BASE = 'https://localhost:7298'; 
     const searchRef = useRef(null);
 
@@ -43,7 +45,9 @@ const Header = () => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     };
 
+    // --- EFFECTS ---
     useEffect(() => {
+        // Lấy thông tin user
         const userStr = localStorage.getItem('user');
         if (userStr) setUser(JSON.parse(userStr));
         else {
@@ -51,6 +55,7 @@ const Header = () => {
             if (oldName) setUser({ fullName: oldName, roleId: 2 });
         }
 
+        // Lấy cấu hình hệ thống
         const fetchConfig = async () => {
             try {
                 const res = await axios.get(`${API_BASE}/api/TblSystemConfig`);
@@ -63,6 +68,7 @@ const Header = () => {
         };
         fetchConfig();
 
+        // Lấy danh mục
         const fetchCategories = async () => {
             try {
                 const res = await axios.get(`${API_BASE}/api/TblCategories/active`);
@@ -71,6 +77,7 @@ const Header = () => {
         };
         fetchCategories();
 
+        // Click ra ngoài thì đóng gợi ý tìm kiếm
         const handleClickOutside = (event) => {
             if (searchRef.current && !searchRef.current.contains(event.target)) {
                 setShowSuggestions(false);
@@ -79,8 +86,8 @@ const Header = () => {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
-    
-    // Logic tìm kiếm
+
+    // Logic tìm kiếm (Debounce)
     useEffect(() => {
         if (keyword.length < 2) {
             setSearchResults([]);
@@ -100,8 +107,9 @@ const Header = () => {
                 
                 const products = (prodRes.data.data || prodRes.data).map(p => ({ ...p, type: 'product' })); 
                 const posts = (postRes.data || []).map(p => ({ ...p, type: 'blog' })); 
+                
                 const combinedResults = [...products, ...posts];
-
+                
                 if (combinedResults.length > 0) {
                     setSearchResults(combinedResults);
                     setShowSuggestions(true);
@@ -114,6 +122,7 @@ const Header = () => {
         return () => clearTimeout(delayDebounceFn);
     }, [keyword, searchCate]);
 
+    // --- HANDLERS ---
     const handleSearchSubmit = () => {
         setShowSuggestions(false);
         let url = `/shop?keyword=${encodeURIComponent(keyword)}`;
@@ -125,7 +134,7 @@ const Header = () => {
 
     const handleLogout = () => {
         if (window.confirm("Bạn muốn đăng xuất?")) {
-            localStorage.clear(); 
+            localStorage.clear();
             setUser(null);
             refreshCart(); 
             navigate('/login');
@@ -135,11 +144,19 @@ const Header = () => {
     const isAdmin = user?.roleId === 1 || user?.roleId === 3 || user?.roleId === 4;
     const logoSrc = config.LogoUrl ? `${API_BASE}${config.LogoUrl}` : defaultLogo;
 
+    // --- RENDER ---
     return (
         <header className="header-wrapper">
+            {/* 1. HEADER TOP (Logo, Search, User/Cart) */}
             <div className="header-top">
+                {/* Nút Hamburger (Chỉ hiện trên Mobile) */}
+                <button className="hamburger-btn" onClick={() => setIsMobileMenuOpen(true)}>
+                    <FaBars />
+                </button>
+
+                {/* Logo */}
                 <Link to="/" className="logo-link">
-                    <img src={logoSrc} alt="Logo" className="logo-img" style={{ objectFit: 'contain' }} />
+                    <img src={logoSrc} alt="Logo" className="logo-img" />
                     <div className="logo-text-group">
                         <span className="logo-title">{config.StoreName || "Plant Shop"}</span>
                         <span className="logo-slogan">Thoả đam mê cây cảnh</span>
@@ -152,9 +169,18 @@ const Header = () => {
                         <option value="">Tất cả</option>
                         {categories.map(c => <option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>)}
                     </select>
-                    <input type="text" className="search-input" placeholder="Tìm kiếm cây, bài viết..." value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={handleKeyDown} onFocus={() => keyword.length >= 2 && setSearchResults.length > 0 && setShowSuggestions(true)} />
+                    <input 
+                        type="text" 
+                        className="search-input" 
+                        placeholder="Tìm kiếm cây, bài viết..." 
+                        value={keyword} 
+                        onChange={(e) => setKeyword(e.target.value)} 
+                        onKeyDown={handleKeyDown} 
+                        onFocus={() => keyword.length >= 2 && setSearchResults.length > 0 && setShowSuggestions(true)} 
+                    />
                     <button className="search-btn" onClick={handleSearchSubmit}><FaSearch /></button>
 
+                    {/* Gợi ý tìm kiếm Dropdown */}
                     {showSuggestions && (
                         <div className="search-results-dropdown">
                             {searchResults.length > 0 ? (
@@ -186,12 +212,16 @@ const Header = () => {
                                     })}
                                     <div className="search-view-all" onClick={handleSearchSubmit}>Xem tất cả kết quả cho "{keyword}"</div>
                                 </>
-                            ) : (<div className="search-no-result">Không tìm thấy kết quả nào cho "{keyword}"</div>)}
+                            ) : (
+                                <div className="search-no-result">Không tìm thấy kết quả nào cho "{keyword}"</div>
+                            )}
                         </div>
                     )}
                 </div>
 
+                {/* User & Cart Actions */}
                 <div className="header-actions">
+                    {/* Phần User (Sẽ ẩn trên Mobile bằng CSS .auth-links) */}
                     <div className="auth-links">
                         {user ? (
                             <div className="user-logged-in">
@@ -209,7 +239,7 @@ const Header = () => {
                         )}
                     </div>
 
-                    {/* --- GIỎ HÀNG VỚI MINI CART HOVER --- */}
+                    {/* Giỏ hàng & Mini Cart (Luôn hiện) */}
                     {!isAdmin && (
                         <div className="cart-wrapper">
                             <Link to="/cart" className="cart-box">
@@ -256,6 +286,7 @@ const Header = () => {
                 </div>
             </div>
 
+            {/* 2. NAVIGATION BAR (Desktop Only - Hidden on Mobile via CSS) */}
             <nav className="nav-bar">
                 <div className="nav-container">
                      <ul className="nav-list">
@@ -273,9 +304,93 @@ const Header = () => {
                         <li><Link to="/guide">HƯỚNG DẪN</Link></li>
                         <li><Link to="/blog">BÀI VIẾT</Link></li>
                         <li><Link to="/contact">LIÊN HỆ</Link></li>
-                     </ul>
+                    </ul>
                 </div>
             </nav>
+
+            {/* 3. MOBILE MENU (Sidebar & Overlay) */}
+            <div 
+                className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : ''}`} 
+                onClick={closeMobileMenu}
+            ></div>
+
+            <div className={`mobile-menu-container ${isMobileMenuOpen ? 'open' : ''}`}>
+                <div className="mobile-menu-header">
+                    <span className="mobile-menu-title">MENU</span>
+                    <button className="mobile-menu-close" onClick={closeMobileMenu}>
+                        <FaTimes />
+                    </button>
+                </div>
+
+                <ul className="mobile-menu-list">
+                    {/* --- A. PHẦN TÀI KHOẢN (Đưa lên đầu) --- */}
+                    {user ? (
+                        <>
+                            <li className="mobile-auth-item">
+                                <Link to="/profile" onClick={closeMobileMenu} style={{color: '#2e7d32', display: 'flex', alignItems: 'center'}}>
+                                    <FaUserCircle style={{marginRight: '8px', fontSize: '20px'}}/> 
+                                    <span>Chào, <strong>{user.fullName}</strong></span>
+                                </Link>
+                            </li>
+                            <li className="mobile-auth-item">
+                                <div onClick={() => { handleLogout(); closeMobileMenu(); }} style={{cursor: 'pointer', color: '#d32f2f', display: 'flex', alignItems: 'center', padding: '12px 20px', fontWeight: '600'}}>
+                                    <FaSignOutAlt style={{marginRight: '8px'}}/> Đăng xuất
+                                </div>
+                            </li>
+                            <li style={{height: '1px', background: '#eee', margin: '5px 0'}}></li>
+                        </>
+                    ) : (
+                        <>
+                            <li className="mobile-auth-item">
+                                <Link to="/login" onClick={closeMobileMenu} style={{display: 'flex', alignItems: 'center'}}>
+                                    <FaUserCircle style={{marginRight: '8px', color: '#888'}}/> 
+                                    ĐĂNG NHẬP
+                                </Link>
+                            </li>
+                            <li className="mobile-auth-item">
+                                <Link to="/register" onClick={closeMobileMenu} style={{paddingLeft: '45px'}}>
+                                    ĐĂNG KÝ
+                                </Link>
+                            </li>
+                            <li style={{height: '1px', background: '#eee', margin: '5px 0'}}></li>
+                        </>
+                    )}
+
+                    {/* --- B. CÁC LINK ĐIỀU HƯỚNG --- */}
+                    <li><Link to="/" onClick={closeMobileMenu}>TRANG CHỦ</Link></li>
+                    <li><Link to="/intro" onClick={closeMobileMenu}>GIỚI THIỆU</Link></li>
+                    
+                    {/* Dropdown Cây cảnh Mobile */}
+                    <li className="mobile-has-submenu">
+                        <div className="mobile-submenu-title">
+                            CÂY CẢNH <FaChevronDown size={10} />
+                        </div>
+                        <ul className="mobile-submenu">
+                            <li><Link to="/shop" onClick={closeMobileMenu}>Xem tất cả</Link></li>
+                            {categories.map(c => (
+                                <li key={c.categoryId}>
+                                    <Link to={`/shop?category=${c.categoryId}`} onClick={closeMobileMenu}>
+                                        {c.categoryName}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </li>
+
+                    <li><Link to="/guide" onClick={closeMobileMenu}>HƯỚNG DẪN</Link></li>
+                    <li><Link to="/blog" onClick={closeMobileMenu}>BÀI VIẾT</Link></li>
+                    <li><Link to="/contact" onClick={closeMobileMenu}>LIÊN HỆ</Link></li>
+                    
+                    {/* Admin Link Mobile */}
+                    {isAdmin && (
+                        <li style={{borderTop: '1px solid #eee', marginTop: '10px'}}>
+                            <Link to="/admin/products" style={{color: '#e67e22', display: 'flex', alignItems: 'center', gap: '8px'}} onClick={closeMobileMenu}>
+                                <FaTools /> QUẢN TRỊ VIÊN
+                            </Link>
+                        </li>
+                    )}
+                </ul>
+            </div>
         </header>
     );
 };
