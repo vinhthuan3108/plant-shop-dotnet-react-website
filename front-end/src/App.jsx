@@ -54,6 +54,9 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import Testimonials from './pages/admin/Testimonials';
 import ShopInfo from './pages/admin/ShopInfo';
 import SystemIntegration from './pages/admin/SystemIntegration';
+import QandAManager from './pages/admin/QandAManager';
+import InventoryAdjustHistory from './pages/admin/InventoryAdjustHistory';
+import ShippingConfig from './pages/admin/ShippingConfig';
 function App() {
   useEffect(() => {
     const fetchSystemConfig = async () => {
@@ -141,6 +144,8 @@ function App() {
              <Route path="statistics" element={<RevenueStats />} />
              <Route path="statistics/products" element={<ProductStats />} />
              <Route path="testimonial" element={<Testimonials />} />
+             <Route path="questionandanswer" element={<QandAManager />} />
+             <Route path="shipping-config" element={<ShippingConfig />} />
         </Route>
 
 
@@ -150,6 +155,7 @@ function App() {
              <Route path="imports" element={<CreateImportReceipt/>} />
              <Route path="import-history" element={<ImportReceiptList/>} /> 
              <Route path="inventory-adjustment" element={<InventoryAdjustment />} />
+             <Route path="inventory-adjust-history" element={<InventoryAdjustHistory/>} />
         </Route>
 
 

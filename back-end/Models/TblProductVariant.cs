@@ -12,6 +12,7 @@ public partial class TblProductVariant
     public decimal OriginalPrice { get; set; }
     public decimal? SalePrice { get; set; }
     public int? StockQuantity { get; set; }
+    public decimal Weight { get; set; } = 0;
     public int? MinStockAlert { get; set; } // Đã thêm ở bước trước
     public int? ImageId { get; set; }
     public bool? IsActive { get; set; }

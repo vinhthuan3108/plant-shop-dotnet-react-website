@@ -84,12 +84,14 @@ const Suppliers = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                     <thead style={{ backgroundColor: '#f1f3f5', borderBottom: '2px solid #ddd' }}>
                         <tr>
-                            {/* CỘT STT MỚI */}
                             <th style={{ padding: '12px', textAlign: 'center', width: '50px' }}>STT</th>
-                            <th style={{ padding: '12px', textAlign: 'left', width: '20%' }}>Tên Nhà Cung Cấp</th>
-                            <th style={{ padding: '12px', textAlign: 'center', width: '15%' }}>SĐT</th>
-                            <th style={{ padding: '12px', textAlign: 'left', width: '30%' }}>Địa chỉ</th>
-                            <th style={{ padding: '12px', textAlign: 'left', width: '15%' }}>Ghi chú</th>
+                            <th style={{ padding: '12px', textAlign: 'left', width: '15%' }}>Tên Nhà Cung Cấp</th>
+                            {/* 1. THÊM HEADER EMAIL */}
+                            <th style={{ padding: '12px', textAlign: 'left', width: '15%' }}>Email</th> 
+                            <th style={{ padding: '12px', textAlign: 'center', width: '13%' }}>SĐT</th>
+                            <th style={{ padding: '12px', textAlign: 'left', width: '24%' }}>Địa chỉ</th>
+                            {/* Giảm width cột Ghi chú lại một chút để nhường chỗ */}
+                            <th style={{ padding: '12px', textAlign: 'left', width: '18%' }}>Ghi chú</th> 
                             <th style={{ padding: '12px', textAlign: 'center', width: '150px' }}>Thao tác</th>
                         </tr>
                     </thead>
@@ -105,6 +107,9 @@ const Suppliers = () => {
 
                                     <td style={{ padding: '12px', wordWrap: 'break-word' }}>
                                         <strong style={{color: '#333'}}>{s.supplierName}</strong>
+                                    </td>
+                                    <td style={{ padding: '12px', wordWrap: 'break-word', color: '#555' }}>
+                                        {s.email}
                                     </td>
                                     <td style={{ padding: '12px', textAlign: 'center', wordWrap: 'break-word', color: '#555' }}>
                                         {s.phoneNumber}

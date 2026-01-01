@@ -9,10 +9,10 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
     const [name, setName] = useState('');
     const [catId, setCatId] = useState(''); 
     const [active, setActive] = useState(true);
-    
+
     // --- STATE NGÀY SALE & MÔ TẢ ---
-    const [saleStart, setSaleStart] = useState(''); // Chuỗi rỗng mặc định
-    const [saleEnd, setSaleEnd] = useState('');     // Chuỗi rỗng mặc định
+    const [saleStart, setSaleStart] = useState('');
+    const [saleEnd, setSaleEnd] = useState('');
     
     const [shortDesc, setShortDesc] = useState('');
     const [detailDesc, setDetailDesc] = useState('');
@@ -21,9 +21,9 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
     const [uploading, setUploading] = useState(false);
 
     // --- STATE BIẾN THỂ (VARIANTS) ---
-    // FIX LỖI 1: Khởi tạo minStockAlert = 5 ngay từ đầu để không bị undefined
+    // CẬP NHẬT: Thêm trường weight (Kg) mặc định là 0
     const [variants, setVariants] = useState([
-        { variantName: '', originalPrice: 0, salePrice: 0, stockQuantity: 0, minStockAlert: 5 }
+        { variantName: '', originalPrice: 0, salePrice: 0, weight: 0, stockQuantity: 0, minStockAlert: 5 }
     ]);
 
     // --- CẤU HÌNH EDITOR (Giữ nguyên) ---
@@ -69,7 +69,6 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
         ['image', 'link'], ['clean']
     ];
     const formats = ['header', 'bold', 'italic', 'underline', 'strike', 'list', 'align', 'image', 'link'];
-    
     const modulesShort = useMemo(() => ({ toolbar: { container: toolbarContainer, handlers: { image: createImageHandler(shortQuillRef) } } }), []);
     const modulesDetail = useMemo(() => ({ toolbar: { container: toolbarContainer, handlers: { image: createImageHandler(detailQuillRef) } } }), []);
 
@@ -77,9 +76,7 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
     const formatDateForInput = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
-        // Chỉnh lại múi giờ hoặc lấy chuỗi ISO cắt gọn
-        // Cách đơn giản nhất để hiện lên input: YYYY-MM-DDTHH:mm
-        return date.toISOString().slice(0, 16); 
+        return date.toISOString().slice(0, 16);
     };
 
     // --- LOAD DỮ LIỆU KHI EDIT ---
@@ -101,31 +98,32 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
 
             // Load Variants
             if (initialData.tblProductVariants && initialData.tblProductVariants.length > 0) {
-                // Map lại để đảm bảo không field nào bị null/undefined
                 setVariants(initialData.tblProductVariants.map(v => ({
                     variantId: v.variantId,
                     variantName: v.variantName,
                     originalPrice: v.originalPrice,
                     salePrice: v.salePrice || 0,
+                    weight: v.weight || 0, // <--- LOAD WEIGHT
                     stockQuantity: v.stockQuantity || 0,
-                    minStockAlert: v.minStockAlert || 5 // Fallback nếu db null
+                    minStockAlert: v.minStockAlert || 5
                 })));
             } else {
-                setVariants([{ variantName: 'Tiêu chuẩn', originalPrice: 0, salePrice: 0, stockQuantity: 0, minStockAlert: 5 }]);
+                setVariants([{ variantName: 'Tiêu chuẩn', originalPrice: 0, salePrice: 0, weight: 0, stockQuantity: 0, minStockAlert: 5 }]);
             }
 
         } else {
             // Reset form (Thêm mới)
-            setCode(''); setName(''); 
+            setCode('');
+            setName(''); 
             setCatId(categories.length > 0 ? categories[0].categoryId : '');
             setShortDesc(''); setDetailDesc(''); setFengShui('');
             setSaleStart(''); setSaleEnd('');
             setActive(true); setImages([]);
-            setVariants([{ variantName: '', originalPrice: 0, salePrice: 0, stockQuantity: 0, minStockAlert: 5 }]);
+            setVariants([{ variantName: '', originalPrice: 0, salePrice: 0, weight: 0, stockQuantity: 0, minStockAlert: 5 }]);
         }
     }, [initialData, isOpen, categories]);
 
-    // --- XỬ LÝ ẢNH (Giữ nguyên) ---
+    // --- XỬ LÝ ẢNH ---
     const handleFileChange = async (e) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
@@ -167,9 +165,9 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
         setVariants(newVariants);
     };
 
-    // FIX LỖI 1: Khi thêm mới, phải set minStockAlert = 5
     const addVariant = () => {
-        setVariants([...variants, { variantName: '', originalPrice: 0, salePrice: 0, stockQuantity: 0, minStockAlert: 5 }]);
+        // CẬP NHẬT: Thêm weight: 0 khi tạo dòng mới
+        setVariants([...variants, { variantName: '', originalPrice: 0, salePrice: 0, weight: 0, stockQuantity: 0, minStockAlert: 5 }]);
     };
 
     const removeVariant = (index) => {
@@ -179,57 +177,48 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
         setVariants(newVariants);
     };
 
-    // --- SUBMIT (FIX LỖI 400) ---
-    // --- SUBMIT (ĐÃ FIX LỖI 400 BAD REQUEST) ---
+    // --- SUBMIT ---
     const handleSubmit = () => {
         // 1. Validate cơ bản
         if (!code.trim()) return alert("Mã sản phẩm không được trống");
         if (!name.trim()) return alert("Tên sản phẩm không được trống");
         if (!catId) return alert("Vui lòng chọn danh mục");
-        
+
         // 2. Validate Variants
         for(let v of variants) {
-        if(!v.variantName.trim()) return alert("Tên phân loại không được để trống");
-        if(isNaN(parseFloat(v.originalPrice)) || parseFloat(v.originalPrice) < 0) 
-            return alert("Giá gốc không hợp lệ");
+            if(!v.variantName.trim()) return alert("Tên phân loại không được để trống");
+            if(isNaN(parseFloat(v.originalPrice)) || parseFloat(v.originalPrice) < 0) 
+                return alert("Giá gốc không hợp lệ");
+            // Validate Weight nếu cần (ví dụ không âm)
+            if(isNaN(parseFloat(v.weight)) || parseFloat(v.weight) < 0)
+                return alert("Cân nặng không hợp lệ");
         }
 
-        // --- LOGIC VALIDATE KHUYẾN MÃI (2 CHIỀU) ---
-        
-        // Kiểm tra xem đã chọn ngày chưa
+        // --- LOGIC VALIDATE KHUYẾN MÃI ---
         const hasSaleDates = saleStart && saleEnd;
-        
-        // Kiểm tra xem có bất kỳ dòng nào đã nhập giá Sale > 0 chưa
         const hasAnySalePrice = variants.some(v => parseFloat(v.salePrice) > 0);
 
-        // CHIỀU 1: Có nhập giá Sale (>0) nhưng quên chọn ngày
         if (hasAnySalePrice && !hasSaleDates) {
             return alert("Bạn đã nhập Giá KM nhưng chưa chọn thời gian áp dụng (Bắt đầu - Kết thúc)!");
         }
 
-        // CHIỀU 2 (MỚI): Có chọn ngày nhưng có phân loại chưa nhập giá Sale (hoặc để = 0)
         if (hasSaleDates) {
-            // Tìm xem có phân loại nào giá Sale <= 0 không
             const hasInvalidSalePrice = variants.some(v => !v.salePrice || parseFloat(v.salePrice) <= 0);
-            
             if (hasInvalidSalePrice) {
                 return alert("Bạn đã thiết lập Ngày khuyến mãi, vui lòng nhập đầy đủ Giá KM (> 0) cho tất cả các phân loại!");
             }
-
-            // Validate logic thời gian
             if (new Date(saleStart) >= new Date(saleEnd)) {
                 return alert("Thời gian kết thúc khuyến mãi phải lớn hơn thời gian bắt đầu!");
             }
         }   
+
         // 3. Chuẩn hóa dữ liệu trước khi gửi
         const formData = {
             productId: initialData ? initialData.productId : 0,
             productCode: code.trim(),
             productName: name.trim(),
-            categoryId: parseInt(catId) || 0, // Đảm bảo luôn là int
+            categoryId: parseInt(catId) || 0,
             
-            // --- FIX NGÀY THÁNG ---
-            // Chuyển sang ISO String để Server C# đọc chính xác
             saleStartDate: saleStart ? new Date(saleStart).toISOString() : null,
             saleEndDate: saleEnd ? new Date(saleEnd).toISOString() : null,
 
@@ -238,7 +227,6 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
             fengShuiTags: fengShui,
             isActive: active,
             
-            // Map ảnh (giữ nguyên)
             tblProductImages: images.map(img => ({
                 imageId: img.imageId || 0,
                 imageUrl: img.imageUrl,
@@ -246,20 +234,19 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                 displayOrder: img.displayOrder || 0
             })),
             
-            // --- FIX VARIANTS (QUAN TRỌNG NHẤT) ---
+            // --- CẬP NHẬT: THÊM WEIGHT VÀO PAYLOAD ---
             tblProductVariants: variants.map(v => ({
                 variantId: v.variantId || 0, 
                 variantName: v.variantName.trim(),
-                
-                // SỬ DỤNG || 0 ĐỂ TRÁNH NaN (Lỗi 400 chết người ở đây)
                 originalPrice: parseFloat(v.originalPrice) || 0,
                 salePrice: parseFloat(v.salePrice) || 0,
+                weight: parseFloat(v.weight) || 0, // <--- GỬI CÂN NẶNG
                 stockQuantity: parseInt(v.stockQuantity) || 0,
                 minStockAlert: parseInt(v.minStockAlert) || 5, 
             }))
         };
-        
-        console.log("Dữ liệu gửi đi (Cleaned):", formData);
+
+        console.log("Dữ liệu gửi đi:", formData);
         onSubmit(formData);
     };
 
@@ -300,8 +287,8 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                             <label>Tags Phong thủy:</label>
                             <input type="text" value={fengShui} onChange={e => setFengShui(e.target.value)} style={{ width: '100%', padding: '8px', marginTop:'5px' }} />
                         </div>
-                        
-                        {/* KHU VỰC NGÀY SALE MỚI */}
+                       
+                        {/* KHU VỰC NGÀY SALE */}
                         <div style={{display:'flex', gap:'10px', marginTop:'10px', background:'#f8f9fa', padding:'10px', borderRadius:'4px'}}>
                             <div style={{flex:1}}>
                                 <label style={{fontSize:'12px', fontWeight:'bold'}}>Bắt đầu KM:</label>
@@ -351,8 +338,8 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                                 (* Tồn kho chỉ được cập nhật tại mục Quản lý kho)
                             </span>
                         </div>
-                                                <button type="button" onClick={addVariant} style={{background:'#28a745', color:'white', border:'none', padding:'5px 10px', borderRadius:'4px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px'}}>
-                           <FaPlus /> Thêm loại
+                        <button type="button" onClick={addVariant} style={{background:'#28a745', color:'white', border:'none', padding:'5px 10px', borderRadius:'4px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px'}}>
+                            <FaPlus /> Thêm loại
                         </button>
                     </div>
                     
@@ -362,8 +349,11 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                                 <th style={{padding:'8px', border:'1px solid #ddd', textAlign:'left'}}>Tên loại <span style={{color:'red'}}>*</span></th>
                                 <th style={{padding:'8px', border:'1px solid #ddd', width:'130px'}}>Giá gốc</th>
                                 <th style={{padding:'8px', border:'1px solid #ddd', width:'130px'}}>Giá KM</th>
+                                
+                                {/* CỘT MỚI: CÂN NẶNG */}
+                                <th style={{padding:'8px', border:'1px solid #ddd', width:'100px'}}>Cân nặng (Kg)</th>
+
                                 <th style={{padding:'8px', border:'1px solid #ddd', width:'80px'}}>Tồn kho</th>
-                                {/* Cột Min Alert Mới */}
                                 <th style={{padding:'8px', border:'1px solid #ddd', width:'80px'}}>Min Alert</th>
                                 <th style={{padding:'8px', border:'1px solid #ddd', width:'50px'}}>Xóa</th>
                             </tr>
@@ -380,23 +370,35 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                                     <td style={{padding:'5px', border:'1px solid #ddd'}}>
                                         <input type="number" value={v.salePrice} onChange={e => handleVariantChange(idx, 'salePrice', e.target.value)} style={{width:'100%', padding:'5px', border:'1px solid #ccc', textAlign:'right'}} />
                                     </td>
+                                    
+                                    {/* INPUT CÂN NẶNG */}
+                                    <td style={{padding:'5px', border:'1px solid #ddd'}}>
+                                        <input 
+                                            type="number" 
+                                            step="0.1" // Cho phép nhập số lẻ
+                                            value={v.weight} 
+                                            onChange={e => handleVariantChange(idx, 'weight', e.target.value)} 
+                                            style={{width:'100%', padding:'5px', border:'1px solid #ccc', textAlign:'center'}} 
+                                            placeholder="0"
+                                        />
+                                    </td>
+
                                     <td style={{padding:'5px', border:'1px solid #ddd'}}>
                                         <input 
                                             type="number" 
                                             value={v.stockQuantity} 
-                                            disabled={true} // Vô hiệu hóa nhập liệu
+                                            disabled={true} 
                                             style={{
                                                 width:'100%', 
                                                 padding:'5px', 
                                                 border:'1px solid #eee', 
                                                 textAlign:'center', 
-                                                backgroundColor: '#e9ecef', // Màu nền xám
-                                                color: '#6c757d',           // Màu chữ chìm
-                                                cursor: 'not-allowed'       // Con trỏ chuột báo cấm
+                                                backgroundColor: '#e9ecef', 
+                                                color: '#6c757d',           
+                                                cursor: 'not-allowed'
                                             }} 
                                         />
                                     </td>
-                                    {/* Input Min Alert: Fix lỗi Uncontrolled */}
                                     <td style={{padding:'5px', border:'1px solid #ddd'}}>
                                         <input type="number" 
                                             value={v.minStockAlert || ''} 

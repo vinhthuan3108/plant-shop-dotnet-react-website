@@ -4,14 +4,13 @@ import axios from 'axios';
 import { CartContext } from '../../context/CartContext';
 
 const Checkout = () => {
-    // SỬA 1: Đổi cartTotal -> totalAmount để khớp với Context
-    const { cartItems, totalAmount, refreshCart } = useContext(CartContext);
+    // 1. Lấy thêm clearCart từ Context để xử lý sau khi đặt hàng
+    const { cartItems, totalAmount, clearCart } = useContext(CartContext);
     const navigate = useNavigate();
     
-    // Config URL Backend
     const BASE_URL = 'https://localhost:7298';
 
-    // --- HELPER: LẤY USER TỪ LOCALSTORAGE ---
+    // --- HELPER: LẤY USER ---
     const getUserData = () => {
         const userStr = localStorage.getItem('user');
         if (userStr) {
@@ -19,139 +18,164 @@ const Checkout = () => {
         }
         return null;
     };
-
     const currentUser = getUserData();
-    // --- STATE FORM DATA ---
+
+    // --- STATE ---
     const [formData, setFormData] = useState({
         recipientName: '',
         recipientPhone: '',
         addressDetail: '',
         province: '', 
+        provinceCode: '',
         district: '', 
         ward: '', 
         note: '',
         paymentMethod: 'COD'
     });
 
-    // --- STATE LOCATION (API) ---
     const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
     const [wards, setWards] = useState([]);
 
-    // --- STATE KHÁC ---
     const [shippingFee, setShippingFee] = useState(0);
     const [voucherCode, setVoucherCode] = useState('');
     const [discountAmount, setDiscountAmount] = useState(0);
     const [loading, setLoading] = useState(false);
 
     // =========================================================================
-    // 1. LOAD DỮ LIỆU BAN ĐẦU
+    // 1. LOAD DỮ LIỆU BAN ĐẦU (Tỉnh thành & Thông tin User)
+    // =========================================================================
+    // =========================================================================
+    // 1. LOAD DỮ LIỆU BAN ĐẦU (Tỉnh thành & Thông tin User)
     // =========================================================================
     useEffect(() => {
-    const fetchData = async () => {
-        try {
-            const userId = currentUser?.userId;
-            
-            // 1.1 Load danh sách Tỉnh/Thành (Public API)
-            const provinceReq = axios.get('https://provinces.open-api.vn/api/?depth=1');
-
-            // Chuẩn bị các Promise
-            let addrReq = null;
-            let profileReq = null;
-
-            if (userId) {
-                // 1.2 Gọi API lấy sổ địa chỉ
-                addrReq = axios.get(`${BASE_URL}/api/Profile/${userId}/addresses`);
+        const fetchData = async () => {
+            try {
+                const userId = currentUser?.userId;
                 
-                // 1.3 Gọi API lấy thông tin cá nhân (để lấy SĐT gốc từ bảng User)
-                // LƯU Ý: Bạn cần thay đường dẫn này đúng với API lấy chi tiết User của bạn
-                // Ví dụ: api/Users/detail/5 hoặc api/Profile/info/5
-                profileReq = axios.get(`${BASE_URL}/api/Users/${userId}`); 
-            }
-
-            // Chạy song song các request để tối ưu tốc độ
-            const [provinceRes, addrRes, profileRes] = await Promise.all([
-                provinceReq,
-                addrReq ? addrReq.catch(err => ({ data: [] })) : Promise.resolve({ data: [] }), // Nếu lỗi thì trả mảng rỗng
-                profileReq ? profileReq.catch(err => ({ data: null })) : Promise.resolve({ data: null }) // Nếu lỗi thì trả null
-            ]);
-
-            setProvinces(provinceRes.data);
-            const provinceList = provinceRes.data;
-
-            // --- XỬ LÝ DỮ LIỆU USER ---
-            if (userId) {
-                const addresses = Array.isArray(addrRes.data) ? addrRes.data : [];
-                const userProfile = profileRes.data; // Dữ liệu lấy từ bảng User/Customer
+                // 1. Load danh sách Tỉnh/Thành về trước
+                const provinceReq = axios.get('https://provinces.open-api.vn/api/?depth=1');
                 
-                // Ưu tiên 1: Địa chỉ mặc định trong sổ địa chỉ
-                const defaultAddr = addresses.find(a => a.isDefault === true);
+                let addrReq = Promise.resolve({ data: [] });
+                let profileReq = Promise.resolve({ data: null });
 
-                if (defaultAddr) {
-                    setFormData(prev => ({
-                        ...prev,
-                        recipientName: defaultAddr.recipientName || userProfile?.fullName || currentUser?.fullName || '',
-                        recipientPhone: defaultAddr.phoneNumber || userProfile?.phoneNumber || currentUser?.phoneNumber || '',
-                        addressDetail: defaultAddr.addressDetail || '',
-                        province: defaultAddr.province || '',
-                        district: defaultAddr.district || '',
-                        ward: defaultAddr.ward || '',
-                    }));
+                // Sửa đường dẫn API thành Profile cho đúng
+                if (userId) {
+                    addrReq = axios.get(`${BASE_URL}/api/Profile/${userId}/addresses`).catch(() => ({ data: [] }));
+                    profileReq = axios.get(`${BASE_URL}/api/Profile/${userId}`).catch(() => ({ data: null }));
+                }
 
-                    // Logic auto-load Huyện/Xã khi có địa chỉ mặc định (Giữ nguyên code cũ của bạn)
-                    if (defaultAddr.province) {
-                        const selectedProv = provinceList.find(p => p.name === defaultAddr.province);
-                        if (selectedProv) {
-                            const distRes = await axios.get(`https://provinces.open-api.vn/api/p/${selectedProv.code}?depth=2`);
-                            setDistricts(distRes.data.districts);
+                const [provinceRes, addrRes, profileRes] = await Promise.all([provinceReq, addrReq, profileReq]);
+                
+                const provinceList = provinceRes.data; 
+                setProvinces(provinceList);
+                
+                // 2. Auto fill dữ liệu User vào Form
+                if (userId) {
+                    const addresses = Array.isArray(addrRes.data) ? addrRes.data : [];
+                    const userProfile = profileRes.data;
+                    const defaultAddr = addresses.find(a => a.isDefault === true);
 
-                            if (defaultAddr.district) {
-                                const selectedDist = distRes.data.districts.find(d => d.name === defaultAddr.district);
-                                if (selectedDist) {
-                                    const wardRes = await axios.get(`https://provinces.open-api.vn/api/d/${selectedDist.code}?depth=2`);
-                                    setWards(wardRes.data.wards);
-                                }
-                            }
+                    if (defaultAddr) {
+                        // --- LOGIC TÌM TỈNH CHUẨN ---
+                        const normalize = (str) => str ? str.toLowerCase().trim() : '';
+                        const dbProvName = normalize(defaultAddr.province);
+
+                        // Tìm tỉnh trong list API khớp với tỉnh trong DB
+                        const foundProv = provinceList.find(p => {
+                            const apiName = normalize(p.name);
+                            return apiName === dbProvName || apiName.includes(dbProvName) || dbProvName.includes(apiName);
+                        });
+                        
+                        // Lấy Code và Name CHUẨN từ API (để Dropdown nhận diện được)
+                        const recoveredCode = foundProv ? String(foundProv.code) : ''; 
+                        const recoveredName = foundProv ? foundProv.name : (defaultAddr.province || '');
+
+                        setFormData(prev => ({
+                            ...prev,
+                            recipientName: defaultAddr.recipientName || userProfile?.fullName || '',
+                            recipientPhone: defaultAddr.phoneNumber || userProfile?.phoneNumber || '',
+                            addressDetail: defaultAddr.addressDetail || '',
+                            
+                            // QUAN TRỌNG: Dùng tên từ API để Dropdown hiển thị đúng
+                            province: recoveredName, 
+                            provinceCode: recoveredCode,
+                            
+                            district: defaultAddr.district || '',
+                            ward: defaultAddr.ward || '',
+                        }));
+                        
+                        // Load tiếp Huyện/Xã nếu tìm được Code
+                        if (recoveredCode) {
+                             await loadLocationForDefaultAddress({ ...defaultAddr, province: recoveredName }, provinceList);
                         }
+                    } else {
+                        // Không có địa chỉ mặc định
+                        setFormData(prev => ({
+                            ...prev,
+                            recipientName: userProfile?.fullName || currentUser?.fullName || '',
+                            recipientPhone: userProfile?.phoneNumber || currentUser?.phoneNumber || ''
+                        }));
                     }
+                }
+            } catch (err) {
+                console.error("Lỗi khởi tạo Checkout:", err);
+            }
+        };
 
-                } else {
-                    // Ưu tiên 2: Nếu KHÔNG có địa chỉ mặc định -> Lấy SĐT từ bảng User (Database)
-                    // userProfile lấy từ API sẽ chính xác hơn localStorage
-                    setFormData(prev => ({
-                        ...prev,
-                        recipientName: userProfile?.fullName || currentUser?.fullName || '',
-                        recipientPhone: userProfile?.phoneNumber || userProfile?.phone || currentUser?.phoneNumber || '' // Check kỹ case (hoa/thường) backend trả về
-                    }));
+        fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Helper load lại huyện/xã khi có địa chỉ có sẵn
+    const loadLocationForDefaultAddress = async (addr, provinceList) => {
+        if (!addr.province) return;
+        const prov = provinceList.find(p => p.name === addr.province);
+        if (!prov) return;
+
+        try {
+            const distRes = await axios.get(`https://provinces.open-api.vn/api/p/${prov.code}?depth=2`);
+            setDistricts(distRes.data.districts);
+
+            if (addr.district) {
+                const dist = distRes.data.districts.find(d => d.name === addr.district);
+                if (dist) {
+                    const wardRes = await axios.get(`https://provinces.open-api.vn/api/d/${dist.code}?depth=2`);
+                    setWards(wardRes.data.wards);
                 }
             }
-        } catch (err) {
-            console.error("Lỗi khởi tạo:", err);
-        }
+        } catch (e) { console.error(e); }
     };
 
-    fetchData();
-}, []);
-
-    // --- CÁC HÀM XỬ LÝ LOCATION ---
+    // =========================================================================
+    // 2. XỬ LÝ SỰ KIỆN FORM
+    // =========================================================================
     const handleProvinceChange = async (e) => {
-        const index = e.target.selectedIndex;
-        const provinceName = e.target.options[index].text;
-        const provinceCode = e.target.value; 
+    const code = e.target.value; // Lấy Mã (VD: 79)
+    const index = e.target.selectedIndex;
+    const name = index > 0 ? e.target.options[index].text : ''; // Lấy Tên
 
-        setFormData({ ...formData, province: provinceName, district: '', ward: '' });
-        setDistricts([]); setWards([]);
-        
-        if (provinceCode) {
-            const res = await axios.get(`https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`);
-            setDistricts(res.data.districts);
-        }
-    };
+    // Lưu cả Name và Code vào state
+    setFormData({ 
+        ...formData, 
+        province: name, 
+        provinceCode: code, // <--- CẬP NHẬT MÃ TỈNH
+        district: '', 
+        ward: '' 
+    });
+    
+    setDistricts([]); 
+    setWards([]);
+
+    if (code) {
+        const res = await axios.get(`https://provinces.open-api.vn/api/p/${code}?depth=2`);
+        setDistricts(res.data.districts);
+    }
+};
 
     const handleDistrictChange = async (e) => {
-        const index = e.target.selectedIndex;
-        const districtName = e.target.options[index].text;
         const districtCode = e.target.value;
+        const districtName = e.target.options[e.target.selectedIndex].text;
 
         setFormData({ ...formData, district: districtName, ward: '' });
         setWards([]);
@@ -163,8 +187,7 @@ const Checkout = () => {
     };
 
     const handleWardChange = (e) => {
-        const index = e.target.selectedIndex;
-        const wardName = e.target.options[index].text;
+        const wardName = e.target.options[e.target.selectedIndex].text;
         setFormData({ ...formData, ward: wardName });
     };
 
@@ -173,23 +196,46 @@ const Checkout = () => {
     };
 
     // Tính phí ship
-    useEffect(() => {
-        const p = formData.province ? formData.province.toLowerCase() : '';
-        if (!p) {
+    // --- TÍNH PHÍ SHIP TỰ ĐỘNG TỪ SERVER ---
+useEffect(() => {
+    const getShippingFee = async () => {
+        // Chỉ tính khi đã có Mã Tỉnh và Giỏ hàng có đồ
+        if (!formData.provinceCode || cartItems.length === 0) {
             setShippingFee(0);
-        } else if (p.includes('hồ chí minh') || p.includes('sài gòn')) {
-            setShippingFee(15000); 
-        } else if (p.includes('bình dương') || p.includes('đồng nai') || p.includes('long an')) {
-            setShippingFee(30000);
-        } else {
-            setShippingFee(30000);
+            return;
         }
-    }, [formData.province]);
 
+        try {
+            // Gọi API tính phí "xem trước" mà ta vừa viết ở Backend
+            const payload = {
+                provinceCode: String(formData.provinceCode), // Gửi mã tỉnh
+                items: cartItems.map(item => ({
+                    variantId: item.variantId,
+                    quantity: item.quantity
+                }))
+            };
+
+            const res = await axios.post(`${BASE_URL}/api/Orders/calculate-fee`, payload);
+            setShippingFee(res.data.shippingFee);
+        } catch (err) {
+            console.error("Lỗi tính phí ship:", err);
+            // Nếu lỗi, có thể fallback về 0 hoặc một mức phí tượng trưng
+            setShippingFee(0); 
+        }
+    };
+
+    // Debounce nhẹ (chờ 500ms sau khi chọn xong mới gọi API để đỡ spam server)
+    const timeoutId = setTimeout(() => {
+        getShippingFee();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+}, [formData.provinceCode, cartItems]); // Chạy lại khi đổi Tỉnh hoặc đổi Giỏ hàng
+
+    // Áp dụng Voucher
     const handleApplyVoucher = async () => {
         if (!voucherCode.trim()) return alert("Vui lòng nhập mã!");
         try {
-            // SỬA 2: Dùng totalAmount để check điều kiện voucher
             const res = await axios.get(`${BASE_URL}/api/Orders/validate-voucher?code=${voucherCode}&orderValue=${totalAmount}`);
             setDiscountAmount(res.data.discountAmount);
             alert(`Áp dụng mã thành công! Giảm: ${res.data.discountAmount.toLocaleString()}đ`);
@@ -199,50 +245,62 @@ const Checkout = () => {
         }
     };
 
+    // =========================================================================
+    // 3. XỬ LÝ ĐẶT HÀNG (QUAN TRỌNG)
+    // =========================================================================
     const handlePlaceOrder = async () => {
         if (cartItems.length === 0) return alert("Giỏ hàng trống!");
-        if (!formData.recipientName || !formData.recipientPhone || !formData.addressDetail || !formData.province || !formData.district || !formData.ward) {
+        const { recipientName, recipientPhone, addressDetail, province, district, ward } = formData;
+        
+        if (!recipientName || !recipientPhone || !addressDetail || !province || !district || !ward) {
             return alert("Vui lòng điền đầy đủ thông tin giao hàng.");
         }
 
         setLoading(true);
         const userId = currentUser?.userId;
-        const finalAddressDetail = `${formData.addressDetail}, ${formData.ward}`;
+        const finalAddress = `${addressDetail}, ${ward}, ${district}, ${province}`;
 
         const payload = {
-            userId: userId ? parseInt(userId) : null,
-            recipientName: formData.recipientName,
-            recipientPhone: formData.recipientPhone,
-            shippingAddress: finalAddressDetail, 
-            province: formData.province,
-            district: formData.district,
-            voucherCode: voucherCode || null,
-            paymentMethod: formData.paymentMethod,
-            note: formData.note,
-            items: cartItems.map(item => ({
-                variantId: item.variantId,
-                quantity: item.quantity
-            }))
-        };
+    userId: userId ? parseInt(userId) : null,
+    recipientName,
+    recipientPhone,
+    shippingAddress: addressDetail, // Chỉ gửi số nhà/tên đường (ví dụ: "123 Nguyễn Trãi")
+    province: formData.province,    // "Hà Nội"
+    provinceCode: formData.provinceCode, // "01"
+    district: formData.district,    // "Thanh Xuân"
+    ward: formData.ward, // Lưu ý: Backend DTO có thể chưa có Ward, nếu cần lưu Ward riêng thì thêm vào DTO sau
+    voucherCode: voucherCode || null,
+    paymentMethod: formData.paymentMethod,
+    note: formData.note,
+    items: cartItems.map(item => ({
+        variantId: item.variantId,
+        quantity: item.quantity
+    }))
+};
 
         try {
+            // 1. Tạo đơn hàng
             const res = await axios.post(`${BASE_URL}/api/Orders/checkout`, payload);
-            const data = res.data;
-            const newOrderId = data.orderId;
+            const newOrderId = res.data.orderId;
 
+            // 2. QUAN TRỌNG: Xóa giỏ hàng ngay lập tức (UI + LocalStorage)
+            clearCart(); 
+
+            // 3. Xử lý thanh toán
             if (formData.paymentMethod === 'PAYOS') {
                 const payRes = await axios.post(`${BASE_URL}/api/Payment/create-payment-link`, { orderId: newOrderId });
                 if (payRes.data.checkoutUrl) {
                     window.location.href = payRes.data.checkoutUrl;
                 } else {
-                    alert("Lỗi tạo link thanh toán.");
+                    alert("Lỗi tạo link thanh toán, vui lòng thanh toán sau trong 'Đơn hàng của tôi'.");
                     navigate('/order-success', { state: { orderId: newOrderId } });
                 }
             } else {
+                // COD
                 alert("Đặt hàng thành công!");
-                await refreshCart();
                 navigate('/order-success', { state: { orderId: newOrderId } });
             }
+
         } catch (error) {
             console.error("Lỗi đặt hàng:", error);
             alert("Lỗi đặt hàng: " + (error.response?.data?.message || "Có lỗi xảy ra"));
@@ -251,13 +309,12 @@ const Checkout = () => {
         }
     };
 
-    // SỬA 3: Dùng totalAmount để tính tổng cuối
     const finalTotal = (totalAmount || 0) + shippingFee - discountAmount;
 
     return (
         <div style={{ padding: '40px', maxWidth: '1100px', margin: '0 auto', display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
             
-            {/* CỘT TRÁI: FORM ĐIỀN THÔNG TIN */}
+            {/* CỘT TRÁI: FORM */}
             <div style={{ flex: 1, minWidth: '350px' }}>
                 <h2 style={{ color: '#2e7d32', marginBottom: '20px' }}>Thông tin giao hàng</h2>
                 <div style={{ display: 'grid', gap: '15px' }}>
@@ -283,12 +340,12 @@ const Checkout = () => {
                         </div>
                     </div>
 
-                    <input type="text" name="addressDetail" placeholder="Địa chỉ chi tiết (Số nhà, tên đường...) (*)" value={formData.addressDetail} onChange={handleChange} style={inputStyle} />
-                    <textarea name="note" placeholder="Ghi chú đơn hàng (VD: Giao giờ hành chính)" value={formData.note} onChange={handleChange} style={{...inputStyle, height: '80px'}} />
+                    <input type="text" name="addressDetail" placeholder="Số nhà, tên đường... (*)" value={formData.addressDetail} onChange={handleChange} style={inputStyle} />
+                    <textarea name="note" placeholder="Ghi chú đơn hàng" value={formData.note} onChange={handleChange} style={{...inputStyle, height: '80px'}} />
                 </div>
             </div>
 
-            {/* CỘT PHẢI: TÓM TẮT ĐƠN HÀNG */}
+            {/* CỘT PHẢI: BILL */}
             <div style={{ flex: 1, minWidth: '350px', backgroundColor: '#f9f9f9', padding: '25px', borderRadius: '8px', height: 'fit-content' }}>
                 <h3 style={{ marginBottom: '15px' }}>Đơn hàng ({cartItems.length} sản phẩm)</h3>
                 
@@ -296,10 +353,8 @@ const Checkout = () => {
                     {cartItems.map(item => (
                         <div key={item.variantId || item.productId} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                             <div>
-                                <span>{item.productName} <strong>x {item.quantity}</strong></span>
-                                {item.variantName && item.variantName !== 'Tiêu chuẩn' && (
-                                    <div style={{fontSize:'12px', color:'#666'}}>({item.variantName})</div>
-                                )}
+                                <div>{item.productName} <strong>x {item.quantity}</strong></div>
+                                {item.variantName && item.variantName !== 'Tiêu chuẩn' && <small style={{color:'#666'}}>({item.variantName})</small>}
                             </div>
                             <span>{(item.price * item.quantity).toLocaleString()}đ</span>
                         </div>
@@ -314,7 +369,6 @@ const Checkout = () => {
                 <div style={{ display: 'grid', gap: '10px', fontSize: '15px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>Tạm tính:</span>
-                        {/* SỬA 4: Hiển thị totalAmount */}
                         <span>{(totalAmount || 0).toLocaleString()}đ</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
