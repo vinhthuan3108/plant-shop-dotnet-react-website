@@ -47,6 +47,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<back_end.Services.EmailService>();
 builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddHttpClient();
+
 var app = builder.Build();
 
 app.UseCors("AllowReactApp");
