@@ -24,7 +24,8 @@ const Shop = () => {
     const [bounds, setBounds] = useState({ min: 0, max: 10000000 });
     // priceRange: Giá trị người dùng đang chọn
     const [priceRange, setPriceRange] = useState([0, 10000000]);
-    
+    // ---THÊM STATE LƯU TRẠNG THÁI SẮP XẾP ---
+    const [sortBy, setSortBy] = useState('default');
     // useRef để check lần đầu load của danh mục (để set lại bounds)
     const isFirstLoad = useRef(true);
 
@@ -77,7 +78,8 @@ const Shop = () => {
                      productUrl += `&minPrice=${priceRange[0]}`;
                      productUrl += `&maxPrice=${priceRange[1]}`;
                 }
-                
+                // --- THÊM THAM SỐ SORT VÀO URL ---
+                productUrl += `&sort=${sortBy}`;
                 const prodRes = await axios.get(productUrl);
                 const responseData = prodRes.data;
 
@@ -111,7 +113,7 @@ const Shop = () => {
         };
 
         fetchData();
-    }, [categoryId, currentPage, applyFilterTrigger, keyword]); 
+    }, [categoryId, currentPage, applyFilterTrigger, keyword, sortBy]);
 
     const handlePageChange = (page) => {
         if (page >= 1 && page <= totalPages) {
@@ -196,16 +198,41 @@ const Shop = () => {
 
                 {/* --- DANH SÁCH SẢN PHẨM --- */}
                 <div className="col-md-9">
+                    {/* Header: Tiêu đề + Dropdown Sắp xếp */}
                     <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
-                        <h3 className="mb-0 section-title" style={{margin: 0, fontSize: '24px', textAlign: 'left'}}>
+                        
+                        {/* Tiêu đề bên trái */}
+                        <h3 className="mb-0 section-title" style={{margin: 0, fontSize: '24px', textAlign: 'left', color: '#2e7d32', fontWeight: 'bold'}}>
                             {categoryId 
                                 ? categories.find(c => c.categoryId === parseInt(categoryId))?.categoryName || "Sản phẩm"
                                 : "Tất cả sản phẩm"
                             }
                         </h3>
-                        <span className="text-muted small">Trang {currentPage} / {totalPages}</span>
-                    </div>
 
+                        {/* Cụm bên phải: Dropdown + Số trang */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                            <select 
+                                className="form-select form-select-sm" 
+                                style={{ width: '200px', cursor: 'pointer', borderColor: '#2e7d32' }}
+                                value={sortBy}
+                                onChange={(e) => {
+                                    setSortBy(e.target.value);
+                                    setCurrentPage(1); // Reset về trang 1 khi đổi kiểu sắp xếp
+                                }}
+                            >
+                                <option value="default">Thứ tự mặc định</option>
+                                <option value="newest">Mới nhất</option>
+                                <option value="price_asc">Giá: Thấp đến Cao</option>
+                                <option value="price_desc">Giá: Cao xuống Thấp</option>
+                                <option value="name_az">Tên: A - Z</option>
+                                <option value="name_za">Tên: Z - A</option>
+                            </select>
+                            
+                            <span className="text-muted small" style={{whiteSpace: 'nowrap'}}>
+                                Trang {currentPage} / {totalPages}
+                            </span>
+                        </div>
+                    </div>
                     {loading ? (
                         <div className="text-center py-5">
                             <div className="spinner-border text-success" role="status"></div>
