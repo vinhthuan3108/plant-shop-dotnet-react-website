@@ -153,7 +153,6 @@ namespace back_end.Controllers
         }
 
         // GET: api/TblProducts/shop (Dùng cho Khách hàng)
-        // GET: api/TblProducts/shop
         [HttpGet("shop")]
         public async Task<IActionResult> GetProductsForShop(
             int? categoryId,
@@ -161,7 +160,8 @@ namespace back_end.Controllers
             int pageSize = 12,
             decimal? minPrice = null,
             decimal? maxPrice = null,
-            string keyword = null // <--- 1. THÊM THAM SỐ KEYWORD VÀO ĐÂY
+            string keyword = null,
+            string sort = "default" // <--- 1. THÊM THAM SỐ SORT VÀO ĐÂY
         )
         {
             // 1. Tạo Query cơ bản
@@ -170,22 +170,20 @@ namespace back_end.Controllers
                 .Include(p => p.TblProductVariants)
                 .Where(p => p.IsActive == true && (p.IsDeleted == false || p.IsDeleted == null));
 
-            // 2. --- LOGIC TÌM KIẾM THEO TÊN (MỚI THÊM) ---
+            // 2. Logic tìm kiếm theo tên
             if (!string.IsNullOrEmpty(keyword))
             {
-                // Chuyển về chữ thường để tìm không phân biệt hoa thường
                 string kw = keyword.ToLower().Trim();
                 query = query.Where(p => p.ProductName.ToLower().Contains(kw));
             }
-            // ----------------------------------------------
 
-            // 3. Logic lọc danh mục (Giữ nguyên)
+            // 3. Logic lọc danh mục
             if (categoryId.HasValue)
             {
                 query = query.Where(p => p.CategoryId == categoryId.Value);
             }
 
-            // 4. Logic lọc giá (Giữ nguyên hoặc thêm mới nếu chưa có)
+            // 4. Logic lọc giá
             if (minPrice.HasValue)
             {
                 query = query.Where(p => p.TblProductVariants.Any(v =>
@@ -197,12 +195,45 @@ namespace back_end.Controllers
                     ((v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice.Value : v.OriginalPrice) <= maxPrice.Value));
             }
 
-            // 5. Phân trang & Trả về kết quả (Giữ nguyên logic cũ)
+            // --- 5. LOGIC SẮP XẾP (MỚI THÊM) ---
+            switch (sort)
+            {
+                case "price_asc": // Giá thấp đến cao
+                    // Sắp xếp dựa trên giá thấp nhất của biến thể đầu tiên
+                    query = query.OrderBy(p => p.TblProductVariants
+                        .Min(v => (v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice : v.OriginalPrice));
+                    break;
+
+                case "price_desc": // Giá cao xuống thấp
+                    // Sắp xếp dựa trên giá cao nhất
+                    query = query.OrderByDescending(p => p.TblProductVariants
+                        .Max(v => (v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice : v.OriginalPrice));
+                    break;
+
+                case "name_az": // Tên A-Z
+                    query = query.OrderBy(p => p.ProductName);
+                    break;
+
+                case "name_za": // Tên Z-A
+                    query = query.OrderByDescending(p => p.ProductName);
+                    break;
+
+                case "newest": // Mới nhất
+                    query = query.OrderByDescending(p => p.CreatedAt);
+                    break;
+
+                default: // Mặc định (Mới nhất)
+                    query = query.OrderByDescending(p => p.CreatedAt);
+                    break;
+            }
+            // ------------------------------------
+
+            // 6. Phân trang & Trả về kết quả
             int totalItems = await query.CountAsync();
             int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
             var products = await query
-                .OrderByDescending(p => p.CreatedAt)
+                // .OrderByDescending(p => p.CreatedAt) <--- BỎ DÒNG NÀY ĐI VÌ ĐÃ SẮP XẾP Ở TRÊN RỒI
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(p => new
