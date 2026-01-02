@@ -10,7 +10,7 @@ namespace back_end.Controllers
     public class InventoryAdjustmentsController : ControllerBase
     {
         private readonly DbplantShopThuanCuongContext _context;
-        // 1. Thêm Accessor để lấy domain hiện tại (giống StatisticsController)
+        // Thêm Accessor để lấy domain hiện tại (xử lý lấy link ảnh)
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public InventoryAdjustmentsController(DbplantShopThuanCuongContext context, IHttpContextAccessor httpContextAccessor)
@@ -19,7 +19,7 @@ namespace back_end.Controllers
             _httpContextAccessor = httpContextAccessor;
         }
 
-        // 2. Hàm helper xử lý URL ảnh (Copy y chang từ StatisticsController)
+        //Hàm helper xử lý URL ảnh (Copy y chang từ StatisticsController)
         private string GetFullImageUrl(string relativePath)
         {
             if (string.IsNullOrEmpty(relativePath)) return "";
@@ -32,7 +32,7 @@ namespace back_end.Controllers
             return $"{baseUrl}{formattedPath}";
         }
 
-        // API GHI NHẬN ĐIỀU CHỈNH KHO (Giữ nguyên)
+        //api ghi nhận chỉnh kho
         [HttpPost]
         public async Task<IActionResult> CreateAdjustment(InventoryAdjustmentDto dto)
         {
@@ -68,7 +68,7 @@ namespace back_end.Controllers
             }
         }
 
-        // API LẤY LỊCH SỬ ĐIỀU CHỈNH (Đã sửa để dùng GetFullImageUrl)
+        //api lấy lịch sử điều chỉnh
         [HttpGet]
         public async Task<IActionResult> GetHistory(DateTime? fromDate, DateTime? toDate)
         {
@@ -77,12 +77,12 @@ namespace back_end.Controllers
                 var query = _context.TblInventoryAdjustments
                     .Include(a => a.User)
                     .Include(a => a.Variant)
-                        .ThenInclude(v => v.Product) // Lấy thông tin SP cha
+                        .ThenInclude(v => v.Product) //lấy thông tin SP cha
                     .Include(a => a.Variant)
                         .ThenInclude(v => v.Image)   // Lấy ảnh riêng của biến thể
                     .Include(a => a.Variant)
                         .ThenInclude(v => v.Product)
-                            .ThenInclude(p => p.TblProductImages) // Lấy ảnh của SP cha (để fallback)
+                            .ThenInclude(p => p.TblProductImages) // Lấy ảnh của SP cha
                     .AsQueryable();
 
                 if (fromDate.HasValue)
@@ -96,11 +96,11 @@ namespace back_end.Controllers
 
                 var rawData = await query
                     .OrderByDescending(x => x.CreatedAt)
-                    .ToListAsync(); // Lấy dữ liệu về trước để xử lý URL (do GetFullImageUrl cần HttpContext)
+                    .ToListAsync(); 
 
                 // Map dữ liệu sang DTO
                 var historyList = rawData.Select(x => {
-                    // Logic chọn ảnh: Ưu tiên ảnh Variant -> Ảnh thumbnail SP -> Ảnh đầu tiên của SP
+                    //Ưu tiên ảnh Variant -> Ảnh thumbnail SP -> Ảnh đầu tiên của SP
                     string rawImage = "";
 
                     if (x.Variant.Image != null)
@@ -120,7 +120,7 @@ namespace back_end.Controllers
                         ProductName = x.Variant.Product != null ? x.Variant.Product.ProductName : "SP đã xóa",
                         VariantName = x.Variant.VariantName,
 
-                        // 3. Áp dụng hàm xử lý URL tại đây
+
                         ImageUrl = GetFullImageUrl(rawImage),
 
                         QuantityAdjusted = x.QuantityAdjusted,

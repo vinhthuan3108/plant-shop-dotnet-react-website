@@ -189,7 +189,7 @@ function HomePage() {
 
       {/* 2. LÝ DO CHỌN */}
       <section className="section-container">
-        <h2 className="section-title">LÝ DO CHỌN PLANT SHOP</h2>
+        <h2 className="section-title">LÝ DO CHỌN CÂY CẢNH NHA TRANG</h2>
         <div className="features-grid">
           <div className="feature-item">
             <div className="feature-icon"><FaTree /></div>
@@ -235,7 +235,7 @@ function HomePage() {
                 <FaMedal style={{color: '#f1c40f', marginRight: '10px'}} />
                 TOP BÁN CHẠY
              </h2>
-             <p className="section-desc">Những sản phẩm được yêu thích nhất tại Plant Shop</p>
+             <p className="section-desc">Những sản phẩm được yêu thích nhất tại Cây cảnh Nha Trang</p>
         </div>
         <div className="product-list-grid">
           {bestSellerProducts.length > 0 ? (

@@ -1,5 +1,5 @@
 ﻿using back_end.Models;
-using back_end.Helpers; // Nhớ thêm namespace chứa SecurityHelper
+using back_end.Helpers; 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Net.payOS;
@@ -12,19 +12,18 @@ namespace back_end.Controllers
     public class PaymentController : ControllerBase
     {
         private readonly DbplantShopThuanCuongContext _context;
-        private readonly IConfiguration _configuration; // Cần cái này để lấy SecretKey giải mã
+        private readonly IConfiguration _configuration; 
 
         public PaymentController(IConfiguration configuration, DbplantShopThuanCuongContext context)
         {
             _context = context;
             _configuration = configuration;
-            // XÓA đoạn khởi tạo PayOS cũ ở đây đi
         }
 
-        // --- HÀM HỖ TRỢ: Lấy cấu hình từ DB và khởi tạo PayOS ---
-        private async Task<PayOS> GetPayOSAsync()
+        
+        private async Task<PayOS> GetPayOSAsync() //Lấy cấu hình từ DB và khởi tạo PayOS
         {
-            // 1. Lấy dữ liệu từ DB
+            //Lấy dữ liệu từ DB
             var clientIdConfig = await _context.TblSystemConfigs.FirstOrDefaultAsync(x => x.ConfigKey == "PayOS_ClientId");
             var apiKeyConfig = await _context.TblSystemConfigs.FirstOrDefaultAsync(x => x.ConfigKey == "PayOS_ApiKey");
             var checksumConfig = await _context.TblSystemConfigs.FirstOrDefaultAsync(x => x.ConfigKey == "PayOS_ChecksumKey");
@@ -34,16 +33,13 @@ namespace back_end.Controllers
                 throw new Exception("Chưa cấu hình PayOS trong hệ thống.");
             }
 
-            // 2. Lấy SecretKey
             string secretKey = _configuration["AppSettings:SecretKey"];
 
-            // 3. Giải mã CẢ 3 CÁI
-            // Thay đổi ở đây: Decrypt ClientId
+            //Giải mã
             string clientId = SecurityHelper.Decrypt(clientIdConfig.ConfigValue, secretKey);
             string apiKey = SecurityHelper.Decrypt(apiKeyConfig.ConfigValue, secretKey);
             string checksumKey = SecurityHelper.Decrypt(checksumConfig.ConfigValue, secretKey);
 
-            // 4. Trả về đối tượng PayOS
             return new PayOS(clientId, apiKey, checksumKey);
         }
 
@@ -52,7 +48,6 @@ namespace back_end.Controllers
         {
             try
             {
-                // KHỞI TẠO PayOS TỪ DB
                 PayOS payOS = await GetPayOSAsync();
 
                 var order = await _context.TblOrders
@@ -77,7 +72,7 @@ namespace back_end.Controllers
                 }
 
                 long orderCode = order.OrderId;
-                // Lưu ý: Khi deploy thật thì domain này phải lấy từ config hoặc request
+                //Khi deploy thật thì domain lấy từ config hoặc request(chắc tui sẽ xem lại)
                 string domain = "http://localhost:5173";
 
                 PaymentData paymentData = new PaymentData(
@@ -104,7 +99,7 @@ namespace back_end.Controllers
         {
             try
             {
-                // KHỞI TẠO PayOS TỪ DB (Để verify webhook cũng cần key)
+                //khởi tạo payos(verify webhook cũng cần key)
                 PayOS payOS = await GetPayOSAsync();
 
                 WebhookData data = payOS.verifyPaymentWebhookData(body);

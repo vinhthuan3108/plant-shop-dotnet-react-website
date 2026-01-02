@@ -10,12 +10,12 @@ public partial class TblCartItem
 
     public int CartId { get; set; }
 
-    public int VariantId { get; set; } // Thay ProductId
+    public int VariantId { get; set; } 
 
     public int Quantity { get; set; }
 
     [JsonIgnore]
     public virtual TblCart Cart { get; set; } = null!;
 
-    public virtual TblProductVariant Variant { get; set; } = null!; // Trỏ về Variant
+    public virtual TblProductVariant Variant { get; set; } = null!; 
 }

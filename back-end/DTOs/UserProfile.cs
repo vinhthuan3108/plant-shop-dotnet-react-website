@@ -13,19 +13,19 @@ namespace back_end.DTOs
         public string? Gender { get; set; }
     }
 
-    // DTO hiển thị và thêm/sửa địa chỉ
+    // DTO hiển thị và thêm/sửa cái sổ địa chỉ
     public class UserAddressDto
     {
         public int AddressId { get; set; }
 
         [Required]
-        public string RecipientName { get; set; } // Khớp TblUserAddress
+        public string RecipientName { get; set; } 
 
         [Required]
         public string PhoneNumber { get; set; }
 
         [Required]
-        public string AddressDetail { get; set; } // Số nhà, đường
+        public string AddressDetail { get; set; } 
 
         public string? Province { get; set; }
         public string? District { get; set; }

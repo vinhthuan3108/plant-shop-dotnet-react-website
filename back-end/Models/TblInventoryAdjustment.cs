@@ -8,7 +8,7 @@ public partial class TblInventoryAdjustment
 {
     public int AdjustmentId { get; set; }
 
-    public int VariantId { get; set; } // Kiểm kê theo biến thể
+    public int VariantId { get; set; } 
 
     public int UserId { get; set; }
 

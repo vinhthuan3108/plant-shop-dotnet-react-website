@@ -19,7 +19,7 @@ function Contacts() {
     const [selectedContact, setSelectedContact] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const API_URL = `{API_BASE}/api/Contacts`; 
+    const API_URL = `${API_BASE}/api/Contacts`; 
 
     // --- LOGIC GỌI API ---
     const fetchContacts = async () => {

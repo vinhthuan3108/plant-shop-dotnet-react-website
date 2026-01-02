@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Hosting; // 1. Thêm thư viện này
+using Microsoft.AspNetCore.Hosting; 
 using System.IO;
 using System.Text.RegularExpressions;
 namespace back_end.Controllers
@@ -15,9 +15,8 @@ namespace back_end.Controllers
     {
         private readonly DbplantShopThuanCuongContext _context;
 
-        private readonly IWebHostEnvironment _environment; // 3. Khai báo biến môi trường
+        private readonly IWebHostEnvironment _environment; 
 
-        // 4. Inject vào constructor
         public TblPostsController(DbplantShopThuanCuongContext context, IWebHostEnvironment environment)
         {
             _context = context;
@@ -39,12 +38,10 @@ namespace back_end.Controllers
             {
                 query = query.Where(p => p.Status == status);
 
-                // LOGIC QUAN TRỌNG:
-                // Nếu đang lấy bài "Published" (tức là Client đang xem),
-                // thì BẮT BUỘC loại bỏ những bài đã bị Xóa mềm (IsDeleted = true)
+
                 if (status == "Published")
                 {
-                    // p.IsDeleted != true (nghĩa là lấy false hoặc null)
+
                     query = query.Where(p => p.IsDeleted != true);
                 }
             }
@@ -73,16 +70,11 @@ namespace back_end.Controllers
         public async Task<ActionResult> GetPost(int id)
         {
             var post = await _context.TblPosts
-                .Include(p => p.Author)      // Kèm thông tin tác giả
-                .Include(p => p.PostCategory) // Kèm danh mục
+                .Include(p => p.Author)      
+                .Include(p => p.PostCategory) 
                 .FirstOrDefaultAsync(p => p.PostId == id);
 
             if (post == null) return NotFound("Không tìm thấy bài viết");
-
-            // Chỉ cho phép xem bài đã Published (nếu muốn chặt chẽ hơn)
-            // if (post.Status != "Published") return BadRequest("Bài viết chưa được xuất bản");
-
-            // Tăng lượt xem (nếu có trường ViewCount) - ở đây model bạn chưa có nên bỏ qua
 
             var postDto = new PostDto
             {
@@ -102,9 +94,7 @@ namespace back_end.Controllers
 
             return Ok(postDto);
         }
-        // --- CHÈN ĐOẠN NÀY VÀO GIỮA GetPost VÀ CreatePost ---
 
-        // GET: api/TblPosts/search?keyword=abc
         [HttpGet("search")]
         public async Task<ActionResult<IEnumerable<object>>> SearchPosts(string keyword)
         {
@@ -113,41 +103,39 @@ namespace back_end.Controllers
             string kw = keyword.ToLower().Trim();
 
             // Tìm bài viết:
-            // 1. Phải là bài đã Published
-            // 2. Chưa bị xóa (IsDeleted != true)
-            // 3. Tiêu đề chứa từ khóa
+            // Phải là bài đã Published, Chưa bị xóa (IsDeleted != true)
+            // Tiêu đề chứa từ khóa
             var posts = await _context.TblPosts
                 .Where(p => (p.Status == "Published")
                             && (p.IsDeleted != true)
                             && p.Title.ToLower().Contains(kw))
                 .OrderByDescending(p => p.CreatedAt)
-                .Take(5) // Chỉ lấy 5 bài gợi ý
+                .Take(5) 
                 .Select(p => new
                 {
                     Id = p.PostId,
                     Title = p.Title,
                     Image = p.ThumbnailUrl,
-                    Type = "blog" // Đánh dấu để Frontend biết đây là bài viết
+                    Type = "blog" 
                 })
-                .ToListAsync(); // <--- BẠN BỊ THIẾU ĐOẠN TỪ ĐÂY TRỞ XUỐNG
+                .ToListAsync(); 
 
             return Ok(posts);
-        } // Đánh dấu để Frontend biết đây là bài viết
+        } 
         [HttpGet("related/{id}")]
         public async Task<ActionResult<IEnumerable<PostDto>>> GetRelatedPosts(int id)
         {
-            // 1. Lấy thông tin bài viết hiện tại để biết nó thuộc Category nào
+            //Lấy thông tin bài viết hiện tại để biết nó thuộc Category nào
             var currentPost = await _context.TblPosts.FindAsync(id);
             if (currentPost == null) return NotFound();
 
-            // 2. Truy vấn các bài viết khác cùng Category
             var relatedPosts = await _context.TblPosts
                 .Where(p => p.PostCategoryId == currentPost.PostCategoryId // Cùng danh mục
                          && p.PostId != id // KHÔNG trùng với bài hiện tại
-                         && p.Status == "Published" // Phải là bài đã đăng
-                         && p.IsDeleted != true) // Chưa bị xóa
+                         && p.Status == "Published" 
+                         && p.IsDeleted != true) 
                 .OrderByDescending(p => p.CreatedAt) // Bài mới nhất
-                .Take(3) // Chỉ lấy 3 bài
+                .Take(3) 
                 .Select(p => new PostDto
                 {
                     PostId = p.PostId,
@@ -162,10 +150,9 @@ namespace back_end.Controllers
             return Ok(relatedPosts);
         }
         [HttpPost]
-        [Authorize] // <--- Bắt buộc phải có token mới được đăng bài
+        [Authorize] 
         public async Task<ActionResult> CreatePost(PostDto postDto)
         {
-            // 1. Lấy UserId từ Token (tên "UserId" phải khớp với Bước 1)
             var userIdClaim = User.FindFirst("UserId");
 
             if (userIdClaim == null)
@@ -173,7 +160,6 @@ namespace back_end.Controllers
                 return Unauthorized(new { message = "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại." });
             }
 
-            // Chuyển đổi từ string sang int
             int loggedInUserId = int.Parse(userIdClaim.Value);
 
             var post = new TblPost
@@ -187,7 +173,6 @@ namespace back_end.Controllers
                 Status = postDto.Status ?? "Draft",
                 CreatedAt = DateTime.Now,
 
-                // 2. GÁN ID NGƯỜI ĐĂNG NHẬP VÀO ĐÂY
                 AuthorId = loggedInUserId,
 
                 IsDeleted = postDto.IsDeleted
@@ -208,8 +193,7 @@ namespace back_end.Controllers
             var post = await _context.TblPosts.FindAsync(id);
             if (post == null) return NotFound("Không tìm thấy bài viết");
 
-            // --- XỬ LÝ XÓA ẢNH CŨ KHI CẬP NHẬT (OPTIONAL) ---
-            // Nếu có ảnh cũ VÀ ảnh mới khác ảnh cũ (nghĩa là người dùng đã thay ảnh)
+            //xóa ảnh cũ
             if (!string.IsNullOrEmpty(post.ThumbnailUrl) &&
                 post.ThumbnailUrl != postDto.ThumbnailUrl)
             {
@@ -220,12 +204,12 @@ namespace back_end.Controllers
                     try { System.IO.File.Delete(oldFullPath); } catch { }
                 }
             }
-            // --------------------------------------------------
+
 
             post.Title = postDto.Title;
             post.ShortDescription = postDto.ShortDescription;
             post.Content = postDto.Content;
-            post.ThumbnailUrl = postDto.ThumbnailUrl; // Cập nhật đường dẫn ảnh mới
+            post.ThumbnailUrl = postDto.ThumbnailUrl; 
             post.PostCategoryId = postDto.PostCategoryId;
             post.Tags = postDto.Tags;
 
@@ -254,7 +238,7 @@ namespace back_end.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePost(int id)
         {
-            // Soft Delete chỉ ẩn bài, vẫn giữ file ảnh để có thể khôi phục
+            // Soft Delete chỉ ẩn bài
             var post = await _context.TblPosts.FindAsync(id);
             if (post == null) return NotFound(new { message = "Không tìm thấy bài viết" });
 
@@ -263,14 +247,14 @@ namespace back_end.Controllers
             return Ok(new { message = "Đã ngừng hoạt động bài viết thành công" });
         }
 
-        // DELETE: Xóa vĩnh viễn (Hard Delete) -> Cần xóa file
+        //xóa vĩnh viễn
         [HttpDelete("hard/{id}")]
         public async Task<IActionResult> HardDeletePost(int id)
         {
             var post = await _context.TblPosts.FindAsync(id);
             if (post == null) return NotFound(new { message = "Không tìm thấy bài viết" });
 
-            // --- ĐOẠN CODE XÓA FILE ẢNH VẬT LÝ ---
+            //xóa ảnh
             if (!string.IsNullOrEmpty(post.ThumbnailUrl))
             {
                 // post.ThumbnailUrl dạng: /posts/anh1.jpg -> bỏ dấu / đầu
@@ -285,11 +269,11 @@ namespace back_end.Controllers
                     }
                     catch (Exception)
                     {
-                        // Bỏ qua lỗi nếu file đang bị khóa hoặc không xóa được
+                        
                     }
                 }
             }
-            // ---------------------------------------
+
 
 
             _context.TblPosts.Remove(post);

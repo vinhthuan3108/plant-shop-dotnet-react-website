@@ -15,16 +15,14 @@ namespace back_end.Controllers
             _context = context;
         }
 
-        // 1. Lấy giỏ hàng (GET)
-        // [CartController.cs]
-
+        //Lấy giỏ hàng
         [HttpGet("get-cart/{userId}")]
         public async Task<IActionResult> GetCart(int userId)
         {
             var cart = await _context.TblCarts
                 .Include(c => c.TblCartItems)
                     .ThenInclude(ci => ci.Variant)
-                        .ThenInclude(v => v.Product) // Lấy thông tin Product để check ngày Sale
+                        .ThenInclude(v => v.Product) 
                             .ThenInclude(p => p.TblProductImages)
                 .Include(c => c.TblCartItems)
                     .ThenInclude(ci => ci.Variant)
@@ -43,8 +41,8 @@ namespace back_end.Controllers
                 // 1. Kiểm tra có giá sale > 0 không
                 bool hasSalePrice = variant.SalePrice.HasValue && variant.SalePrice.Value > 0;
 
-                // 2. Kiểm tra ngày khuyến mãi (Nếu sản phẩm có set ngày)
-                // Logic: Nếu ngày Start/End có dữ liệu thì phải check, nếu null thì bỏ qua (hoặc coi như luôn active tùy logic của bạn)
+                // 2. Kiểm tra ngày khuyến mãi (Nếu sản phẩm có set ng ày km)
+                // Logic: Nếu ngày Start/End có dữ liệu thì phải check, nếu null      thì bỏ qua
                 // Ở đây giả sử: Nếu có set ngày thì phải đúng hạn mới được Sale
                 bool isDateValid = true;
                 if (product.SaleStartDate.HasValue && product.SaleEndDate.HasValue)
@@ -52,7 +50,7 @@ namespace back_end.Controllers
                     isDateValid = now >= product.SaleStartDate.Value && now <= product.SaleEndDate.Value;
                 }
 
-                // 3. Chốt giá cuối cùng
+                // Chốt giá cuối cùng
                 // Phải thỏa mãn: Có giá Sale VÀ Giá Sale < Giá Gốc VÀ Còn hạn khuyến mãi
                 decimal finalPrice = (hasSalePrice && isDateValid && variant.SalePrice < variant.OriginalPrice)
                                      ? variant.SalePrice.Value
@@ -67,7 +65,7 @@ namespace back_end.Controllers
                     productName = product.ProductName,
                     variantName = variant.VariantName,
 
-                    // SỬ DỤNG GIÁ ĐÃ TÍNH TOÁN
+                    // sử dụng giá đa tính toán
                     price = finalPrice,
 
                     originalPrice = variant.OriginalPrice,
@@ -81,7 +79,7 @@ namespace back_end.Controllers
             return Ok(result);
         }
 
-        // 2. Thêm vào giỏ (POST)
+        //Thêm vào giỏ
         [HttpPost("add-to-cart")]
         public async Task<IActionResult> AddToCart([FromBody] AddCartRequest req)
         {
@@ -94,7 +92,7 @@ namespace back_end.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            // Kiểm tra sản phẩm (Variant) đã có trong giỏ chưa
+            // Kiểm tra sản phẩm (Variant) đã có trong giỏ chưa, nếu
             var cartItem = await _context.TblCartItems
                 .FirstOrDefaultAsync(ci => ci.CartId == cart.CartId && ci.VariantId == req.VariantId);
 
@@ -107,7 +105,7 @@ namespace back_end.Controllers
                 cartItem = new TblCartItem
                 {
                     CartId = cart.CartId,
-                    VariantId = req.VariantId, // Lưu VariantId
+                    VariantId = req.VariantId, 
                     Quantity = req.Quantity
                 };
                 _context.TblCartItems.Add(cartItem);
@@ -119,7 +117,7 @@ namespace back_end.Controllers
             return Ok(new { message = "Thêm thành công" });
         }
 
-        // 3. Xóa sản phẩm (DELETE)
+        //Xóa sản phẩm 
         [HttpDelete("remove-item")]
         public async Task<IActionResult> RemoveItem(int userId, int variantId)
         {
@@ -137,7 +135,7 @@ namespace back_end.Controllers
             return Ok(new { message = "Đã xóa sản phẩm" });
         }
 
-        // 4. Cập nhật số lượng (PUT)
+        //Cập nhật số lượng
         [HttpPut("update-quantity")]
         public async Task<IActionResult> UpdateQuantity([FromBody] UpdateCartRequest req)
         {
@@ -157,11 +155,11 @@ namespace back_end.Controllers
         }
     }
 
-    // DTOs cập nhật theo VariantId
+
     public class AddCartRequest
     {
         public int UserId { get; set; }
-        public int VariantId { get; set; } // Đổi ProductId -> VariantId
+        public int VariantId { get; set; } 
         public int Quantity { get; set; }
     }
 

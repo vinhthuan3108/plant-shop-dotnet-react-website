@@ -25,8 +25,6 @@ namespace back_end.Controllers
             _environment = environment;
         }
 
-        // GET: api/TblProducts/filter (Dùng cho Admin - Danh sách & Tìm kiếm)
-        // GET: api/TblProducts/filter
         [HttpGet("filter")]
         public async Task<ActionResult<IEnumerable<object>>> GetFilteredProducts([FromQuery] ProductFilterDto filter)
         {
@@ -36,22 +34,19 @@ namespace back_end.Controllers
                 .Include(p => p.TblProductVariants)
                 .AsQueryable();
 
-            // 1. Lọc Keyword
+
             if (!string.IsNullOrEmpty(filter.Keyword))
             {
                 string kw = filter.Keyword.ToLower().Trim();
                 query = query.Where(p => p.ProductName.ToLower().Contains(kw) || p.ProductCode.ToLower().Contains(kw));
             }
 
-            // 2. Lọc Category
             if (filter.CategoryId.HasValue)
                 query = query.Where(p => p.CategoryId == filter.CategoryId.Value);
 
-            // 3. Lọc Active
             if (filter.IsActive.HasValue)
                 query = query.Where(p => p.IsActive == filter.IsActive.Value);
 
-            // 4. Lọc Tồn kho
             if (!string.IsNullOrEmpty(filter.StockStatus))
             {
                 switch (filter.StockStatus.ToLower())
@@ -69,8 +64,8 @@ namespace back_end.Controllers
                 }
             }
 
-            // --- 5. LỌC KHOẢNG GIÁ (SỬA LẠI LOGIC) ---
-            // Logic: Nếu SalePrice khác null VÀ lớn hơn 0 thì dùng SalePrice, ngược lại dùng OriginalPrice
+            //-lọc khoảng giá
+            //Nếu SalePrice khác null VÀ lớn hơn 0 thì dùng SalePrice, ngược lại dùng OriginalPrice
             if (filter.MinPrice.HasValue)
             {
                 query = query.Where(p => p.TblProductVariants.Any(v =>
@@ -83,7 +78,7 @@ namespace back_end.Controllers
                     ((v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice : v.OriginalPrice) <= filter.MaxPrice.Value));
             }
 
-            // 6. Lọc chương trình Sale
+            //Lọc sale
             if (filter.IsOnSale.HasValue)
             {
                 if (filter.IsOnSale.Value == true)
@@ -92,7 +87,7 @@ namespace back_end.Controllers
                     query = query.Where(p => !p.TblProductVariants.Any(v => v.SalePrice != null && v.SalePrice > 0 && v.SalePrice < v.OriginalPrice));
             }
 
-            // --- 7. SẮP XẾP GIÁ (CŨNG PHẢI SỬA) ---
+            //xếp theo giá
             if (!string.IsNullOrEmpty(filter.SortByPrice))
             {
                 if (filter.SortByPrice.ToLower() == "asc")
@@ -115,7 +110,7 @@ namespace back_end.Controllers
                 query = query.OrderByDescending(p => p.CreatedAt);
             }
 
-            // 8. Select kết quả
+            //Select kết quả
             var result = await query
                 .Select(p => new
                 {
@@ -125,7 +120,7 @@ namespace back_end.Controllers
                     p.CategoryId,
                     CategoryName = p.Category != null ? p.Category.CategoryName : "N/A",
 
-                    // Lấy giá hiển thị (để Frontend dùng)
+                    // Lấy giá hiển thị
                     OriginalPrice = p.TblProductVariants.OrderBy(v => v.VariantId).Select(v => v.OriginalPrice).FirstOrDefault(),
                     SalePrice = p.TblProductVariants.OrderBy(v => v.VariantId).Select(v => v.SalePrice).FirstOrDefault(),
 
@@ -137,7 +132,7 @@ namespace back_end.Controllers
                         v.VariantId,
                         v.VariantName,
                         v.StockQuantity,
-                        v.OriginalPrice // Giá nhập tham khảo
+                        v.OriginalPrice 
                     }).ToList(),
                     p.IsActive,
 
@@ -152,7 +147,6 @@ namespace back_end.Controllers
             return Ok(result);
         }
 
-        // GET: api/TblProducts/shop (Dùng cho Khách hàng)
         [HttpGet("shop")]
         public async Task<IActionResult> GetProductsForShop(
             int? categoryId,
@@ -161,29 +155,28 @@ namespace back_end.Controllers
             decimal? minPrice = null,
             decimal? maxPrice = null,
             string keyword = null,
-            string sort = "default" // <--- 1. THÊM THAM SỐ SORT VÀO ĐÂY
+            string sort = "default" 
         )
         {
-            // 1. Tạo Query cơ bản
+
             var query = _context.TblProducts
                 .Include(p => p.TblProductImages)
                 .Include(p => p.TblProductVariants)
                 .Where(p => p.IsActive == true && (p.IsDeleted == false || p.IsDeleted == null));
 
-            // 2. Logic tìm kiếm theo tên
+            //tìm kiếm theo tên
             if (!string.IsNullOrEmpty(keyword))
             {
                 string kw = keyword.ToLower().Trim();
                 query = query.Where(p => p.ProductName.ToLower().Contains(kw));
             }
 
-            // 3. Logic lọc danh mục
             if (categoryId.HasValue)
             {
                 query = query.Where(p => p.CategoryId == categoryId.Value);
             }
 
-            // 4. Logic lọc giá
+            //lọc giá
             if (minPrice.HasValue)
             {
                 query = query.Where(p => p.TblProductVariants.Any(v =>
@@ -195,45 +188,43 @@ namespace back_end.Controllers
                     ((v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice.Value : v.OriginalPrice) <= maxPrice.Value));
             }
 
-            // --- 5. LOGIC SẮP XẾP (MỚI THÊM) ---
+            //sắp xếp
             switch (sort)
             {
-                case "price_asc": // Giá thấp đến cao
-                    // Sắp xếp dựa trên giá thấp nhất của biến thể đầu tiên
+                case "price_asc":
+
                     query = query.OrderBy(p => p.TblProductVariants
                         .Min(v => (v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice : v.OriginalPrice));
                     break;
 
-                case "price_desc": // Giá cao xuống thấp
-                    // Sắp xếp dựa trên giá cao nhất
+                case "price_desc":
                     query = query.OrderByDescending(p => p.TblProductVariants
                         .Max(v => (v.SalePrice != null && v.SalePrice > 0) ? v.SalePrice : v.OriginalPrice));
                     break;
 
-                case "name_az": // Tên A-Z
+                case "name_az": 
                     query = query.OrderBy(p => p.ProductName);
                     break;
 
-                case "name_za": // Tên Z-A
+                case "name_za": 
                     query = query.OrderByDescending(p => p.ProductName);
                     break;
 
-                case "newest": // Mới nhất
+                case "newest": 
                     query = query.OrderByDescending(p => p.CreatedAt);
                     break;
 
-                default: // Mặc định (Mới nhất)
+                default: // Mặc định=Mới nhất)
                     query = query.OrderByDescending(p => p.CreatedAt);
                     break;
             }
-            // ------------------------------------
 
-            // 6. Phân trang & Trả về kết quả
+
+            //Phân trang
             int totalItems = await query.CountAsync();
             int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
             var products = await query
-                // .OrderByDescending(p => p.CreatedAt) <--- BỎ DÒNG NÀY ĐI VÌ ĐÃ SẮP XẾP Ở TRÊN RỒI
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(p => new
@@ -259,12 +250,11 @@ namespace back_end.Controllers
                 totalItems = totalItems
             });
         }
-        // GET: api/TblProducts/best-sellers
-        // GET: api/TblProducts/best-sellers
+
         [HttpGet("best-sellers")]
         public async Task<IActionResult> GetBestSellingProducts(int top = 8)
         {
-            // BƯỚC 1: Chỉ lấy ra ProductId và Số lượng bán (Để SQL dễ xử lý)
+            //Chỉ lấy ra ProductId và Số lượng bán 
             var topStats = await _context.TblOrderDetails
                 .Include(d => d.Order)
                 .Include(d => d.Variant)
@@ -287,15 +277,15 @@ namespace back_end.Controllers
             // Lấy danh sách ID
             var topIds = topStats.Select(x => x.ProductId).ToList();
 
-            // BƯỚC 2: Query lấy thông tin chi tiết sản phẩm dựa trên List ID vừa tìm được
+            //Query lấy thông tin chi tiết sản phẩm dựa trên List ID vừa tìm được
             var products = await _context.TblProducts
                 .Include(p => p.TblProductImages)
                 .Include(p => p.TblProductVariants)
                 .Where(p => topIds.Contains(p.ProductId))
                 .ToListAsync();
 
-            // BƯỚC 3: Map dữ liệu trả về và Sắp xếp lại đúng thứ tự bán chạy
-            // (Vì bước 2 query theo ID có thể không trả về đúng thứ tự ban đầu)
+            //Map dữ liệu trả về và sort lại đúng thứ tự bán chạy
+            //Vì bước 2 query theo ID trả đang ko đúng
             var result = products
                 .Select(p => new
                 {
@@ -313,35 +303,34 @@ namespace back_end.Controllers
                     // Lấy số lượng bán từ list stats để sort
                     SortOrder = topStats.FirstOrDefault(s => s.ProductId == p.ProductId)?.TotalSold ?? 0
                 })
-                .OrderByDescending(x => x.SortOrder) // Sắp xếp lại lần cuối
+                .OrderByDescending(x => x.SortOrder) 
                 .ToList();
 
             return Ok(result);
         }
-        // GET: api/TblProducts/5
+
         [HttpGet("{id}")]
         public async Task<ActionResult<TblProduct>> GetTblProduct(int id)
         {
             var tblProduct = await _context.TblProducts
                    .Include(p => p.TblProductImages)
                    .Include(p => p.Category)
-                   .Include(p => p.TblProductVariants) // Load danh sách biến thể để edit
+                   .Include(p => p.TblProductVariants) 
                    .FirstOrDefaultAsync(p => p.ProductId == id);
 
             if (tblProduct == null) return NotFound();
 
             return tblProduct;
         }
-        // GET: api/TblProducts/related/5
-        // Lấy 4 sản phẩm tương tự ngẫu nhiên
+        // Lấy 4 sản phẩm tương tự
         [HttpGet("related/{id}")]
         public async Task<ActionResult<IEnumerable<object>>> GetRelatedProducts(int id)
         {
-            // 1. Tìm sản phẩm hiện tại để lấy CategoryId
+            //Tìm sản phẩm hiện tại để lấy CategoryId
             var currentProduct = await _context.TblProducts.FindAsync(id);
             if (currentProduct == null) return NotFound();
 
-            // 2. Lấy danh sách sản phẩm cùng danh mục (trừ chính nó)
+            // Lấy danh sách sản phẩm cùng danh mục (trừ chính nó)
             var relatedProducts = await _context.TblProducts
                 .Include(p => p.TblProductImages)
                 .Include(p => p.TblProductVariants)
@@ -350,7 +339,7 @@ namespace back_end.Controllers
                             && p.IsActive == true
                             && (p.IsDeleted == false || p.IsDeleted == null))
                 .OrderBy(r => Guid.NewGuid()) // Sắp xếp ngẫu nhiên
-                .Take(4) // Chỉ lấy 4 sản phẩm
+                .Take(4) 
                 .Select(p => new
                 {
                     p.ProductId,
@@ -359,7 +348,6 @@ namespace back_end.Controllers
                     OriginalPrice = p.TblProductVariants.OrderBy(v => v.OriginalPrice).Select(v => v.OriginalPrice).FirstOrDefault(),
                     SalePrice = p.TblProductVariants.OrderBy(v => v.OriginalPrice).Select(v => v.SalePrice).FirstOrDefault(),
 
-                    // Lấy ảnh đại diện
                     thumbnail = p.TblProductImages
                                 .Where(img => img.IsThumbnail == true)
                                 .Select(img => img.ImageUrl)
@@ -371,7 +359,7 @@ namespace back_end.Controllers
             return Ok(relatedProducts);
         }
 
-        // POST: api/TblProducts (Tạo mới)
+        //(Tạo mới)
         [HttpPost]
         public async Task<ActionResult<TblProduct>> PostTblProduct(TblProduct tblProduct)
         {
@@ -395,7 +383,7 @@ namespace back_end.Controllers
             return CreatedAtAction("GetTblProduct", new { id = tblProduct.ProductId }, tblProduct);
         }
 
-        // PUT: api/TblProducts/5 (Cập nhật)
+        //Cập nhật
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTblProduct(int id, TblProduct tblProduct)
         {
@@ -403,12 +391,12 @@ namespace back_end.Controllers
 
             var existingProduct = await _context.TblProducts
                 .Include(p => p.TblProductImages)
-                .Include(p => p.TblProductVariants) // Load biến thể cũ
+                .Include(p => p.TblProductVariants)
                 .FirstOrDefaultAsync(p => p.ProductId == id);
 
             if (existingProduct == null) return NotFound();
 
-            // Cập nhật thông tin chung
+            
             existingProduct.ProductCode = tblProduct.ProductCode;
             existingProduct.ProductName = tblProduct.ProductName;
             existingProduct.CategoryId = tblProduct.CategoryId;
@@ -423,7 +411,7 @@ namespace back_end.Controllers
 
             existingProduct.UpdatedAt = DateTime.Now;
 
-            // --- XỬ LÝ ẢNH ---
+            //ảnh
             var clientImages = tblProduct.TblProductImages ?? new List<TblProductImage>();
             var clientImageIds = clientImages.Select(i => i.ImageId).ToList();
             var imagesToDelete = existingProduct.TblProductImages.Where(img => !clientImageIds.Contains(img.ImageId)).ToList();
@@ -458,7 +446,7 @@ namespace back_end.Controllers
                 }
             }
 
-            // --- XỬ LÝ BIẾN THỂ (VARIANTS) ---
+            //xử lý biến thể
             var clientVariants = tblProduct.TblProductVariants ?? new List<TblProductVariant>();
             var clientVariantIds = clientVariants.Select(v => v.VariantId).ToList();
 
@@ -471,14 +459,14 @@ namespace back_end.Controllers
             {
                 if (v.VariantId == 0)
                 {
-                    // CASE 1: THÊM BIẾN THỂ MỚI VÀO SẢN PHẨM CŨ
+                    //thêm biến thể mới vào sp cũ
                     existingProduct.TblProductVariants.Add(new TblProductVariant
                     {
                         VariantName = v.VariantName,
                         OriginalPrice = v.OriginalPrice,
                         SalePrice = v.SalePrice,
                         
-                        Weight = v.Weight, // <--- 1. THÊM DÒNG NÀY
+                        Weight = v.Weight,
                         
                         StockQuantity = v.StockQuantity,
                         MinStockAlert = v.MinStockAlert,
@@ -487,7 +475,7 @@ namespace back_end.Controllers
                 }
                 else
                 {
-                    // CASE 2: CẬP NHẬT BIẾN THỂ ĐANG CÓ
+                    //cập nhật biến thể đang có
                     var existingVar = existingProduct.TblProductVariants.FirstOrDefault(x => x.VariantId == v.VariantId);
                     if (existingVar != null)
                     {
@@ -495,7 +483,7 @@ namespace back_end.Controllers
                         existingVar.OriginalPrice = v.OriginalPrice;
                         existingVar.SalePrice = v.SalePrice;
                         
-                        existingVar.Weight = v.Weight; // <--- 2. THÊM DÒNG NÀY
+                        existingVar.Weight = v.Weight; 
                         
                         existingVar.StockQuantity = v.StockQuantity;
                         existingVar.MinStockAlert = v.MinStockAlert;
@@ -516,7 +504,6 @@ namespace back_end.Controllers
             return NoContent();
         }
 
-        // DELETE: api/TblProducts/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTblProduct(int id)
         {
@@ -526,7 +513,7 @@ namespace back_end.Controllers
 
             if (tblProduct == null) return NotFound();
 
-            // Xóa file ảnh vật lý (giữ nguyên logic cũ của bạn)
+            //xóa ảnh cũ
             if (tblProduct.TblProductImages != null)
             {
                 foreach (var image in tblProduct.TblProductImages)
@@ -548,18 +535,17 @@ namespace back_end.Controllers
             }
             catch (DbUpdateException ex)
             {
-                // Kiểm tra xem lỗi có phải do ràng buộc khóa ngoại không (FK Constraint)
+               
                 if (ex.InnerException != null && ex.InnerException.Message.Contains("REFERENCE constraint"))
                 {
-                    // Trả về lỗi 409 (Conflict) kèm thông báo rõ ràng cho người dùng
+
                     return StatusCode(409, new
                     {
                         title = "Không thể xóa sản phẩm này vì đã có dữ liệu liên quan (Đơn hàng, Nhập kho...). Vui lòng chọn 'Ngừng bán' thay vì xóa."
                     });
                 }
                 else
-                {
-                    // Lỗi khác thì báo lỗi server chung 
+                {                   
                     return StatusCode(500, new { title = "Lỗi hệ thống: " + ex.Message });
                 }
             }

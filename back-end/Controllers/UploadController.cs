@@ -18,7 +18,6 @@ namespace back_end.Controllers
             _environment = environment;
         }
 
-        // URL gọi: POST api/upload/testimonials
         [HttpPost("{type?}")]
         public async Task<IActionResult> Upload(IFormFile file, string type = "images")
         {
@@ -44,20 +43,20 @@ namespace back_end.Controllers
                 case "configs":
                     subFolder = "configs";
                     break;
-                case "testimonials": // <--- THÊM MỚI: Lưu ảnh đánh giá vào đây
+                case "testimonials": 
                     subFolder = "testimonials";
                     break;
-                case "products":       // Thêm case này để nếu gọi ?type=products thì cũng vào đây
+                case "products":       
                     subFolder = "products";
                     break;
-                default:               // Nếu không truyền type, hoặc type lạ
-                    subFolder = "products"; // <--- Đã đổi từ "images" thành "products"
+                default:               
+                    subFolder = "products"; 
                     break;
             }
 
             var uploadFolder = Path.Combine(_environment.WebRootPath, subFolder);
 
-            // ĐÂY LÀ ĐOẠN TỰ TẠO FOLDER NẾU CHƯA CÓ
+            //tự tạo folder nếu chưa có folder nào
             if (!Directory.Exists(uploadFolder))
             {
                 Directory.CreateDirectory(uploadFolder);
@@ -70,7 +69,6 @@ namespace back_end.Controllers
                 await file.CopyToAsync(stream);
             }
 
-            // Trả về: /testimonials/ten-file.jpg
             var url = $"/{subFolder}/{uniqueFileName}";
 
             return Ok(new { url = url });

@@ -69,11 +69,11 @@ namespace back_end.Controllers
             existingUser.UpdatedAt = DateTime.Now;
 
 
-            // Nếu Admin có nhập mật khẩu mới vào ô (khác rỗng) thì mới đổi pass.
+            // Nếucó nhập mật khẩu mới vào ô (khác rông) mới đổi pass.
             // Nếu ô mật khẩu trống, giữ nguyên pass cũ.
             if (!string.IsNullOrEmpty(user.PasswordHash) && user.PasswordHash.Length < 20)
             {
-                // Giả định: Nếu chuỗi gửi lên ngắn (<20 ký tự) thì đó là pass mới chưa hash -> Hash 
+                //Nếu chuỗi gửi lên ngắn (<20 ký tự) thì đó là pass mới chưa hash -> Hash 
                 existingUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
             }
 

@@ -15,7 +15,6 @@ namespace back_end.Helpers
         }
 
         // Danh sách Map cứng mã tỉnh sang Miền
-        // (Đây là danh sách tương đối chuẩn, bạn có thể điều chỉnh nếu muốn)
         private static readonly Dictionary<string, Region> ProvinceRegionMap = new Dictionary<string, Region>
         {
             // --- MIỀN BẮC (Mã thường từ 01 -> 37 + một số tỉnh miền núi) ---
@@ -98,17 +97,17 @@ namespace back_end.Helpers
         {
             if (string.IsNullOrEmpty(storeProvCode) || string.IsNullOrEmpty(custProvCode)) return "INTER_REGION"; // Mặc định tính đắt nhất nếu lỗi
 
-            // 1. Nội Tỉnh
+            //Nội Tỉnh
             if (storeProvCode == custProvCode) return "INNER_PROVINCE";
 
-            // 2. Kiểm tra vùng
+            //Kiểm tra vùng
             Region storeRegion = GetRegion(storeProvCode);
             Region custRegion = GetRegion(custProvCode);
 
-            // 3. Nội Miền (Khác tỉnh nhưng cùng miền)
+            //Nội Miền (Khác tỉnh nhưng cùng miền)
             if (storeRegion == custRegion && storeRegion != Region.Unknown) return "INNER_REGION";
 
-            // 4. Liên Miền (Khác miền)
+            //Liên Miền (Khác miền)
             return "INTER_REGION";
         }
     }

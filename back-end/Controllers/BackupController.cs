@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Encodings.Web; // <--- Thêm dòng này
+using System.Text.Encodings.Web; 
 using System.Text.Unicode;
-// Import namespace models và context của bạn
+
 
 [Route("api/[controller]")]
 [ApiController]
@@ -42,17 +42,17 @@ public class BackupController : ControllerBase
             // 2. Cấu hình JSON để tránh lỗi Circular Reference (Vòng lặp)
             var options = new JsonSerializerOptions
             {
-                WriteIndented = true, // Xuống dòng đẹp
+                WriteIndented = true, // Xuống dòng 
                 ReferenceHandler = ReferenceHandler.IgnoreCycles, // Chống lặp vô tận
 
-                // THÊM DÒNG NÀY ĐỂ HIỂN THỊ TIẾNG VIỆT
+                //TIẾNG VIỆT
                 Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             };
 
-            // 3. Chuyển object thành chuỗi JSON
+            //Chuyển object thành chuỗi JSON
             byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(backupData, options);
 
-            // 4. Trả về file
+           
             string fileName = $"Backup_PlantShop_{DateTime.Now:yyyyMMdd_HHmmss}.json";
             return File(jsonBytes, "application/json", fileName);
         }

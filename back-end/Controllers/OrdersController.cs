@@ -17,11 +17,9 @@ namespace back_end.Controllers
             _shippingService = shippingService;
         }
 
-        // POST: api/Orders/checkout
         [HttpPost("checkout")]
         public async Task<IActionResult> Checkout([FromBody] CheckoutRequest request)
         {
-            // 1. Validate đầu vào
             if (request.Items == null || request.Items.Count == 0)
             {
                 return BadRequest(new { message = "Giỏ hàng trống." });
@@ -30,11 +28,9 @@ namespace back_end.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // ---------------------------------------------------------
-                // BƯỚC 1: XỬ LÝ SẢN PHẨM & TÍNH TỔNG TIỀN (LOGIC VARIANTS)
-                // ---------------------------------------------------------
+                  //xử lý sp + tỉnh tổng tiền
                 decimal subTotal = 0;
-                decimal totalWeight = 0; // <--- BIẾN MỚI: TÍNH TỔNG CÂN NẶNG
+                decimal totalWeight = 0; 
                 var orderDetailsList = new List<TblOrderDetail>();
 
                 foreach (var item in request.Items)
@@ -49,7 +45,7 @@ namespace back_end.Controllers
                         return BadRequest(new { message = $"Sản phẩm (Mã loại: {item.VariantId}) không tồn tại." });
                     }
 
-                    // Kiểm tra trạng thái sản phẩm cha (Ngừng kinh doanh?)
+                    // Kiểm tra trạng thái sản phẩm cha
                     if (variant.Product.IsActive != true || variant.Product.IsDeleted == true)
                     {
                         return BadRequest(new { message = $"Sản phẩm '{variant.Product.ProductName}' đang tạm ngưng bán." });
@@ -62,12 +58,11 @@ namespace back_end.Controllers
                     }
 
                     // Lấy giá: Ưu tiên giá Sale của biến thể -> Giá gốc biến thể
-                    decimal price = variant.OriginalPrice; // Mặc định lấy giá gốc
+                    decimal price = variant.OriginalPrice; 
 
-                    // 1. Kiểm tra có giá Sale > 0 không
                     bool hasSale = variant.SalePrice.HasValue && variant.SalePrice.Value > 0;
 
-                    // 2. Kiểm tra hạn khuyến mãi (Nếu sản phẩm có cài đặt ngày)
+                    //Kiểm tra hạn khuyến mãi (Nếu sản phẩm có cài đặt ngày)
                     bool isDateValid = true;
                     if (variant.Product.SaleStartDate.HasValue && variant.Product.SaleEndDate.HasValue)
                     {
@@ -75,7 +70,7 @@ namespace back_end.Controllers
                         isDateValid = now >= variant.Product.SaleStartDate.Value && now <= variant.Product.SaleEndDate.Value;
                     }
 
-                    // 3. Chốt giá: Nếu có Sale hợp lệ và rẻ hơn giá gốc thì lấy
+                    //Chốt giá: Nếu có Sale hợp lệ và rẻ hơn giá gốc thì lấy
                     if (hasSale && isDateValid && variant.SalePrice.Value < variant.OriginalPrice)
                     {
                         price = variant.SalePrice.Value;
@@ -83,41 +78,29 @@ namespace back_end.Controllers
 
                     subTotal += price * item.Quantity;
 
-                    // --- TÍNH TỔNG CÂN NẶNG ---
-                    // Giả sử variant.Weight đã được cấu hình trong DB (đơn vị KG)
-                    // Nếu Weight chưa setup thì mặc định là 0
+                    //tính tổng cân nặng
                     totalWeight += (variant.Weight) * item.Quantity;
-                    // --------------------------
 
-                    // Tạo chi tiết đơn hàng
                     orderDetailsList.Add(new TblOrderDetail
                     {
                         VariantId = item.VariantId,
-                        ProductName = variant.Product.ProductName, // Snapshot tên SP
-                        VariantName = variant.VariantName,         // Snapshot tên loại
+                        ProductName = variant.Product.ProductName, 
+                        VariantName = variant.VariantName,         
 
                         Quantity = item.Quantity,
                         PriceAtTime = price,
                         CostPrice = variant.OriginalPrice
                     });
 
-                    // TRỪ TỒN KHO BIẾN THỂ
                     variant.StockQuantity -= item.Quantity;
                 }
 
-                // ---------------------------------------------------------
-                // BƯỚC 2: TÍNH PHÍ VẬN CHUYỂN (LOGIC MỚI)
-                // ---------------------------------------------------------
-                // Gọi Service để tính dựa trên Mã tỉnh khách hàng và Tổng cân nặng
-                // Lưu ý: Frontend cần gửi ProvinceCode (VD: "79"), nếu null thì truyền chuỗi rỗng
+                //tính phí vận chuyển
                 string customerProvCode = request.ProvinceCode ?? "";
 
                 decimal shippingFee = await _shippingService.CalculateShippingFeeAsync(customerProvCode, totalWeight);
-                // ---------------------------------------------------------
 
-                // ---------------------------------------------------------
-                // BƯỚC 3: ÁP DỤNG VOUCHER
-                // ---------------------------------------------------------
+                //áp dụng voucher
                 decimal discountAmount = 0;
                 int? voucherId = null;
 
@@ -126,7 +109,7 @@ namespace back_end.Controllers
                     var voucher = await _context.TblVouchers
                         .FirstOrDefaultAsync(v => v.Code == request.VoucherCode && v.IsActive == true);
 
-                    // Logic check voucher (Hạn sử dụng)
+                    //check voucher(Hạn sử dụng)
                     if (voucher != null && DateTime.Now >= voucher.StartDate && DateTime.Now <= voucher.EndDate)
                     {
                         if (subTotal >= (voucher.MinOrderValue ?? 0))
@@ -137,21 +120,19 @@ namespace back_end.Controllers
                                 if (voucher.MaxDiscountAmount.HasValue && discountAmount > voucher.MaxDiscountAmount)
                                     discountAmount = voucher.MaxDiscountAmount.Value;
                             }
-                            else // Fixed amount
+                            else 
                             {
                                 discountAmount = voucher.DiscountValue;
                             }
 
-                            // Cập nhật số lần dùng
+                            //Cập nhật số lần dùng
                             voucher.UsageCount = (voucher.UsageCount ?? 0) + 1;
                             voucherId = voucher.VoucherId;
                         }
                     }
                 }
 
-                // ---------------------------------------------------------
-                // BƯỚC 4: TẠO ĐƠN HÀNG (TBLORDERS)
-                // ---------------------------------------------------------
+                //tạo đơn hàng
                 decimal totalAmount = subTotal + shippingFee - discountAmount;
                 if (totalAmount < 0) totalAmount = 0;
 
@@ -161,7 +142,6 @@ namespace back_end.Controllers
                     OrderDate = DateTime.Now,
                     RecipientName = request.RecipientName,
                     RecipientPhone = request.RecipientPhone,
-                    //ShippingAddress = $"{request.ShippingAddress}, {request.District}, {request.Province}",
                     ShippingAddress = $"{request.ShippingAddress}, {request.Ward}, {request.District}, {request.Province}",
                     SubTotal = subTotal,
                     ShippingFee = shippingFee,
@@ -171,11 +151,10 @@ namespace back_end.Controllers
                     VoucherId = voucherId,
                     Note = request.Note,
 
-                    OrderStatus = "Chờ xác nhận", // Mặc định: Chờ xác nhận
+                    OrderStatus = "Chờ xác nhận", 
 
-                    // --- CẬP NHẬT MỚI ---
-                    PaymentMethod = request.PaymentMethod, // Lưu phương thức (COD/PayOS...)
-                    PaymentStatus = "Chưa thanh toán"               // Mặc định là Chưa thanh toán
+                    PaymentMethod = request.PaymentMethod, 
+                    PaymentStatus = "Chưa thanh toán"               
                 };
 
                 _context.TblOrders.Add(order);
@@ -188,9 +167,7 @@ namespace back_end.Controllers
                     _context.TblOrderDetails.Add(detail);
                 }
 
-                // ---------------------------------------------------------
-                // BƯỚC 5: XÓA GIỎ HÀNG (Nếu user đã đăng nhập)
-                // ---------------------------------------------------------
+                //xóa giỏ hàng
                 if (request.UserId.HasValue)
                 {
                     var cart = await _context.TblCarts.FirstOrDefaultAsync(c => c.UserId == request.UserId);
@@ -209,7 +186,7 @@ namespace back_end.Controllers
                     Message = "Đặt hàng thành công",
                     OrderId = order.OrderId,
                     TotalAmount = totalAmount,
-                    PaymentMethod = request.PaymentMethod // Trả về để Frontend biết đường xử lý tiếp
+                    PaymentMethod = request.PaymentMethod 
                 });
             }
             catch (Exception ex)
@@ -218,15 +195,13 @@ namespace back_end.Controllers
                 return StatusCode(500, "Lỗi server: " + ex.Message);
             }
         }
-        // File: back_end/Controllers/OrdersController.cs
 
-        // Thêm API này vào trong class OrdersController
         [HttpPost("calculate-fee")]
         public async Task<IActionResult> CalculateShippingFeePreview([FromBody] ShippingFeeRequest request)
         {
             try
             {
-                // 1. Nếu chưa có mã tỉnh, trả về 0 luôn (không báo lỗi)
+                // 1. Nếu chưa có mã tỉnh, trả về 0
                 if (string.IsNullOrEmpty(request.ProvinceCode))
                 {
                     return Ok(new { ShippingFee = 0 });
@@ -234,10 +209,10 @@ namespace back_end.Controllers
 
                 decimal totalWeight = 0;
 
-                // 2. Tính tổng cân nặng
+                //Tính tổng cân nặng
                 if (request.Items != null && request.Items.Count > 0)
                 {
-                    // Lấy danh sách VariantId từ request
+
                     var variantIds = request.Items.Select(i => i.VariantId).ToList();
 
                     var variants = await _context.TblProductVariants
@@ -249,45 +224,21 @@ namespace back_end.Controllers
                         var variant = variants.FirstOrDefault(v => v.VariantId == item.VariantId);
                         if (variant != null)
                         {
-                            // Weight mặc định là 0 nếu null
+
                             totalWeight += (variant.Weight) * item.Quantity;
                         }
                     }
                 }
-
-                // 3. Gọi Service tính phí (Nhớ inject IShippingCalculatorService vào constructor)
-                // Nếu bạn chưa inject Service, hãy xem lại hướng dẫn Bước 2 ở các câu trả lời trước
-                // Tạm thời nếu chưa có Service, tôi để logic cứng ở đây để code chạy được:
-
-                // --- LOGIC TẠM (NẾU CHƯA CÓ SERVICE) ---
-                // decimal fee = 30000; 
-                // if (request.ProvinceCode == "79") fee = 15000; // HCM
-                // return Ok(new { ShippingFee = fee });
-                // ----------------------------------------
-
-                // --- LOGIC CHUẨN (NẾU ĐÃ CÓ SERVICE) ---
+               
                 decimal fee = await _shippingService.CalculateShippingFeeAsync(request.ProvinceCode, totalWeight);
                 return Ok(new { ShippingFee = fee });
-                // ----------------------------------------
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = ex.Message });
             }
         }
-        //private decimal CalculateShippingFee(string province)
-        //{
-        //    if (string.IsNullOrEmpty(province)) return 30000;
-        //    string p = province.ToLower();
-        //    if (p.Contains("hồ chí minh") || p.Contains("sài gòn")) return 15000;
-        //    return 30000;
-        //}
 
-        // --- CÁC API KHÁC CHO ADMIN & USER ---
-
-        // GET: api/Orders/admin/list
-        // GET: api/Orders/admin/list
-        // GET: api/Orders/admin/list
         [HttpGet("validate-voucher")]
         public async Task<IActionResult> ValidateVoucher(string code, decimal orderValue)
         {
@@ -299,7 +250,7 @@ namespace back_end.Controllers
             if (voucher.UsageLimit.HasValue && voucher.UsageCount >= voucher.UsageLimit) return BadRequest("Mã hết lượt dùng.");
             if (orderValue < (voucher.MinOrderValue ?? 0)) return BadRequest($"Đơn hàng cần tối thiểu {voucher.MinOrderValue:N0}đ.");
 
-            // Tính thử số tiền giảm
+
             decimal discount = 0;
             if (voucher.DiscountType == "PERCENT")
             {
@@ -333,7 +284,7 @@ namespace back_end.Controllers
         {
             var query = _context.TblOrders.AsQueryable();
 
-            // 1. Lọc cơ bản (Status, Date, Search) - Code cũ giữ nguyên
+            // 1. Lọc cơ bản (Status, Date, Search
             if (!string.IsNullOrEmpty(status)) query = query.Where(o => o.OrderStatus == status);
             if (fromDate.HasValue) query = query.Where(o => o.OrderDate >= fromDate.Value.Date);
             if (toDate.HasValue)
@@ -351,20 +302,20 @@ namespace back_end.Controllers
                 );
             }
 
-            // --- TÍNH MAX PRICE TRƯỚC KHI LỌC GIÁ ---
-            // Để thanh trượt luôn hiển thị được giá trị lớn nhất của toàn bộ danh sách (theo bộ lọc status/search hiện tại)
+            // 
+            // tính maxprice trước khi lọc để thanh trượt luôn hiển thị được giá trị lớn nhất của toàn bộ danh sách
             decimal maxTotalAmount = 0;
             if (await query.AnyAsync())
             {
                 maxTotalAmount = await query.MaxAsync(o => o.TotalAmount ?? 0);
             }
-            // ----------------------------------------
 
-            // 2. Lọc theo khoảng giá (nếu có request từ Slider)
+
+            // 2. Lọc theo khoảng giá (nếu cótừ Slider)
             if (minPrice.HasValue) query = query.Where(o => o.TotalAmount >= minPrice.Value);
             if (maxPrice.HasValue) query = query.Where(o => o.TotalAmount <= maxPrice.Value);
 
-            // 3. Phân trang & Trả về
+            //Phân trang & Trả về
             var totalItems = await query.CountAsync();
             var orders = await query
                 .OrderByDescending(o => o.OrderDate)
@@ -388,47 +339,42 @@ namespace back_end.Controllers
                 Data = orders,
                 TotalItems = totalItems,
                 TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
-                MaxPrice = maxTotalAmount // <--- TRẢ VỀ GIÁ TRỊ LỚN NHẤT
+                MaxPrice = maxTotalAmount 
             });
         }
 
-        // GET: api/Orders/admin/detail/5
-        // GET: api/Orders/admin/detail/5
         [HttpGet("admin/detail/{id}")]
         public async Task<IActionResult> GetOrderDetailAdmin(int id)
         {
             var order = await _context.TblOrders
                 .Include(o => o.TblOrderDetails)
-                    .ThenInclude(od => od.Variant) // Include Variant
-                        .ThenInclude(v => v.Product) // Include Product cha
+                    .ThenInclude(od => od.Variant) 
+                        .ThenInclude(v => v.Product) 
                 .FirstOrDefaultAsync(o => o.OrderId == id);
 
             if (order == null) return NotFound("Không tìm thấy đơn hàng");
 
-            // Map data trả về (Cập nhật thêm các trường mới)
             var result = new
             {
                 order.OrderId,
                 order.OrderDate,
                 order.OrderStatus,
 
-                // --- THÊM CÁC TRƯỜNG NÀY ---
-                order.PaymentStatus,     // Trạng thái thanh toán (Paid/Unpaid)
-                order.PaymentMethod,     // Phương thức (COD/PayOS...)
-                order.Note,              // Ghi chú đơn hàng
-                order.SubTotal,          // Tiền hàng
-                order.ShippingFee,       // Phí ship
-                order.DiscountAmount,    // Giảm giá
-                                         // ---------------------------
+                order.PaymentStatus,     
+                order.PaymentMethod,     
+                order.Note,              
+                order.SubTotal,          
+                order.ShippingFee,       
+                order.DiscountAmount,    
+
 
                 order.RecipientName,
                 order.RecipientPhone,
                 order.ShippingAddress,
-                order.TotalAmount,       // Tổng cộng cuối cùng
+                order.TotalAmount,       
 
                 Items = order.TblOrderDetails.Select(d => new
                 {
-                    // Lấy tên từ snapshot nếu có, nếu không lấy từ quan hệ
                     ProductName = d.ProductName ?? d.Variant.Product.ProductName,
                     VariantName = d.VariantName ?? d.Variant.VariantName,
                     Quantity = d.Quantity,
@@ -440,7 +386,6 @@ namespace back_end.Controllers
             return Ok(result);
         }
 
-        // PUT: api/Orders/admin/update-status/5
         [HttpPut("admin/update-status/{id}")]
         public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateStatusRequest req)
         {
@@ -453,7 +398,7 @@ namespace back_end.Controllers
 
                 if (order == null) return NotFound();
 
-                // Logic Hoàn kho khi Hủy đơn
+                //Hoàn kho khi Hủy đơn
                 if (req.NewStatus == "Cancelled" && order.OrderStatus != "Cancelled")
                 {
                     foreach (var item in order.TblOrderDetails)
@@ -480,8 +425,6 @@ namespace back_end.Controllers
             }
         }
 
-        // GET: api/Orders/user/1
-        // GET: api/Orders/user/{userId}
         [HttpGet("user/{userId}")]
         public async Task<IActionResult> GetOrdersByUser(int userId)
         {
@@ -503,7 +446,6 @@ namespace back_end.Controllers
                     o.PaymentStatus,
                     o.TotalAmount,
 
-                    // --- THÊM CÁC TRƯỜNG CHI TIẾT CHO MODAL ---
                     o.RecipientName,
                     o.RecipientPhone,
                     o.ShippingAddress,
@@ -511,12 +453,12 @@ namespace back_end.Controllers
                     SubTotal = o.SubTotal ?? 0,
                     ShippingFee = o.ShippingFee ?? 0,
                     DiscountAmount = o.DiscountAmount ?? 0,
-                    // ------------------------------------------
+
 
                     Items = o.TblOrderDetails.Select(od => new
                     {
                         ProductName = od.ProductName ?? od.Variant.Product.ProductName,
-                        VariantName = od.VariantName ?? od.Variant.VariantName, // Lấy tên phân loại
+                        VariantName = od.VariantName ?? od.Variant.VariantName, 
 
                         ProductImage = od.Variant.Image != null ? od.Variant.Image.ImageUrl :
                                        (od.Variant.Product.TblProductImages.FirstOrDefault(x => x.IsThumbnail == true) != null
@@ -532,15 +474,12 @@ namespace back_end.Controllers
             return Ok(orders);
         }
 
-        // DELETE: api/Orders/admin/delete/5
         [HttpDelete("admin/delete/{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
             var order = await _context.TblOrders.FindAsync(id);
             if (order == null) return NotFound();
 
-            // Xóa cứng (Cascade sẽ tự xóa OrderDetails nếu DB cấu hình đúng,
-            // hoặc EF Core tự xử lý nếu load order kèm details)
             _context.TblOrders.Remove(order);
             await _context.SaveChangesAsync();
             return Ok(new { message = "Đã xóa đơn hàng" });

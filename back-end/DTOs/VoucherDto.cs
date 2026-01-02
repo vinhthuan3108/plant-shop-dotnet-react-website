@@ -6,10 +6,10 @@ namespace back_end.DTOs
     public class VoucherCreateUpdateDto
     {
         [Required]
-        public string Code { get; set; } = null!; // Mã Code (SALE50, TET2025...)
+        public string Code { get; set; } = null!; 
 
         [Required]
-        public string DiscountType { get; set; } = null!; // "FIXED" hoặc "PERCENT"
+        public string DiscountType { get; set; } = null!; //số or %
 
         [Range(0, double.MaxValue, ErrorMessage = "Giá trị giảm phải lớn hơn 0")]
         public decimal DiscountValue { get; set; }
@@ -24,6 +24,6 @@ namespace back_end.DTOs
         [Required]
         public DateTime EndDate { get; set; }
 
-        public int? UsageLimit { get; set; } // Số lượng giới hạn
+        public int? UsageLimit { get; set; } 
     }
 }

@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using back_end.Models; // Namespace chứa DbContext và Models
+using back_end.Models; 
 using back_end.DTOs;
-using Microsoft.AspNetCore.Hosting; // 1. Thêm thư viện này
+using Microsoft.AspNetCore.Hosting; 
 using System.IO;
 [Route("api/[controller]")]
 [ApiController]
@@ -10,23 +10,21 @@ public class ProfileController : ControllerBase
 {
     private readonly DbplantShopThuanCuongContext _context;
 
-    private readonly IWebHostEnvironment _environment; // 3. Khai báo biến môi trường
+    private readonly IWebHostEnvironment _environment; 
 
-    // 4. Inject vào constructor
     public ProfileController(DbplantShopThuanCuongContext context, IWebHostEnvironment environment)
     {
         _context = context;
         _environment = environment;
     }
 
-    // 1. Lấy thông tin User
     [HttpGet("{userId}")]
     public async Task<IActionResult> GetProfile(int userId)
     {
         var user = await _context.TblUsers
             .Select(u => new {
                 u.UserId,
-                u.Email, // Email không cho sửa
+                u.Email,
                 u.FullName,
                 u.PhoneNumber,
                 u.AvatarUrl,
@@ -45,17 +43,16 @@ public class ProfileController : ControllerBase
         var user = await _context.TblUsers.FindAsync(userId);
         if (user == null) return NotFound();
 
-        // Cập nhật thông tin text
+
         user.FullName = dto.FullName;
         user.PhoneNumber = dto.PhoneNumber;
         user.DateofBirth = dto.DateofBirth;
         user.Gender = dto.Gender;
 
-        // --- LOGIC XÓA ẢNH CŨ ---
+        //xóa ảnh cũ
         // Nếu có link ảnh mới VÀ link đó khác với link hiện tại trong DB
         if (!string.IsNullOrEmpty(dto.AvatarUrl) && dto.AvatarUrl != user.AvatarUrl)
         {
-            // 1. Xóa ảnh cũ (nếu có)
             if (!string.IsNullOrEmpty(user.AvatarUrl))
             {
                 var oldRelativePath = user.AvatarUrl.TrimStart('/');
@@ -64,14 +61,14 @@ public class ProfileController : ControllerBase
                 if (System.IO.File.Exists(oldFullPath))
                 {
                     try
-                    {
+                        {
                         System.IO.File.Delete(oldFullPath);
                     }
-                    catch { /* Bỏ qua lỗi nếu file đang bị lock */ }
+                    catch {  }
                 }
             }
 
-            // 2. Cập nhật đường dẫn ảnh mới
+            //Cập nhật đường dẫn ảnh mới
             user.AvatarUrl = dto.AvatarUrl;
         }
         // ------------------------
@@ -80,7 +77,7 @@ public class ProfileController : ControllerBase
         return Ok(new { message = "Cập nhật hồ sơ thành công" });
     }
 
-    // 3. Lấy danh sách địa chỉ
+    //Lấy danh sách địa chỉ
     [HttpGet("{userId}/addresses")]
     public async Task<IActionResult> GetAddresses(int userId)
     {
@@ -102,11 +99,11 @@ public class ProfileController : ControllerBase
         return Ok(list);
     }
 
-    // 4. Thêm địa chỉ mới
+    //Thêm địa chỉ mới
     [HttpPost("{userId}/addresses")]
     public async Task<IActionResult> AddAddress(int userId, [FromBody] UserAddressDto dto)
     {
-        // Logic: Nếu địa chỉ mới là Default -> Reset các cái cũ
+        //Nếu địa chỉ mới là Default -> Reset các cái cũ
         if (dto.IsDefault == true)
         {
             var oldDefaults = await _context.TblUserAddresses
@@ -116,7 +113,7 @@ public class ProfileController : ControllerBase
         }
         else
         {
-            // Nếu user chưa có địa chỉ nào, cái đầu tiên auto là Default
+            // Nếu user chưa có địa chỉ nào, cái đầu tiên auto làDefault
             bool hasAddress = await _context.TblUserAddresses.AnyAsync(a => a.UserId == userId);
             if (!hasAddress) dto.IsDefault = true;
         }
@@ -138,14 +135,13 @@ public class ProfileController : ControllerBase
         return Ok(new { message = "Thêm địa chỉ thành công" });
     }
 
-    // 5. Cập nhật địa chỉ
+    //Cập nhật địa chỉ
     [HttpPut("addresses/{addressId}")]
     public async Task<IActionResult> UpdateAddress(int addressId, [FromBody] UserAddressDto dto)
     {
         var addr = await _context.TblUserAddresses.FindAsync(addressId);
         if (addr == null) return NotFound();
 
-        // Logic Default
         if (dto.IsDefault == true && addr.IsDefault != true)
         {
             var oldDefaults = await _context.TblUserAddresses
@@ -166,14 +162,13 @@ public class ProfileController : ControllerBase
         return Ok(new { message = "Cập nhật địa chỉ thành công" });
     }
 
-    // 6. Xóa địa chỉ
+    //Xóa địa chỉ
     [HttpDelete("addresses/{addressId}")]
     public async Task<IActionResult> DeleteAddress(int addressId)
     {
         var addr = await _context.TblUserAddresses.FindAsync(addressId);
         if (addr == null) return NotFound();
 
-        // Không cho xóa địa chỉ mặc định (hoặc tùy logic của bạn)
         if (addr.IsDefault == true)
         {
             return BadRequest("Không thể xóa địa chỉ mặc định. Hãy thiết lập địa chỉ khác làm mặc định trước.");

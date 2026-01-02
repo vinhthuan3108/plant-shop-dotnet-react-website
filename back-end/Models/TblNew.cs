@@ -1,6 +1,8 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 
+
+//không dùng nữa
 namespace back_end.Models
 {
     public class TblNew

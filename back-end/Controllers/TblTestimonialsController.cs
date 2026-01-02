@@ -19,9 +19,7 @@ namespace back_end.Controllers
             _environment = environment;
         }
 
-        // ==========================================================
-        // HÀM PHỤ TRỢ: Xóa file vật lý
-        // ==========================================================
+        //xóa file cũ
         private void DeleteFileFromServer(string relativePath)
         {
             if (string.IsNullOrEmpty(relativePath)) return;
@@ -36,32 +34,25 @@ namespace back_end.Controllers
                     System.IO.File.Delete(fullPath);
                 }
             }
-            catch { /* Bỏ qua lỗi */ }
+            catch {  }
         }
 
-        // ==========================================================
-        // CÁC API ENDPOINTS
-        // ==========================================================
-
-        // 1. GET: api/TblTestimonials (Admin)
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TblTestimonial>>> GetTestimonials()
         {
-            // Sắp xếp theo ID giảm dần (Mới nhất lên đầu)
+            
             return await _context.TblTestimonials.OrderByDescending(t => t.TestimonialId).ToListAsync();
         }
 
-        // 2. GET: api/TblTestimonials/public (Client)
         [HttpGet("public")]
         public async Task<ActionResult<IEnumerable<TblTestimonial>>> GetPublicReviews()
         {
             return await _context.TblTestimonials
                 .Where(x => x.IsActive == true)
-                .OrderByDescending(t => t.TestimonialId) // Sửa lại: Sắp xếp theo ID thay vì CreatedAt
+                .OrderByDescending(t => t.TestimonialId) 
                 .ToListAsync();
         }
 
-        // 3. GET: api/TblTestimonials/5
         [HttpGet("{id}")]
         public async Task<ActionResult<TblTestimonial>> GetTblTestimonial(int id)
         {
@@ -70,11 +61,10 @@ namespace back_end.Controllers
             return tblTestimonial;
         }
 
-        // 4. POST: api/TblTestimonials
         [HttpPost]
         public async Task<ActionResult<TblTestimonial>> PostTblTestimonial(TblTestimonial tblTestimonial)
         {
-            // (Đã xóa đoạn gán CreatedAt vì model không có)
+           
 
             _context.TblTestimonials.Add(tblTestimonial);
             await _context.SaveChangesAsync();
@@ -82,13 +72,12 @@ namespace back_end.Controllers
             return CreatedAtAction("GetTblTestimonial", new { id = tblTestimonial.TestimonialId }, tblTestimonial);
         }
 
-        // 5. PUT: api/TblTestimonials/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTblTestimonial(int id, TblTestimonial tblTestimonial)
         {
             if (id != tblTestimonial.TestimonialId) return BadRequest();
 
-            // --- LOGIC XÓA ẢNH CŨ ---
+            //xóa ảnh cũ
             var existingTestimonial = await _context.TblTestimonials.AsNoTracking().FirstOrDefaultAsync(x => x.TestimonialId == id);
 
             if (existingTestimonial == null) return NotFound();
@@ -99,7 +88,7 @@ namespace back_end.Controllers
             {
                 DeleteFileFromServer(existingTestimonial.AvatarUrl);
             }
-            // ------------------------
+
 
             _context.Entry(tblTestimonial).State = EntityState.Modified;
 
@@ -116,14 +105,13 @@ namespace back_end.Controllers
             return NoContent();
         }
 
-        // 6. DELETE: api/TblTestimonials/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTblTestimonial(int id)
         {
             var tblTestimonial = await _context.TblTestimonials.FindAsync(id);
             if (tblTestimonial == null) return NotFound();
 
-            // Xóa ảnh vật lý trước khi xóa dữ liệu
+            //xóa ảnh
             if (!string.IsNullOrEmpty(tblTestimonial.AvatarUrl))
             {
                 DeleteFileFromServer(tblTestimonial.AvatarUrl);

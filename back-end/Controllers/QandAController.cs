@@ -18,18 +18,18 @@ namespace back_end.Controllers
             _context = context;
         }
 
-        // GET: api/QandA
-        // 1. API lấy tất cả (cho Admin)
+
+        //API lấy tất cả (cho Admin)
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TblQandA>>> GetQandAs()
         {
             return await _context.TblQandAs
-                                 .OrderBy(x => x.DisplayOrder) // Sắp xếp theo thứ tự hiển thị (tăng dần)
+                                 .OrderBy(x => x.DisplayOrder) // Sắp xếp theo thứ tự hiển thị(tăng dần)
                                  .ThenByDescending(x => x.Id)  // Nếu trùng thứ tự thì cái mới lên trên
                                  .ToListAsync();
         }
 
-        // 2. API lấy danh sách hiển thị (cho Client)
+        //API lấy danh sách hiển thị (cho Client)
         [HttpGet("Active")]
         public async Task<ActionResult<IEnumerable<TblQandA>>> GetActiveQandAs()
         {
@@ -40,7 +40,6 @@ namespace back_end.Controllers
                                  .ToListAsync();
         }
 
-        // POST: api/QandA
         [HttpPost]
         public async Task<ActionResult<TblQandA>> CreateQandA(TblQandA qanda)
         {
@@ -49,7 +48,6 @@ namespace back_end.Controllers
             return CreatedAtAction("GetQandAs", new { id = qanda.Id }, qanda);
         }
 
-        // PUT: api/QandA/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateQandA(int id, TblQandA qanda)
         {
@@ -67,7 +65,6 @@ namespace back_end.Controllers
             return NoContent();
         }
 
-        // DELETE: api/QandA/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteQandA(int id)
         {

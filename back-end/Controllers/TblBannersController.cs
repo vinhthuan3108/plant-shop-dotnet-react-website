@@ -17,14 +17,12 @@ namespace back_end.Controllers
             _environment = environment;
         }
 
-        // GET: api/TblBanners/admin
         [HttpGet("admin")]
         public async Task<ActionResult<IEnumerable<TblBanner>>> GetBannersForAdmin()
         {
             return await _context.TblBanners.OrderBy(b => b.DisplayOrder).ToListAsync();
         }
 
-        // GET: api/TblBanners/public
         [HttpGet("public")]
         public async Task<ActionResult<IEnumerable<TblBanner>>> GetBannersForClient()
         {
@@ -34,30 +32,29 @@ namespace back_end.Controllers
                 .ToListAsync();
         }
 
-        // POST: api/TblBanners
-        // Nhận JSON: { "title": "...", "imageUrl": "/banners/abc.jpg", ... }
+
         [HttpPost]
         public async Task<ActionResult<TblBanner>> CreateBanner([FromBody] TblBanner banner)
         {
-            // Vì ảnh đã upload ở UploadController rồi, ở đây chỉ việc lưu thông tin
+            //ảnh đã upload ở UploadController rồi,
+            //ở đây chỉ lưu thông tin
             _context.TblBanners.Add(banner);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetBannersForAdmin), new { id = banner.BannerId }, banner);
         }
 
-        // PUT: api/TblBanners/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateBanner(int id, [FromBody] TblBanner banner)
         {
             if (id != banner.BannerId) return BadRequest();
 
-            // Logic xóa ảnh cũ nếu người dùng đổi ảnh mới
+            //Xóa ảnh cũ nếu người dùng đổi ảnh mới
             var oldBanner = await _context.TblBanners.AsNoTracking().FirstOrDefaultAsync(x => x.BannerId == id);
 
             if (oldBanner != null && oldBanner.ImageUrl != banner.ImageUrl)
             {
-                // Nếu đường dẫn ảnh mới khác ảnh cũ -> Xóa ảnh cũ đi cho nhẹ server
+                //Nếu đường dẫn ảnh mới khác ảnh cũ -> Xóa ảnh cũ đi
                 var oldPath = Path.Combine(_environment.WebRootPath, oldBanner.ImageUrl.TrimStart('/'));
                 if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
             }
@@ -77,14 +74,12 @@ namespace back_end.Controllers
             return Ok(banner);
         }
 
-        // DELETE: api/TblBanners/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteBanner(int id)
         {
             var banner = await _context.TblBanners.FindAsync(id);
             if (banner == null) return NotFound();
 
-            // Xóa file vật lý
             if (!string.IsNullOrEmpty(banner.ImageUrl))
             {
                 var filePath = Path.Combine(_environment.WebRootPath, banner.ImageUrl.TrimStart('/'));
