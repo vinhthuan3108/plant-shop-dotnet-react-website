@@ -1,0 +1,260 @@
+/* ================================================= */
+/* 1. XỬ LÝ LOGIC ẨN/HIỆN (QUAN TRỌNG NHẤT) */
+/* ================================================= */
+
+/* Container bao quanh Icon giỏ hàng và Dropdown */
+/* (Class này nằm ở Header.jsx) */
+.cart-wrapper {
+    position: relative; /* Làm điểm tựa cho Dropdown */
+    height: 100%;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+/* "CẦU NỐI VÔ HÌNH" - Giúp chuột không bị rớt khi di chuyển từ Icon xuống Bảng */
+.cart-wrapper::after {
+    content: "";
+    position: absolute;
+    bottom: -15px; /* Phủ kín khoảng hở giữa icon và bảng */
+    left: 0;
+    width: 100%;
+    height: 30px; 
+    background: transparent; /* Trong suốt */
+    z-index: 999;
+}
+
+/* ================================================= */
+/* 2. GIAO DIỆN GIỎ HÀNG (DROPDOWN) */
+/* ================================================= */
+
+.cart-dropdown {
+    /* --- Vị trí --- */
+    position: absolute;
+    top: 130%; 
+    right: 0;
+    z-index: 1000;
+    width: 350px;
+
+    /* --- Giao diện (Style của bạn) --- */
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); /* Đậm hơn xíu cho nổi */
+    padding: 20px;
+    border: 1px solid #f0f0f0;
+
+    /* --- TRẠNG THÁI MẶC ĐỊNH: ẨN --- */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px); /* Dịch xuống dưới một chút */
+    
+    /* Hiệu ứng chuyển động mượt mà */
+    transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    
+    /* Chặn click khi đang ẩn */
+    pointer-events: none;
+}
+
+/* --- TRẠNG THÁI KHI HOVER: HIỆN --- */
+/* Khi di chuột vào .cart-wrapper thì .cart-dropdown sẽ hiện ra */
+.cart-wrapper:hover .cart-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0); /* Bay lên vị trí gốc */
+    pointer-events: auto;     /* Cho phép click */
+}
+
+/* Mũi tên nhọn chỉ lên trên */
+.cart-dropdown::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    right: 20px;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid #fff;
+}
+
+/* ================================================= */
+/* 3. CÁC THÀNH PHẦN BÊN TRONG (ITEM, BUTTON...) */
+/* ================================================= */
+
+/* Item sản phẩm */
+.cart-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.cart-item-img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+
+.cart-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.item-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Chuẩn CSS mới bỏ tiền tố vendor nếu cần */
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-decoration: none; /* Bỏ gạch chân nếu là thẻ a */
+    transition: color 0.2s;
+}
+.item-name:hover {
+    color: #2e7d32;
+}
+
+.item-price {
+    font-size: 13px;
+    color: #666;
+}
+
+.item-price strong {
+    color: #2e7d32;
+    font-size: 14px;
+}
+
+/* Nút Xóa (X) */
+.remove-btn {
+    background: none;
+    border: none;
+    color: #bbb; /* Nhạt hơn chút cho tinh tế */
+    font-size: 16px;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.remove-btn:hover {
+    color: #ff4d4f;
+    background-color: #fff1f0;
+    transform: rotate(90deg); /* Hiệu ứng xoay nhẹ khi hover */
+}
+
+/* Tổng tiền */
+.cart-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-top: 5px;
+}
+
+.cart-total span:first-child {
+    font-size: 15px;
+    color: #555;
+    font-weight: 500;
+}
+
+.total-price {
+    color: #2e7d32;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Khu vực nút bấm */
+.cart-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-view-cart, .btn-checkout {
+    flex: 1;
+    padding: 12px 0;
+    border-radius: 8px; /* Bo góc nút nhiều hơn chút */
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    text-align: center;
+    transition: all 0.2s;
+    border: none;
+    text-decoration: none; /* Nếu dùng thẻ Link */
+    display: inline-block;
+}
+
+/* Nút Xem giỏ hàng */
+.btn-view-cart {
+    background-color: #f5f5f5;
+    color: #333;
+}
+.btn-view-cart:hover {
+    background-color: #e0e0e0;
+    color: #000;
+}
+
+/* Nút Thanh toán */
+.btn-checkout {
+    background-color: #2e7d32;
+    color: white;
+}
+.btn-checkout:hover {
+    background-color: #1b5e20;
+    box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
+    transform: translateY(-1px); /* Nổi lên nhẹ */
+}
+/* NÚT TĂNG GIẢM SỐ LƯỢNG */
+.qty-control-group {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fff;
+    margin-top: 5px;
+    width: fit-content;
+}
+
+.qty-btn {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #555;
+    font-size: 10px;
+}
+
+.qty-btn:hover {
+    background-color: #f0f0f0;
+    color: #2e7d32;
+}
+
+.qty-value {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 8px;
+    min-width: 20px;
+    text-align: center;
+    border-left: 1px solid #eee;
+    border-right: 1px solid #eee;
+}
+
+/* Chỉnh lại bố cục info để hàng ngang đẹp hơn */
+.cart-item-info {
+    justify-content: space-between;
+}
