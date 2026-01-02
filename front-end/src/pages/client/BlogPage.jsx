@@ -3,12 +3,12 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FaCalendarAlt, FaUser, FaArrowRight } from 'react-icons/fa';
 import './BlogPage.css'; // <--- Nhớ import file CSS vừa tạo
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const BlogPage = () => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     
-    const API_BASE = 'https://localhost:7298'; 
+    //const API_BASE = 'https://localhost:7298'; 
 
     useEffect(() => {
         const fetchPosts = async () => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaCalendarAlt, FaSearch, FaHistory, FaBoxOpen } from 'react-icons/fa';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const InventoryAdjustHistory = () => {
     // --- STATE QUẢN LÝ DỮ LIỆU ---
     const [historyList, setHistoryList] = useState([]);
@@ -12,7 +12,7 @@ const InventoryAdjustHistory = () => {
     const [page, setPage] = useState(1);
     const itemsPerPage = 10;
 
-    const BASE_URL = 'https://localhost:7298'; // Cập nhật port nếu khác
+    //const BASE_URL = 'https://localhost:7298'; // Cập nhật port nếu khác
 
     // 1. FETCH DỮ LIỆU
     const fetchHistory = async () => {
@@ -22,7 +22,7 @@ const InventoryAdjustHistory = () => {
             if (filters.fromDate) params.append('fromDate', filters.fromDate);
             if (filters.toDate) params.append('toDate', filters.toDate);
 
-            const res = await axios.get(`${BASE_URL}/api/InventoryAdjustments?${params.toString()}`);
+            const res = await axios.get(`${API_BASE}/api/InventoryAdjustments?${params.toString()}`);
             
             // Xử lý dữ liệu trả về (hỗ trợ cả $values của .NET)
             const data = res.data?.$values || res.data;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 // import { toast } from 'react-toastify'; 
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function SystemIntegration() {
     // 1. Config Email
     const [mailConfig, setMailConfig] = useState({
@@ -33,7 +33,7 @@ function SystemIntegration() {
         hasSecretKey: false
     });
 
-    const BASE_URL = 'https://localhost:7298'; 
+    //const BASE_URL = 'https://localhost:7298'; 
 
     useEffect(() => {
         fetchConfigs();
@@ -41,7 +41,7 @@ function SystemIntegration() {
 
     const fetchConfigs = async () => {
         try {
-            const res = await axios.get(`${BASE_URL}/api/TblSystemConfig`);
+            const res = await axios.get(`${API_BASE}/api/TblSystemConfig`);
             const data = res.data;
             
             // --- Xử lý Email ---
@@ -110,7 +110,7 @@ function SystemIntegration() {
             return;
         }
         try {
-            await axios.post(`${BASE_URL}/api/TblSystemConfig/UpdateMailSettings`, {
+            await axios.post(`${API_BASE}/api/TblSystemConfig/UpdateMailSettings`, {
                 Email: mailConfig.Email,
                 Password: mailConfig.Password 
             });
@@ -131,7 +131,7 @@ function SystemIntegration() {
              }
         }
         try {
-            await axios.post(`${BASE_URL}/api/TblSystemConfig/UpdatePayOsSettings`, {
+            await axios.post(`${API_BASE}/api/TblSystemConfig/UpdatePayOsSettings`, {
                 ClientId: payOsConfig.ClientId,
                 ApiKey: payOsConfig.ApiKey,
                 ChecksumKey: payOsConfig.ChecksumKey
@@ -159,7 +159,7 @@ function SystemIntegration() {
         }
 
         try {
-            await axios.post(`${BASE_URL}/api/TblSystemConfig/UpdateRecaptchaSettings`, {
+            await axios.post(`${API_BASE}/api/TblSystemConfig/UpdateRecaptchaSettings`, {
                 SiteKey: recaptchaConfig.siteKey,
                 SecretKey: recaptchaConfig.secretKey
             });

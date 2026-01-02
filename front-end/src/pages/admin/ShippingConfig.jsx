@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify'; // Nếu bạn dùng thư viện toast, hoặc thay bằng alert
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const ShippingConfig = () => {
-    const BASE_URL = 'https://localhost:7298'; // Cập nhật port của bạn
+    //const BASE_URL = 'https://localhost:7298'; // Cập nhật port của bạn
     const [loading, setLoading] = useState(false);
     const [provinces, setProvinces] = useState([]);
 
@@ -33,7 +33,7 @@ const ShippingConfig = () => {
                 setProvinces(provRes.data);
 
                 // Load cấu hình hiện tại từ Server
-                const configRes = await axios.get(`${BASE_URL}/api/ShippingRule`);
+                const configRes = await axios.get(`${API_BASE}/api/ShippingRule`);
                 
                 // Nếu server trả về dữ liệu, fill vào state
                 if (configRes.data) {
@@ -78,7 +78,7 @@ const ShippingConfig = () => {
 
         setLoading(true);
         try {
-            await axios.post(`${BASE_URL}/api/ShippingRule`, config);
+            await axios.post(`${API_BASE}/api/ShippingRule`, config);
             toast.success("Cập nhật cấu hình thành công!");
         } catch (err) {
             console.error(err);

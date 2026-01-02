@@ -5,7 +5,7 @@ import { CartContext } from '../../context/CartContext';
 import axios from 'axios'; 
 import './Header.css';
 import defaultLogo from '../../assets/images/logo.png';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 // Component hỗ trợ in đậm từ khóa tìm kiếm
 // Thêm hàm này vào trên cùng hoặc trong file utils
 const escapeRegExp = (string) => {
@@ -47,7 +47,7 @@ const Header = () => {
     
     const navigate = useNavigate();
     const { cartCount, refreshCart, cartItems, removeFromCart, totalAmount } = useContext(CartContext);
-    const API_BASE = 'https://localhost:7298'; 
+    //const API_BASE = 'https://localhost:7298'; 
     const searchRef = useRef(null);
 
     const formatCurrency = (amount) => {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ProductModal from '../../components/admin/ProductModal';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function Products() {
     // --- STATE QUẢN LÝ DỮ LIỆU ---
     const [products, setProducts] = useState([]);
@@ -31,9 +31,9 @@ function Products() {
     });
 
     const navigate = useNavigate();
-    const BASE_URL = 'https://localhost:7298';
-    const API_URL = `${BASE_URL}/api/TblProducts`;
-    const CAT_API_URL = `${BASE_URL}/api/TblCategories`;
+    //const BASE_URL = 'https://localhost:7298';
+    const API_URL = `${API_BASE}/api/TblProducts`;
+    const CAT_API_URL = `${API_BASE}/api/TblCategories`;
 
     // --- LOGIC GỌI API ---
     const fetchProducts = () => {
@@ -121,10 +121,10 @@ function Products() {
     const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
     const getThumbnailUrl = (product) => {
-        if (product.thumbnail) return `${BASE_URL}${product.thumbnail}`;
+        if (product.thumbnail) return `${API_BASE}${product.thumbnail}`;
         if (product.tblProductImages && product.tblProductImages.length > 0) {
              const thumb = product.tblProductImages.find(img => img.isThumbnail === true);
-             return thumb ? `${BASE_URL}${thumb.imageUrl}` : `${BASE_URL}${product.tblProductImages[0].imageUrl}`;
+             return thumb ? `${API_BASE}${thumb.imageUrl}` : `${API_BASE}${product.tblProductImages[0].imageUrl}`;
         }
         return null;
     };

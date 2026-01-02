@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function VerifyOtp() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -13,7 +13,7 @@ function VerifyOtp() {
     const handleVerify = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('https://localhost:7298/api/Auth/verify-otp', {
+            const res = await fetch(`${API_BASE}/api/Auth/verify-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useParams, Link } from 'react-router-dom';
 import { FaCalendarAlt, FaUser, FaTag, FaArrowLeft } from 'react-icons/fa';
 import './BlogDetail.css';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const BlogDetail = () => {
     const { id } = useParams();
     const [post, setPost] = useState(null);
@@ -11,7 +11,7 @@ const BlogDetail = () => {
     const [relatedPosts, setRelatedPosts] = useState([]); 
     const [loading, setLoading] = useState(true);
 
-    const API_BASE = 'https://localhost:7298';
+    //const API_BASE = 'https://localhost:7298';
 
     useEffect(() => {
         const fetchData = async () => {

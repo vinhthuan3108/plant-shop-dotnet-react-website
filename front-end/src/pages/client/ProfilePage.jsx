@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './ProfilePage.css';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 // --- COMPONENT MODAL CHI TIẾT ĐƠN HÀNG (DÀNH CHO USER) ---
 const UserOrderDetailModal = ({ isOpen, onClose, order }) => {
     if (!isOpen || !order) return null;
@@ -78,7 +78,7 @@ const UserOrderDetailModal = ({ isOpen, onClose, order }) => {
 };
 
 const ProfilePage = () => {
-    const API_BASE_URL = "https://localhost:7298";
+    //const API_BASE_URL = "https://localhost:7298";
     const navigate = useNavigate();
 
     const getUserData = () => {
@@ -152,7 +152,7 @@ const ProfilePage = () => {
     const fetchProfile = async () => {
         const effectiveId = userId || localStorage.getItem('userId');
         try {
-            const res = await axios.get(`${API_BASE_URL}/api/Profile/${effectiveId}`);
+            const res = await axios.get(`${API_BASE}/api/Profile/${effectiveId}`);
             let formattedDob = '';
             if (res.data.dateofBirth) { formattedDob = res.data.dateofBirth.split('T')[0]; }
             setProfile({ ...res.data, dateofBirth: formattedDob });
@@ -162,7 +162,7 @@ const ProfilePage = () => {
     const fetchAddresses = async () => {
         const effectiveId = userId || localStorage.getItem('userId');
         try {
-            const res = await axios.get(`${API_BASE_URL}/api/Profile/${effectiveId}/addresses`);
+            const res = await axios.get(`${API_BASE}/api/Profile/${effectiveId}/addresses`);
             setAddresses(res.data);
         } catch (err) { console.error(err); }
     };
@@ -170,7 +170,7 @@ const ProfilePage = () => {
     const fetchOrders = async () => {
         const effectiveId = userId || localStorage.getItem('userId');
         try {
-            const res = await axios.get(`${API_BASE_URL}/api/Orders/user/${effectiveId}`);
+            const res = await axios.get(`${API_BASE}/api/Orders/user/${effectiveId}`);
             setOrders(res.data);
         } catch (err) { console.error("Lỗi lấy đơn hàng:", err); }
     };
@@ -197,7 +197,7 @@ const ProfilePage = () => {
     const getAvatarSrc = (url) => {
         if (!url) return "https://cdn-icons-png.flaticon.com/512/149/149071.png";
         if (url.startsWith('http')) return url;
-        return `${API_BASE_URL}${url}`;
+        return `${API_BASE}${url}`;
     };
 
     // --- LOCATION HANDLERS ---
@@ -238,7 +238,7 @@ const ProfilePage = () => {
                 avatarUrl: profile.avatarUrl,
                 dateofBirth: profile.dateofBirth ? profile.dateofBirth : null
             };
-            await axios.put(`${API_BASE_URL}/api/Profile/${effectiveId}`, payload);
+            await axios.put(`${API_BASE}/api/Profile/${effectiveId}`, payload);
             alert("Cập nhật hồ sơ thành công!");
             if(currentUser) {
                 currentUser.fullName = profile.fullName;
@@ -257,7 +257,7 @@ const ProfilePage = () => {
         const formData = new FormData();
         formData.append('file', file);
         try {
-            const res = await axios.post(`${API_BASE_URL}/api/Upload/users`, formData, {
+            const res = await axios.post(`${API_BASE}/api/Upload/users`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             setProfile({ ...profile, avatarUrl: res.data.url }); 
@@ -290,9 +290,9 @@ const ProfilePage = () => {
         }
         try {
             if (isEditingAddress) {
-                await axios.put(`${API_BASE_URL}/api/Profile/addresses/${addressForm.addressId}`, addressForm);
+                await axios.put(`${API_BASE}/api/Profile/addresses/${addressForm.addressId}`, addressForm);
             } else {
-                await axios.post(`${API_BASE_URL}/api/Profile/${effectiveId}/addresses`, addressForm);
+                await axios.post(`${API_BASE}/api/Profile/${effectiveId}/addresses`, addressForm);
             }
             alert("Thao tác thành công!");
             setShowAddressForm(false);
@@ -304,7 +304,7 @@ const ProfilePage = () => {
         if (isDefault) { alert("Không thể xóa địa chỉ mặc định!"); return; }
         if (window.confirm("Bạn chắc chắn muốn xóa?")) {
             try {
-                await axios.delete(`${API_BASE_URL}/api/Profile/addresses/${id}`);
+                await axios.delete(`${API_BASE}/api/Profile/addresses/${id}`);
                 fetchAddresses();
             } catch (err) { alert("Lỗi xóa địa chỉ"); }
         }
@@ -327,7 +327,7 @@ const ProfilePage = () => {
                 currentPassword: passwordForm.currentPassword,
                 newPassword: passwordForm.newPassword
             };
-            await axios.post(`${API_BASE_URL}/api/Auth/change-password`, payload);
+            await axios.post(`${API_BASE}/api/Auth/change-password`, payload);
             alert("Đổi mật khẩu thành công!");
             setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
         } catch (err) {

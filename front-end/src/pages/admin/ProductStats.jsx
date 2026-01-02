@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function ProductStats() {
     // State for time range & filters
     const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().slice(0, 10));
@@ -23,7 +23,7 @@ function ProductStats() {
     // Fetch Categories on Mount
     useEffect(() => {
         // Updated API endpoint to match TblCategoriesController
-        axios.get('https://localhost:7298/api/TblCategories')
+        axios.get(`${API_BASE}/api/TblCategories`)
              .then(res => setCategories(res.data))
              .catch(err => console.log(err));
     }, []);
@@ -37,7 +37,7 @@ function ProductStats() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            let url = `https://localhost:7298/api/Statistics/products?startDate=${startDate}&endDate=${endDate}&slowMovingDays=${slowDays}&page=${currentPage}&pageSize=${pageSize}`;
+            let url = `${API_BASE}/api/Statistics/products?startDate=${startDate}&endDate=${endDate}&slowMovingDays=${slowDays}&page=${currentPage}&pageSize=${pageSize}`;
             
             // Only append categoryId if it has a value
             if (categoryId) {

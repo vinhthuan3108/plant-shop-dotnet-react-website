@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import UserModal from "../../components/admin/UserModal";
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 // Hàm format ngày (giữ nguyên)
 const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -24,7 +24,7 @@ function Users() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; // Số lượng hiển thị mỗi trang [cite: 54]
 
-    const API_URL = 'https://localhost:7298/api/TblUsers';
+    const API_URL = `${API_BASE}/api/TblUsers`;
 
     const MOCK_ROLES = [
         { roleId: 1, roleName: 'Admin' },

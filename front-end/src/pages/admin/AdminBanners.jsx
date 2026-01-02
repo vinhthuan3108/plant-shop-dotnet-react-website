@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import BannerModal from "../../components/admin/BannerModal";
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function AdminBanners() {
     const [banners, setBanners] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
 
-    const API_DOMAIN = 'https://localhost:7298'; 
-    const API_URL = `${API_DOMAIN}/api/TblBanners`; 
+    //const API_DOMAIN = 'https://localhost:7298'; 
+    const API_URL = `${API_BASE}/api/TblBanners`; 
 
     const fetchBanners = () => {
         fetch(`${API_URL}/admin`)
@@ -113,7 +113,7 @@ function AdminBanners() {
                             <td style={{ padding: '8px', textAlign: 'center' }}>
                                 {item.imageUrl ? (
                                     <img 
-                                        src={`${API_DOMAIN}${item.imageUrl}`} 
+                                        src={`${API_BASE}${item.imageUrl}`} 
                                         alt="banner" 
                                         style={{ 
                                             width: '100px', // Banner thường ngang nên để rộng hơn thumb sản phẩm

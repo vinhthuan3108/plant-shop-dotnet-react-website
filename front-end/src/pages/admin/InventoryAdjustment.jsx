@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaExclamationTriangle, FaCheckCircle, FaHistory } from 'react-icons/fa'; // Cần npm install react-icons
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const InventoryAdjustment = () => {
     // --- MASTER DATA ---
     const [categories, setCategories] = useState([]);
@@ -22,7 +22,7 @@ const InventoryAdjustment = () => {
 
     const [currentStock, setCurrentStock] = useState(null); // Lưu tồn kho hiện tại để hiển thị
 
-    const BASE_URL = 'https://localhost:7298';
+    //const BASE_URL = 'https://localhost:7298';
 
     // 1. LOAD DATA
     useEffect(() => {
@@ -30,8 +30,8 @@ const InventoryAdjustment = () => {
             try {
                 setLoading(true);
                 const [resCat, resProd] = await Promise.all([
-                    axios.get(`${BASE_URL}/api/TblCategories`),
-                    axios.get(`${BASE_URL}/api/TblProducts/filter`) // API này đã trả về variants
+                    axios.get(`${API_BASE}/api/TblCategories`),
+                    axios.get(`${API_BASE}/api/TblProducts/filter`) // API này đã trả về variants
                 ]);
 
                 setCategories(resCat.data?.$values || resCat.data || []);
@@ -107,7 +107,7 @@ const InventoryAdjustment = () => {
         };
 
         try {
-            await axios.post(`${BASE_URL}/api/InventoryAdjustments`, payload, {
+            await axios.post(`${API_BASE}/api/InventoryAdjustments`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             

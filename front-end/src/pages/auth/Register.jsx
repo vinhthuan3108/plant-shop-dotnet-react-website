@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify'; 
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function Register() {
     const navigate = useNavigate();
     
@@ -78,7 +78,7 @@ function Register() {
                 phoneNumber: formData.phoneNumber
             };
 
-            const res = await fetch('https://localhost:7298/api/Auth/register', {
+            const res = await fetch(`${API_BASE}/api/Auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

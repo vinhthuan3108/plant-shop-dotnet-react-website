@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaEye, FaPrint, FaCalendarAlt, FaSearch, FaTrash, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const ImportReceiptList = () => {
     // --- STATE QUẢN LÝ DỮ LIỆU ---
     const [receipts, setReceipts] = useState([]);
@@ -20,7 +20,7 @@ const ImportReceiptList = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState([]); 
 
-    const BASE_URL = 'https://localhost:7298';
+    //const BASE_URL = 'https://localhost:7298';
 
     // 1. FETCH DANH SÁCH PHIẾU
     const fetchReceipts = async () => {
@@ -31,7 +31,7 @@ const ImportReceiptList = () => {
             if (filters.toDate) params.append('toDate', filters.toDate);
             if (filters.supplierId) params.append('supplierId', filters.supplierId);
 
-            const res = await axios.get(`${BASE_URL}/api/ImportReceipts?${params.toString()}`);
+            const res = await axios.get(`${API_BASE}/api/ImportReceipts?${params.toString()}`);
             const data = res.data?.$values || res.data;
             setReceipts(Array.isArray(data) ? data : []);
             
@@ -58,7 +58,7 @@ const ImportReceiptList = () => {
     const viewDetail = async (id) => {
         setIsEditing(false);
         try {
-            const res = await axios.get(`${BASE_URL}/api/ImportReceipts/${id}`);
+            const res = await axios.get(`${API_BASE}/api/ImportReceipts/${id}`);
             const data = res.data?.$values || res.data;
             setSelectedDetail({
                 id: id,
@@ -77,7 +77,7 @@ const ImportReceiptList = () => {
             return;
         }
         try {
-            await axios.delete(`${BASE_URL}/api/ImportReceipts/${id}`);
+            await axios.delete(`${API_BASE}/api/ImportReceipts/${id}`);
             alert("Xóa phiếu và hoàn tác kho thành công!");
             fetchReceipts(); 
         } catch (err) {
@@ -118,7 +118,7 @@ const ImportReceiptList = () => {
                 DetailId: item.detailId,
                 NewImportPrice: item.importPrice
             }));
-            await axios.put(`${BASE_URL}/api/ImportReceipts/${selectedDetail.id}/update-price`, payload);
+            await axios.put(`${API_BASE}/api/ImportReceipts/${selectedDetail.id}/update-price`, payload);
             
             alert("Cập nhật giá vốn thành công!");
             setIsEditing(false);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PostModal from '../../components/admin/PostModal';
 import axios from 'axios';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const AdminPosts = () => {
     // --- STATE QUẢN LÝ DỮ LIỆU ---
     const [posts, setPosts] = useState([]);
@@ -13,7 +13,7 @@ const AdminPosts = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; // Số lượng hiển thị mỗi trang
 
-    const API_BASE = 'https://localhost:7298';
+    //const API_BASE = 'https://localhost:7298';
     const navigate = useNavigate();
 
     const fetchPosts = async () => {

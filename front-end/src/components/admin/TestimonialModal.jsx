@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function TestimonialModal({ isOpen, onClose, onSubmit, initialData }) {
-    const API_HOST = 'https://localhost:7298';
+    //const API_HOST = 'https://localhost:7298';
     const [name, setName] = useState('');
     const [role, setRole] = useState('');
     const [content, setContent] = useState('');
@@ -57,7 +57,7 @@ function TestimonialModal({ isOpen, onClose, onSubmit, initialData }) {
 
         try {
             // Gọi đúng type 'testimonials' để backend lưu vào folder testimonials
-            const res = await fetch('https://localhost:7298/api/Upload/testimonials', {
+            const res = await fetch(`${API_BASE}/api/Upload/testimonials`, {
                 method: 'POST',
                 body: formData
             });

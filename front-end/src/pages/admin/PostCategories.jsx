@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import PostCategoryModal from '../../components/admin/PostCategoryModal';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function PostCategories() {
     // --- STATE DỮ LIỆU ---
     const [categories, setCategories] = useState([]);
@@ -11,7 +11,7 @@ function PostCategories() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; // Số lượng hiển thị mỗi trang
 
-    const API_URL = 'https://localhost:7298/api/TblPostCategories';
+    const API_URL = `${API_BASE}/api/TblPostCategories`;
 
     const fetchCategories = () => {
         fetch(API_URL)

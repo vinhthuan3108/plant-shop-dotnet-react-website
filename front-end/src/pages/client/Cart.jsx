@@ -3,12 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { FaTrash, FaMinus, FaPlus, FaArrowLeft } from 'react-icons/fa';
 import './Cart.css'; // Import file CSS vừa tạo
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const Cart = () => {
     // SỬA 1: Lấy 'totalAmount' thay vì 'cartTotal'
     const { cartItems, removeFromCart, updateQuantity, totalAmount } = useContext(CartContext);
     const navigate = useNavigate();
-    const BASE_URL = 'https://localhost:7298';
+    //const BASE_URL = 'https://localhost:7298';
 
     if (cartItems.length === 0) {
         return (
@@ -48,7 +48,7 @@ const Cart = () => {
                                         <div className="product-info-cell">
                                             {/* SỬA 2: Dùng 'item.image' */}
                                             <img 
-                                                src={item.image ? (item.image.startsWith('http') ? item.image : `${BASE_URL}${item.image}`) : 'https://via.placeholder.com/80'} 
+                                                src={item.image ? (item.image.startsWith('http') ? item.image : `${API_BASE}${item.image}`) : 'https://via.placeholder.com/80'} 
                                                 alt={item.productName} 
                                                 className="cart-img"
                                             />

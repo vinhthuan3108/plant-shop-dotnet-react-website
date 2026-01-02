@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import CategoryModal from "../../components/admin/CategoryModal"
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function Categories() {
     // --- STATE DỮ LIỆU ---
     const [categories, setCategories] = useState([]);
@@ -11,7 +11,7 @@ function Categories() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; // Số lượng hiển thị mỗi trang
 
-    const API_URL = 'https://localhost:7298/api/TblCategories'; 
+    const API_URL = `${API_BASE}/api/TblCategories`; 
 
     const fetchCategories = () => {
         fetch(API_URL)

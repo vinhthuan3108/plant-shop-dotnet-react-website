@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import TestimonialModal from "../../components/admin/TestimonialModal";
 // Nhớ import đúng đường dẫn
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function Testimonials() {
     // --- STATE DỮ LIỆU ---
     const [testimonials, setTestimonials] = useState([]);
@@ -12,16 +12,16 @@ function Testimonials() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; // Số lượng hiển thị mỗi trang
 
-    const API_HOST = 'https://localhost:7298';
+    //const API_BASE = 'https://localhost:7298';
     // Đường dẫn API
-    const API_URL = 'https://localhost:7298/api/TblTestimonials';
+    const API_URL = `${API_BASE}/api/TblTestimonials`;
 
     const getImageUrl = (url) => {
         if (!url) return null;
         // Nếu link đã là http... (link ngoài) thì giữ nguyên
         if (url.startsWith('http')) return url;
         // Nếu là link nội bộ (/testimonials/...) thì nối thêm domain API
-        return `${API_HOST}${url}`;
+        return `${API_BASE}${url}`;
     }
 
     const fetchTestimonials = () => {

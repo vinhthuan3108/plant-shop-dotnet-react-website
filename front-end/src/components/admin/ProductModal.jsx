@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import ReactQuill from 'react-quill-new'; 
 import 'react-quill-new/dist/quill.snow.css';
 import { FaTrash, FaPlus } from 'react-icons/fa'; 
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
     // --- STATE CHUNG ---
     const [code, setCode] = useState('');
@@ -29,7 +29,7 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
     // --- CẤU HÌNH EDITOR (Giữ nguyên) ---
     const shortQuillRef = useRef(null);
     const detailQuillRef = useRef(null);
-    const API_BASE = 'https://localhost:7298';
+    //const API_BASE = 'https://localhost:7298';
 
     const uploadFileForEditor = async (file) => {
         const formData = new FormData();
