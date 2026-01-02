@@ -10,9 +10,8 @@ public partial class TblOrderDetail
 
     public int OrderId { get; set; }
 
-    public int VariantId { get; set; } // Thay ProductId
+    public int VariantId { get; set; } 
 
-    // Lưu cứng tên lúc mua để không bị đổi khi Admin sửa tên sản phẩm
     public string? ProductName { get; set; }
     public string? VariantName { get; set; }
 

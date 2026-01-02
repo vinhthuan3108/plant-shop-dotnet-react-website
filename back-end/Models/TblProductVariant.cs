@@ -13,14 +13,14 @@ public partial class TblProductVariant
     public decimal? SalePrice { get; set; }
     public int? StockQuantity { get; set; }
     public decimal Weight { get; set; } = 0;
-    public int? MinStockAlert { get; set; } // Đã thêm ở bước trước
+    public int? MinStockAlert { get; set; } 
     public int? ImageId { get; set; }
     public bool? IsActive { get; set; }
     public bool? IsDeleted { get; set; }
 
-    // --- SỬA DÒNG DƯỚI ĐÂY ---
+
     [JsonIgnore]
-    public virtual TblProduct? Product { get; set; } // Thêm dấu ? và bỏ = null!
+    public virtual TblProduct? Product { get; set; } 
 
     [JsonIgnore]
     public virtual TblProductImage? Image { get; set; }

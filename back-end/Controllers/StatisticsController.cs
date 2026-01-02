@@ -23,7 +23,7 @@ namespace back_end.Controllers
             _httpContextAccessor = httpContextAccessor;
         }
 
-        // Hàm helper xử lý URL ảnh
+        //Hàm helper xử lý URL ảnh
         private string GetFullImageUrl(string relativePath)
         {
             if (string.IsNullOrEmpty(relativePath)) return "";
@@ -36,7 +36,7 @@ namespace back_end.Controllers
             return $"{baseUrl}{formattedPath}";
         }
 
-        // 1. Thống kê Doanh thu & Lợi nhuận
+        //Thống kê Doanh thu & Lợi nhuận
         [HttpGet("revenue")]
         public async Task<ActionResult<StatisticsResponse>> GetRevenueStats(DateTime startDate, DateTime endDate)
         {
@@ -110,7 +110,7 @@ namespace back_end.Controllers
             return Ok(response);
         }
 
-        // 2. Thống kê Sản phẩm (Bán chạy & Tồn kho)
+        //Thống kê Sản phẩm (Bán chạy & Tồn kho)
         [HttpGet("products")]
         public async Task<ActionResult<ProductStatsResponse>> GetProductStats(
             DateTime startDate,
@@ -123,7 +123,7 @@ namespace back_end.Controllers
             var fromDate = startDate.Date;
             var toDate = endDate.Date.AddDays(1).AddTicks(-1);
 
-            // --- A. TÍNH GIÁ VỐN TRUNG BÌNH ---
+            //tính giá vốn trung bình
             var importStats = await _context.TblImportReceiptDetails
                 .GroupBy(x => x.VariantId)
                 .Select(g => new
@@ -135,7 +135,7 @@ namespace back_end.Controllers
 
             var avgCostMap = importStats.ToDictionary(k => k.VariantId, v => v.AvgCost);
 
-            // --- B. XỬ LÝ TOP SẢN PHẨM BÁN CHẠY (CÓ PHÂN TRANG) ---
+            //xử lý top sản phẩm bán chạy
             var query = _context.TblOrderDetails
                 .Include(d => d.Order)
                 .Include(d => d.Variant)
@@ -155,7 +155,7 @@ namespace back_end.Controllers
 
             var orderDetails = await query.ToListAsync();
 
-            // Group dữ liệu và tính toán
+            //Group dữ liệu và tính toán
             var groupedStats = orderDetails
                 .GroupBy(d => d.Variant.ProductId)
                 .Select(g => {
@@ -181,7 +181,7 @@ namespace back_end.Controllers
                 .OrderByDescending(x => x.QuantitySold)
                 .ToList();
 
-            // Phân trang trên RAM
+            //Phân trang trên RAM
             int totalItems = groupedStats.Count;
             int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 
@@ -190,7 +190,7 @@ namespace back_end.Controllers
                 .Take(pageSize)
                 .ToList();
 
-            // --- C. BIỂU ĐỒ TRÒN (CATEGORY SHARE) ---
+            //biểu đồ tròn
             var categoryShares = orderDetails
                 .GroupBy(d => d.Variant.Product.Category.CategoryName)
                 .Select(g => new CategoryShareDto
@@ -200,8 +200,7 @@ namespace back_end.Controllers
                 })
                 .ToList();
 
-            // --- D. HÀNG TỒN KHO LÂU (SLOW MOVING) ---
-            // Đã thêm lại đoạn code bị thiếu ở đây
+            //hàng tồn kho lâu
             var thresholdDate = DateTime.Now.AddDays(-slowMovingDays);
 
             var inventoryProducts = await _context.TblProducts
@@ -253,16 +252,16 @@ namespace back_end.Controllers
                 .Take(20)
                 .ToList();
 
-            // --- E. TRẢ VỀ KẾT QUẢ ---
+
             return Ok(new ProductStatsResponse
             {
-                TopProducts = pagedTopProducts, // Danh sách đã phân trang
-                TotalProducts = totalItems,     // Tổng số SP
-                TotalPages = totalPages,        // Tổng số trang
-                CurrentPage = page,             // Trang hiện tại
+                TopProducts = pagedTopProducts, 
+                TotalProducts = totalItems,     
+                TotalPages = totalPages,        
+                CurrentPage = page,            
 
                 CategoryShares = categoryShares,
-                SlowMovingProducts = slowMovingList // Biến này giờ đã tồn tại
+                SlowMovingProducts = slowMovingList 
             });
         }
     }

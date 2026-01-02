@@ -13,21 +13,19 @@ public class SuppliersController : ControllerBase
         _context = context;
     }
 
-    // GET: api/Suppliers
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TblSupplier>>> GetSuppliers()
     {
         return await _context.TblSuppliers.ToListAsync();
     }
 
-    // POST: api/Suppliers
     [HttpPost]
     public async Task<ActionResult<TblSupplier>> PostSupplier(SupplierDto dto)
     {
         var supplier = new TblSupplier
         {
             SupplierName = dto.SupplierName,
-            Email = dto.Email, // <--- THÊM DÒNG NÀY
+            Email = dto.Email, 
             PhoneNumber = dto.PhoneNumber,
             Address = dto.Address,
             Note = dto.Note
@@ -38,7 +36,7 @@ public class SuppliersController : ControllerBase
         return Ok(supplier);
     }
 
-    // PUT: api/Suppliers/5
+
     [HttpPut("{id}")]
     public async Task<IActionResult> PutSupplier(int id, SupplierDto dto)
     {
@@ -46,7 +44,7 @@ public class SuppliersController : ControllerBase
         if (supplier == null) return NotFound();
 
         supplier.SupplierName = dto.SupplierName;
-        supplier.Email = dto.Email; // <--- THÊM DÒNG NÀY
+        supplier.Email = dto.Email; 
         supplier.PhoneNumber = dto.PhoneNumber;
         supplier.Address = dto.Address;
         supplier.Note = dto.Note;
@@ -55,7 +53,6 @@ public class SuppliersController : ControllerBase
         return NoContent();
     }
 
-    // DELETE: api/Suppliers/5
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteSupplier(int id)
     {

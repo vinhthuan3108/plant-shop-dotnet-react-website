@@ -5,7 +5,7 @@ namespace back_end.Helpers
 {
     public static class SecurityHelper
     {
-        // Key này nên lấy từ appsettings, nhưng để hàm này độc lập, ta sẽ truyền key vào từ bên ngoài
+        //cái key nên lưu nốt ở appsetting????-
         public static string Encrypt(string plainText, string key)
         {
             if (string.IsNullOrEmpty(plainText)) return plainText;

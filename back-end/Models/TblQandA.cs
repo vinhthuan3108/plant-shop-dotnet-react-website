@@ -11,11 +11,11 @@ namespace back_end.Models
         [Key]
         public int Id { get; set; }
 
-        public string Question { get; set; } = null!; // Câu hỏi
+        public string Question { get; set; } = null!; 
 
-        public string Answer { get; set; } = null!;   // Câu trả lời
+        public string Answer { get; set; } = null!;   
 
-        public bool IsActive { get; set; }            // Trạng thái hiển thị
+        public bool IsActive { get; set; }           
         public int DisplayOrder { get; set; }
     }
 }

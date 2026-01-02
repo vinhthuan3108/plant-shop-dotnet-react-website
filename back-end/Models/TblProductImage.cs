@@ -12,9 +12,8 @@ public partial class TblProductImage
     public bool? IsThumbnail { get; set; }
     public int? DisplayOrder { get; set; }
 
-    // --- SỬA DÒNG DƯỚI ĐÂY ---
     [JsonIgnore]
-    public virtual TblProduct? Product { get; set; } // Thêm dấu ?
+    public virtual TblProduct? Product { get; set; } 
 
     [JsonIgnore]
     public virtual ICollection<TblProductVariant> TblProductVariants { get; set; } = new List<TblProductVariant>();

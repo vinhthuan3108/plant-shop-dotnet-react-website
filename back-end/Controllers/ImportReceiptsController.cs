@@ -16,7 +16,7 @@ public class ImportReceiptsController : ControllerBase
         _context = context;
     }
 
-    // GET: api/ImportReceipts
+
     [HttpGet]
     public async Task<ActionResult> GetReceipts(DateTime? fromDate, DateTime? toDate, int? supplierId)
     {
@@ -42,20 +42,19 @@ public class ImportReceiptsController : ControllerBase
         return Ok(result);
     }
 
-    // GET: api/ImportReceipts/5
+
     [HttpGet("{id}")]
     public async Task<ActionResult> GetReceiptDetail(int id)
     {
         // 
         var detail = await _context.TblImportReceiptDetails
-            .Include(d => d.Variant)          // Link tới Variant
-                .ThenInclude(v => v.Product)  // Từ Variant lấy thông tin Product
+            .Include(d => d.Variant)          
+                .ThenInclude(v => v.Product)  
             .Where(d => d.ReceiptId == id)
             .Select(d => new
             {
                 d.DetailId,
-                d.VariantId, // Trả về VariantId
-                // Lấy tên sản phẩm + tên biến thể
+                d.VariantId, 
                 ProductName = d.Variant.Product.ProductName,
                 VariantName = d.Variant.VariantName,
 
@@ -68,10 +67,10 @@ public class ImportReceiptsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "1, 4")]
+    [Authorize(Roles = "1, 4")] //admin và kho
     public async Task<IActionResult> CreateReceipt(ImportReceiptCreateDto dto)
     {
-        var userIdClaim = User.FindFirst("UserId"); // Hoặc ClaimTypes.NameIdentifier tùy cấu hình
+        var userIdClaim = User.FindFirst("UserId"); 
         if (userIdClaim == null) return Unauthorized(new { message = "Không tìm thấy thông tin người dùng." });
 
         int loggedInUserId = int.Parse(userIdClaim.Value);
@@ -99,7 +98,7 @@ public class ImportReceiptsController : ControllerBase
                 var detail = new TblImportReceiptDetail
                 {
                     ReceiptId = receipt.ReceiptId,
-                    VariantId = item.VariantId, // Sửa ProductId -> VariantId
+                    VariantId = item.VariantId, 
                     Quantity = item.Quantity,
                     ImportPrice = item.ImportPrice
                 };
@@ -110,13 +109,9 @@ public class ImportReceiptsController : ControllerBase
                 if (variant != null)
                 {
                     variant.StockQuantity = (variant.StockQuantity ?? 0) + item.Quantity;
-                    // Nếu muốn cập nhật giá gốc theo giá nhập mới (tùy logic):
-                    // variant.OriginalPrice = item.ImportPrice; 
                 }
             }
 
-            // Cập nhật UpdatedAt của sản phẩm cha (để biết mới có thay đổi)
-            // Logic này tùy chọn, nhưng tốt cho việc tracking
             var variantIds = dto.Details.Select(d => d.VariantId).Distinct().ToList();
             var productsToUpdate = await _context.TblProductVariants
                 .Where(v => variantIds.Contains(v.VariantId))
@@ -137,7 +132,7 @@ public class ImportReceiptsController : ControllerBase
             return StatusCode(500, $"Lỗi hệ thống: {ex.Message}");
         }
     }
-    // PUT: api/ImportReceipts/5/update-price
+
     [HttpPut("{id}/update-price")]
     
     public async Task<IActionResult> UpdateReceiptPrice(int id, [FromBody] List<UpdateReceiptPriceDto> updates)
@@ -147,7 +142,7 @@ public class ImportReceiptsController : ControllerBase
         {
             var receipt = await _context.TblImportReceipts
                 .Include(r => r.TblImportReceiptDetails)
-                .ThenInclude(d => d.Variant) // Include để cập nhật lại giá gốc SP nếu cần
+                .ThenInclude(d => d.Variant) 
                 .FirstOrDefaultAsync(r => r.ReceiptId == id);
 
             if (receipt == null) return NotFound("Không tìm thấy phiếu nhập.");
@@ -161,18 +156,16 @@ public class ImportReceiptsController : ControllerBase
 
                 if (updateItem != null)
                 {
-                    // 1. Cập nhật giá nhập trong lịch sử
+
                     detail.ImportPrice = updateItem.NewImportPrice;
 
-                    // 2. Tùy chọn: Cập nhật lại giá vốn hiện tại của sản phẩm (OriginalPrice)
-                    // Nếu đây là phiếu nhập sai làm giá vốn hiện tại bị sai, ta cần sửa lại nó.
+
                     if (detail.Variant != null)
                     {
                         detail.Variant.OriginalPrice = updateItem.NewImportPrice;
                     }
                 }
 
-                // Cộng dồn lại tổng tiền phiếu
                 newTotalAmount += detail.Quantity * detail.ImportPrice;
             }
 
@@ -191,13 +184,12 @@ public class ImportReceiptsController : ControllerBase
         }
     }
     [HttpDelete("{id}")]
-     // Chỉ cho phép Admin hoặc Quản lý xóa
     public async Task<IActionResult> DeleteReceipt(int id)
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // 1. Lấy thông tin phiếu và chi tiết, kèm theo thông tin Variant để check kho
+            //Lấy thông tin phiếu và chi tiết, kèm hông tin Variant để check kho
             var receipt = await _context.TblImportReceipts
                 .Include(r => r.TblImportReceiptDetails)
                     .ThenInclude(d => d.Variant)
@@ -206,7 +198,7 @@ public class ImportReceiptsController : ControllerBase
             if (receipt == null)
                 return NotFound(new { message = "Không tìm thấy phiếu nhập." });
 
-            // 2. KIỂM TRA ĐIỀU KIỆN AN TOÀN KHO
+            // check điều kiện
             foreach (var detail in receipt.TblImportReceiptDetails)
             {
                 // Nếu sản phẩm/biến thể đã bị xóa hoặc không tồn tại
@@ -214,8 +206,8 @@ public class ImportReceiptsController : ControllerBase
 
                 int currentStock = detail.Variant.StockQuantity ?? 0;
 
-                // Logic quan trọng: Nếu tồn kho hiện tại < số lượng đã nhập
-                // Nghĩa là hàng đã bị bán đi rồi -> Không được phép xóa phiếu này để tránh âm kho
+                //Nếu tồn kho hiện tại < số lượng đã nhập
+                //   hàng đã bị bán -> Không được phép xóa phiếu này để tránh âm kho
                 if (currentStock < detail.Quantity)
                 {
                     return BadRequest(new
@@ -225,18 +217,18 @@ public class ImportReceiptsController : ControllerBase
                 }
             }
 
-            // 3. NẾU THỎA MÃN, TIẾN HÀNH TRỪ KHO VÀ XÓA
+            //nếu thỏa, trừ kho và xóa
             foreach (var detail in receipt.TblImportReceiptDetails)
             {
                 if (detail.Variant != null)
                 {
                     detail.Variant.StockQuantity -= detail.Quantity;
-                    // Đảm bảo không âm (dù logic trên đã check, nhưng check lại cho chắc)
+                    // Đảm bảo không âm
                     if (detail.Variant.StockQuantity < 0) detail.Variant.StockQuantity = 0;
                 }
             }
 
-            // Xóa chi tiết và phiếu (Cascade delete thường tự xử lý chi tiết, nhưng code rõ ràng thì tốt hơn)
+            // Xóa chi tiết và phiếu
             _context.TblImportReceiptDetails.RemoveRange(receipt.TblImportReceiptDetails);
             _context.TblImportReceipts.Remove(receipt);
 

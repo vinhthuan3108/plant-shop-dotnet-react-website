@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace back_end.Services
 {
-    // Interface để tiện Dependency Injection
     public interface IShippingCalculatorService
     {
         Task<decimal> CalculateShippingFeeAsync(string customerProvinceCode, decimal totalWeightKg);
@@ -24,34 +23,34 @@ namespace back_end.Services
 
         public async Task<decimal> CalculateShippingFeeAsync(string customerProvinceCode, decimal totalWeightKg)
         {
-            // 1. Lấy mã tỉnh của Cửa hàng từ Config
+            // Lấy mã tỉnh của Cửa hàng từ Config
             var storeConfig = await _context.TblSystemConfigs
                 .FirstOrDefaultAsync(c => c.ConfigKey == "Store_Province_Code");
 
-            string storeProvinceCode = storeConfig?.ConfigValue ?? ""; // Nếu chưa cấu hình thì rỗng
+            string storeProvinceCode = storeConfig?.ConfigValue ?? ""; 
 
-            // 2. Xác định loại vận chuyển (Nội tỉnh / Nội miền / Liên miền)
+            // Xác định loại vận chuyển (Nội tỉnh/ Nội miền / Liên miền)
             // Kết quả trả về string: "INNER_PROVINCE", "INNER_REGION", hoặc "INTER_REGION"
             string zoneType = VietnamZoneHelper.DetermineZoneType(storeProvinceCode, customerProvinceCode);
 
-            // 3. Lấy bảng giá từ DB
-            // Chúng ta cần lấy quy tắc GỐC (Base) và quy tắc BƯỚC NHẢY (Step)
+            //Lấy bảng giá từ DB
+            //có quy tắc Gốc và bước nhảy lũy tiến
             var rules = await _context.TblShippingRules.ToListAsync();
 
             var baseRule = rules.FirstOrDefault(r => r.IsBaseRule == true);
             var stepRule = rules.FirstOrDefault(r => r.IsBaseRule == false);
 
-            if (baseRule == null) return 30000; // Fallback: Nếu admin chưa nhập bảng giá, trả về giá mặc định 30k
+            if (baseRule == null) return 30000; //Nếu nhân viên chưa nhập giá có mặc định 30k
 
-            // 4. Tính toán chi tiết
+
             decimal finalFee = 0;
 
-            // --- Lấy giá theo vùng ---
+            
             decimal GetPriceByZone(TblShippingRule rule)
             {
                 if (zoneType == "INNER_PROVINCE") return rule.PriceInnerProvince;
                 if (zoneType == "INNER_REGION") return rule.PriceInnerRegion;
-                return rule.PriceInterRegion; // Liên miền
+                return rule.PriceInterRegion; // này là Liên miền
             }
 
             decimal basePrice = GetPriceByZone(baseRule);
@@ -64,14 +63,14 @@ namespace back_end.Services
             else
             {
                 // Hàng vượt mức cơ bản -> Tính thêm tiền bước nhảy
-                // VD: Nặng 70kg. Base = 50kg. Dư 20kg.
+                // Vd: Nặng 70kg. Base = 50kg. Dư 20kg.
                 decimal overWeight = totalWeightKg - baseRule.WeightCriteria;
 
                 if (stepRule != null && stepRule.WeightCriteria > 0)
                 {
                     decimal stepPrice = GetPriceByZone(stepRule);
 
-                    // Công thức: Số bước nhảy = Làm tròn lên (Dư / Bước)
+                    // sốbước nhảy sẽ = Làm tròn lên (Dư / Bước)
                     // VD: Dư 20kg, Bước 10kg => 2 bước.
                     // VD: Dư 21kg, Bước 10kg => 3 bước.
                     int steps = (int)Math.Ceiling(overWeight / stepRule.WeightCriteria);
@@ -80,7 +79,7 @@ namespace back_end.Services
                 }
                 else
                 {
-                    // Nếu không có cấu hình bước nhảy, cứ lấy giá base (hoặc xử lý tùy ý)
+                    
                     finalFee = basePrice;
                 }
             }

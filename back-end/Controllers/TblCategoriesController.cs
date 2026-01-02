@@ -19,30 +19,22 @@ namespace back_end.Controllers
         {
             _context = context;
         }
-        // API 1: Lấy danh sách danh mục hiển thị cho khách hàng (Public)
-        // Chỉ lấy những cái IsActive = true và sắp xếp theo thứ tự
-        [HttpGet("test")]
-        public IActionResult Test()
-        {
-            return Ok("Hello, API đã chạy ngon lành!");
-        }
+        // APILấy danh sách danh mục hiển thị cho khách hàng
+        
         [HttpGet("active")]
         public async Task<ActionResult<IEnumerable<TblCategory>>> GetActiveCategories()
         {
             return await _context.TblCategories
                 .Where(c => c.IsActive == true)
-                .OrderBy(c => c.DisplayOrder) // Sắp xếp theo thứ tự ưu tiên
+                .OrderBy(c => c.DisplayOrder) 
                 .ToListAsync();
         }
-        // GET: api/TblCategories
-        // GET: api/TblCategories
-        // GET: api/TblCategories
+
         [HttpGet]
         public async Task<IActionResult> GetTblCategories()
         {
             try
             {
-                // Thử kết nối và lấy dữ liệu
                 var categories = await _context.TblCategories
                     .Where(c => c.IsDeleted == false || c.IsDeleted == null)
                     .OrderBy(c => c.DisplayOrder)
@@ -62,17 +54,15 @@ namespace back_end.Controllers
             }
             catch (Exception ex)
             {
-                // NẾU LỖI: In chi tiết lỗi ra màn hình cho bạn đọc
                 return BadRequest(new
                 {
-                    Loi = "Chết ở bước kết nối Database rồi!",
+                    Loi = "...",
                     ChiTiet = ex.Message,
                     LoiSauCung = ex.InnerException?.Message
                 });
             }
         }
 
-        // GET: api/TblCategories/5
         [HttpGet("{id}")]
         public async Task<ActionResult<TblCategory>> GetTblCategory(int id)
         {
@@ -90,30 +80,28 @@ namespace back_end.Controllers
         {
             // 1. Truy vấn từ chi tiết đơn hàng để tính thực tế số lượng bán
             var topCategories = await _context.TblOrderDetails
-                // Join các bảng liên quan (Tham khảo logic từ StatisticsController [cite: 67, 68])
+ 
                 .Include(d => d.Order)
                 .Include(d => d.Variant)
                     .ThenInclude(v => v.Product)
                         .ThenInclude(p => p.Category)
-                // QUAN TRỌNG: Chỉ tính đơn hàng đã hoàn thành "Completed" (Theo logic thống kê [cite: 69])
+
                 .Where(d => d.Order.OrderStatus == "Completed")
                 // Nhóm theo Category
                 .GroupBy(d => d.Variant.Product.Category)
                 .Select(g => new
                 {
                     Category = g.Key,
-                    TotalSold = g.Sum(d => d.Quantity) // Tính tổng số lượng bán
+                    TotalSold = g.Sum(d => d.Quantity) 
                 })
-                // Sắp xếp giảm dần theo số lượng bán
                 .OrderByDescending(x => x.TotalSold)
                 // Lấy 4 danh mục đầu tiên
                 .Take(4)
-                // Chỉ lấy đối tượng Category để trả về
                 .Select(x => x.Category)
                 .ToListAsync();
 
-            // (Tuỳ chọn) Fallback: Nếu web mới chưa có đơn hàng nào (list rỗng), 
-            // thì lấy 4 danh mục mặc định để Footer không bị trống.
+            //Nếu chưa có đơn hàng nào
+            // thì lấy 4 danh mục mặc định
             if (topCategories == null || topCategories.Count == 0)
             {
                 return await _context.TblCategories
@@ -125,7 +113,7 @@ namespace back_end.Controllers
 
             return Ok(topCategories);
         }
-        // PUT: api/TblCategories/5
+
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTblCategory(int id, TblCategory tblCategory)
         {
@@ -155,7 +143,6 @@ namespace back_end.Controllers
             return NoContent();
         }
 
-        // POST: api/TblCategories
         [HttpPost]
         public async Task<ActionResult<TblCategory>> PostTblCategory(TblCategory tblCategory)
         {
@@ -182,7 +169,6 @@ namespace back_end.Controllers
             return CreatedAtAction("GetTblCategory", new { id = tblCategory.CategoryId }, tblCategory);
         }
 
-        // DELETE: api/TblCategories/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTblCategory(int id)
         {
@@ -201,10 +187,10 @@ namespace back_end.Controllers
         public async Task<ActionResult<IEnumerable<TblCategory>>> GetFeaturedCategories()
         {
             return await _context.TblCategories
-                // Chỉ lấy danh mục đang hoạt động và chưa bị xóa (nếu logic của bạn cần)
+                // Chỉ lấy danh mục đang hoạt động và chưa bị xóa
                 .Where(c => c.IsActive == true && c.IsDeleted == false)
                 .OrderBy(c => c.DisplayOrder) 
-                .Take(4) // Chỉ lấy 4 cái
+                .Take(4)
                 .ToListAsync();
         }
         private bool TblCategoryExists(int id)

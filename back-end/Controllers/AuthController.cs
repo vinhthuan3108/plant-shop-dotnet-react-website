@@ -140,22 +140,22 @@ namespace back_end.Controllers
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordDto request)
         {
-            // 1. Kiểm tra email có tồn tại trong hệ thống không
+            
             var user = await _context.TblUsers.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (user == null)
             {
                 return BadRequest("Email không tồn tại trong hệ thống.");
             }
 
-            // 2. Tạo mã OTP ngẫu nhiên
+        
             string otp = new Random().Next(100000, 999999).ToString();
 
-            // 3. Lưu OTP vào Cache với key riêng (ví dụ: RESET_email) để không trùng với OTP đăng ký
+            //Lưu OTP vào Cache với key riêng (ví dụ: RESET_email) để không trùng với OTP đăng ký
             // Thời hạn 10 phút
             string cacheKey = $"RESET_{request.Email}";
             _cache.Set(cacheKey, otp, TimeSpan.FromMinutes(10));
 
-            // 4. Gửi email
+            
             try
             {
                 await _emailService.SendEmailAsync(request.Email, "Yêu cầu đặt lại mật khẩu",
@@ -190,15 +190,13 @@ namespace back_end.Controllers
             var user = await _context.TblUsers.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (user == null) return BadRequest("Lỗi người dùng.");
 
-            // 3. Hash mật khẩu mới và cập nhật
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
 
-            // Cập nhật ngày sửa đổi (nếu cần)
+
             user.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
 
-            // 4. Xóa OTP sau khi dùng xong
             _cache.Remove(cacheKey);
 
             return Ok("Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.");
@@ -206,25 +204,23 @@ namespace back_end.Controllers
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword(ChangePasswordDto request)
         {
-            // 1. Tìm user trong DB
             var user = await _context.TblUsers.FindAsync(request.UserId);
             if (user == null)
             {
                 return BadRequest("Tài khoản không tồn tại.");
             }
 
-            // 2. Kiểm tra mật khẩu cũ có đúng không
+            //Kiểm tra mật khẩu cũ có đúng không
             // Sử dụng BCrypt để so sánh mật khẩu nhập vào (request.CurrentPassword) với Hash trong DB
             if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
             {
                 return BadRequest("Mật khẩu hiện tại không đúng.");
             }
 
-            // 3. Hash mật khẩu mới và cập nhật
+            //Hash mật khẩu
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             user.UpdatedAt = DateTime.Now;
 
-            // 4. Lưu thay đổi
             await _context.SaveChangesAsync();
 
             return Ok("Đổi mật khẩu thành công.");

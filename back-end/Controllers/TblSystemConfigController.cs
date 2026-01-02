@@ -1,6 +1,6 @@
 ﻿using back_end.Helpers;
-using back_end.Models; // Thay namespace của bạn vào
-using Microsoft.AspNetCore.Hosting; // 1. Thêm thư viện này
+using back_end.Models; 
+using Microsoft.AspNetCore.Hosting; 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -20,7 +20,7 @@ public class PayOsSettingsDto
 }
 public class RecaptchaSettingsDto
 {
-    public string SiteKey { get; set; }   // Thêm cái này
+    public string SiteKey { get; set; }  
     public string SecretKey { get; set; }
 }
 namespace back_end.Controllers
@@ -31,9 +31,8 @@ namespace back_end.Controllers
     {
         private readonly DbplantShopThuanCuongContext _context;
 
-        private readonly IWebHostEnvironment _environment; // 3. Khai báo biến môi trường
+        private readonly IWebHostEnvironment _environment;
         private readonly IConfiguration _configuration;
-        // 4. Inject vào constructor
         public TblSystemConfigController(DbplantShopThuanCuongContext context, IWebHostEnvironment environment, IConfiguration configuration)
         {
             _context = context;
@@ -41,7 +40,6 @@ namespace back_end.Controllers
             _configuration = configuration;
         }
 
-        // GET: api/SystemConfig
         // Lấy danh sách cấu hình để hiển thị lên Header/Footer/Trang Admin
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TblSystemConfig>>> GetConfigs()
@@ -49,7 +47,6 @@ namespace back_end.Controllers
             return await _context.TblSystemConfigs.ToListAsync();
         }
 
-        // POST: api/SystemConfig/BulkUpdate
         // Dùng để Admin lưu một lúc nhiều cài đặt (Logo, SĐT, Email...)
         [HttpPost("BulkUpdate")]
         public async Task<IActionResult> BulkUpdate([FromBody] List<TblSystemConfig> configs)
@@ -66,35 +63,27 @@ namespace back_end.Controllers
 
                 if (existingConfig != null)
                 {
-                    // --- LOGIC XÓA ẢNH CŨ ---
-                    // Chỉ thực hiện nếu:
-                    // 1. Giá trị có thay đổi (người dùng up logo mới)
-                    // 2. Giá trị cũ không rỗng
+                    //xóa ảnh cũ
                     if (existingConfig.ConfigValue != item.ConfigValue && !string.IsNullOrEmpty(existingConfig.ConfigValue))
                     {
-                        // Thử tìm xem giá trị cũ có phải là đường dẫn file không
                         var oldRelativePath = existingConfig.ConfigValue.TrimStart('/');
                         var oldFullPath = Path.Combine(_environment.WebRootPath, oldRelativePath);
 
-                        // Nếu file tồn tại thì xóa (Chỉ ảnh mới tồn tại, còn số điện thoại/email thì hàm này trả về false -> an toàn)
                         if (System.IO.File.Exists(oldFullPath))
                         {
                             try
                             {
                                 System.IO.File.Delete(oldFullPath);
                             }
-                            catch { /* Bỏ qua lỗi nếu không xóa được */ }
+                            catch { }
                         }
                     }
-                    // ------------------------
-
                     // Cập nhật giá trị mới
                     existingConfig.ConfigValue = item.ConfigValue;
                     existingConfig.Description = item.Description ?? existingConfig.Description;
                 }
                 else
                 {
-                    // Thêm mới nếu chưa có
                     _context.TblSystemConfigs.Add(item);
                 }
             }
@@ -106,7 +95,7 @@ namespace back_end.Controllers
         [HttpPost("UpdateMailSettings")]
         public async Task<IActionResult> UpdateMailSettings([FromBody] MailSettingsDto request)
         {
-            // 1. Lưu Email (Không cần mã hóa)
+            //Lưu Email(Không cần mã hóa)
             var emailConfig = await _context.TblSystemConfigs.FirstOrDefaultAsync(x => x.ConfigKey == "Mail_User");
             if (emailConfig == null)
             {
@@ -115,7 +104,7 @@ namespace back_end.Controllers
             }
             emailConfig.ConfigValue = request.Email;
 
-            // 2. Lưu Password (CẦN MÃ HÓA)
+            //ưu Password (mã hóa)
             if (!string.IsNullOrEmpty(request.Password))
             {
                 var passConfig = await _context.TblSystemConfigs.FirstOrDefaultAsync(x => x.ConfigKey == "Mail_Password");
@@ -125,8 +114,8 @@ namespace back_end.Controllers
                     _context.TblSystemConfigs.Add(passConfig);
                 }
 
-                // Lấy SecretKey từ appsettings.json (Bạn nhớ thêm vào file json nhé)
-                string secretKey = _configuration["AppSettings:SecretKey"] ?? "KeyMacDinhChoDev123";
+                // Lấy SecretKey từ appsettings.json
+                string secretKey = _configuration["AppSettings:SecretKey"];
 
                 // Mã hóa trước khi gán vào Value
                 passConfig.ConfigValue = SecurityHelper.Encrypt(request.Password, secretKey);
@@ -141,7 +130,7 @@ namespace back_end.Controllers
             string secretKey = _configuration["AppSettings:SecretKey"];
             if (string.IsNullOrEmpty(secretKey)) return BadRequest("Server chưa cấu hình SecretKey!");
 
-            // --- 1. Lưu ClientId (MÃ HÓA LUÔN) ---
+            // client id
             if (!string.IsNullOrEmpty(request.ClientId))
             {
                 var clientIdConfig = await _context.TblSystemConfigs.FirstOrDefaultAsync(x => x.ConfigKey == "PayOS_ClientId");
@@ -150,11 +139,11 @@ namespace back_end.Controllers
                     clientIdConfig = new TblSystemConfig { ConfigKey = "PayOS_ClientId", Description = "PayOS Client ID (Encrypted)" };
                     _context.TblSystemConfigs.Add(clientIdConfig);
                 }
-                // Thay đổi ở đây: Encrypt cả ClientId
+                
                 clientIdConfig.ConfigValue = SecurityHelper.Encrypt(request.ClientId, secretKey);
             }
 
-            // --- 2. Lưu ApiKey (MÃ HÓA) ---
+            // api key
             if (!string.IsNullOrEmpty(request.ApiKey))
             {
                 var apiKeyConfig = await _context.TblSystemConfigs.FirstOrDefaultAsync(x => x.ConfigKey == "PayOS_ApiKey");
@@ -166,7 +155,7 @@ namespace back_end.Controllers
                 apiKeyConfig.ConfigValue = SecurityHelper.Encrypt(request.ApiKey, secretKey);
             }
 
-            // --- 3. Lưu ChecksumKey (MÃ HÓA) ---
+            // Lưu ChecksumKey
             if (!string.IsNullOrEmpty(request.ChecksumKey))
             {
                 var checksumConfig = await _context.TblSystemConfigs.FirstOrDefaultAsync(x => x.ConfigKey == "PayOS_ChecksumKey");
@@ -187,8 +176,7 @@ namespace back_end.Controllers
             string appSecretKey = _configuration["AppSettings:SecretKey"];
             if (string.IsNullOrEmpty(appSecretKey)) return BadRequest("Server chưa cấu hình SecretKey!");
 
-            // --- 1. LƯU SITE KEY (KHÔNG MÃ HÓA) ---
-            // Frontend cần đọc trực tiếp giá trị này nên ta lưu plain text
+            //lưu site key(plain ở hiển thị)
             if (!string.IsNullOrEmpty(request.SiteKey))
             {
                 var siteKeyConfig = await _context.TblSystemConfigs
@@ -203,10 +191,10 @@ namespace back_end.Controllers
                     };
                     _context.TblSystemConfigs.Add(siteKeyConfig);
                 }
-                siteKeyConfig.ConfigValue = request.SiteKey; // Lưu trực tiếp
+                siteKeyConfig.ConfigValue = request.SiteKey; 
             }
 
-            // --- 2. LƯU SECRET KEY (CÓ MÃ HÓA) ---
+            //secret key có mã hóa
             if (!string.IsNullOrEmpty(request.SecretKey))
             {
                 var secretKeyConfig = await _context.TblSystemConfigs
@@ -221,7 +209,7 @@ namespace back_end.Controllers
                     };
                     _context.TblSystemConfigs.Add(secretKeyConfig);
                 }
-                // Mã hóa trước khi lưu
+                // Mã hóa trước lúc lưu
                 secretKeyConfig.ConfigValue = SecurityHelper.Encrypt(request.SecretKey, appSecretKey);
             }
 

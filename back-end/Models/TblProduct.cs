@@ -16,7 +16,7 @@ public partial class TblProduct
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
-    // --- MỚI THÊM LẠI ---
+
     public DateTime? SaleStartDate { get; set; }
     public DateTime? SaleEndDate { get; set; }
 

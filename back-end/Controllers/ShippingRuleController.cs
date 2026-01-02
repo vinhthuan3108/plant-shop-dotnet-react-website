@@ -16,8 +16,7 @@ namespace back_end.Controllers
             _context = context;
         }
 
-        // GET: api/ShippingRule
-        // Lấy cấu hình hiện tại để hiển thị lên form Admin
+        // Lấy cấu hình hiện tại để hiển thị lên formAdmin
         [HttpGet]
         public async Task<IActionResult> GetConfig()
         {
@@ -37,12 +36,11 @@ namespace back_end.Controllers
             });
         }
 
-        // POST: api/ShippingRule
         // Lưu cấu hình mới
         [HttpPost]
         public async Task<IActionResult> UpdateConfig([FromBody] ShippingConfigDto request)
         {
-            // 1. Lưu vị trí cửa hàng
+            //vị trí
             var storeConfig = await _context.TblSystemConfigs.FindAsync("Store_Province_Code");
             if (storeConfig == null)
             {
@@ -68,7 +66,7 @@ namespace back_end.Controllers
             baseRule.PriceInnerRegion = request.BaseRule.PriceInnerRegion;
             baseRule.PriceInterRegion = request.BaseRule.PriceInterRegion;
 
-            // 3. Lưu Rule Lũy tiến (IsBaseRule = false)
+            // 3. Lưu luật khi kg nó tăng dân (IsBaseRule = false)
             var stepRule = await _context.TblShippingRules.FirstOrDefaultAsync(r => r.IsBaseRule == false);
             if (stepRule == null)
             {

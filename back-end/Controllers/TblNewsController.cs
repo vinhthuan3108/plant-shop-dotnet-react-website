@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using back_end.Models;
 
+
+//cái này không dùng nữa
 namespace back_end.Controllers
 {
     [Route("api/[controller]")]

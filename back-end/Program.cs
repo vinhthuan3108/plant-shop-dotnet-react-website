@@ -14,30 +14,26 @@ builder.Services.AddControllers().AddJsonOptions(x =>
 });
 builder.Services.AddOpenApi();
 
-// --- SỬA ĐỔI 1: Đọc Connection String từ appsettings.json ---
-// Thay vì viết cứng, ta lấy từ file cấu hình.
-// Lưu ý: Key "DefaultConnection" phải khớp với file appsettings.json bạn vừa sửa.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<DbplantShopThuanCuongContext>(options =>
     options.UseSqlServer(connectionString));
 
-// --- SỬA ĐỔI 2: Cấu hình CORS cho Netlify ---
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
         b => b.WithOrigins(
                 "http://localhost:3000",
                 "http://localhost:5173",
-                "https://ntuvinhthuan.id.vn",              // Domain chính của bạn
-                "https://dreamy-vacherin-ac9338.netlify.app/" // Domain gốc Netlify (đề phòng)
+                "https://ntuvinhthuan.id.vn",              // Domain 
+                "https://dreamy-vacherin-ac9338.netlify.app/" // Domain gốc Netlify
              )
               .AllowAnyMethod()
               .AllowAnyHeader());
 });
 
-// CẤU HÌNH AUTHENTICATION
 var secretKey = builder.Configuration["AppSettings:Token"];
-// Kiểm tra nếu chưa cấu hình Token thì báo lỗi hoặc gán giá trị mặc định để debug
+
 if (string.IsNullOrEmpty(secretKey))
 {
     secretKey = "Dung_Quen_Cau_Hinh_Token_Trong_AppSettings_Nhe";
@@ -64,10 +60,9 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-// Sử dụng Policy CORS đã định nghĩa ở trên
+
 app.UseCors("AllowReactApp");
 
-// Mở Swagger kể cả trên Production để dễ test (Tùy chọn, SmarterASP đôi khi cần cái này để check)
 
 app.MapOpenApi();
 

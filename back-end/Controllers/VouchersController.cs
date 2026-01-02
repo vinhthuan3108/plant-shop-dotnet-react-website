@@ -1,5 +1,4 @@
-﻿// Controllers/VouchersController.cs
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using back_end.Models;
 using back_end.DTOs;
@@ -17,7 +16,7 @@ namespace back_end.Controllers
             _context = context;
         }
 
-        // 2.2.3.2 Xem danh sách mã giảm giá (Có lọc và tìm kiếm)
+        //Xem danh sách mã giảm giá (Có lọc và tìm kiếm)
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TblVoucher>>> GetVouchers(string? search, bool? isActive)
         {
@@ -29,27 +28,25 @@ namespace back_end.Controllers
                 query = query.Where(v => v.Code.Contains(search));
             }
 
-            // Lọc theo trạng thái
             if (isActive.HasValue)
             {
                 query = query.Where(v => v.IsActive == isActive.Value);
             }
 
-            // Sắp xếp giảm dần theo ngày tạo (hoặc ID)
             return await query.OrderByDescending(v => v.VoucherId).ToListAsync();
         }
 
-        // 2.2.3.1 Tạo mã giảm giá mới
+        //Tạo mã giảm giá mới
         [HttpPost]
         public async Task<ActionResult<TblVoucher>> CreateVoucher(VoucherCreateUpdateDto dto)
         {
-            // 1. Kiểm tra trùng lặp Code
+            //Kiểm tra trùng lặp Code
             if (await _context.TblVouchers.AnyAsync(v => v.Code == dto.Code && v.IsActive == true))
             {
                 return BadRequest("Mã voucher này đang hoạt động và đã tồn tại.");
             }
 
-            // 2. Kiểm tra thời gian
+            //Kiểm tra thời gian
             if (dto.EndDate < dto.StartDate)
             {
                 return BadRequest("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.");
@@ -63,7 +60,7 @@ namespace back_end.Controllers
 
             var voucher = new TblVoucher
             {
-                Code = dto.Code.ToUpper(), // Lưu in hoa
+                Code = dto.Code.ToUpper(),
                 DiscountType = dto.DiscountType,
                 DiscountValue = dto.DiscountValue,
                 MaxDiscountAmount = dto.DiscountType == "PERCENT" ? dto.MaxDiscountAmount : null,
@@ -71,7 +68,7 @@ namespace back_end.Controllers
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
                 UsageLimit = dto.UsageLimit,
-                UsageCount = 0, // Mặc định chưa dùng
+                UsageCount = 0,
                 IsActive = true
             };
 
@@ -81,7 +78,7 @@ namespace back_end.Controllers
             return CreatedAtAction("GetVouchers", new { id = voucher.VoucherId }, voucher);
         }
 
-        // 2.2.3.3 Cập nhật mã giảm giá
+        //Cập nhật mã giảm giá
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateVoucher(int id, VoucherCreateUpdateDto dto)
         {
@@ -95,15 +92,12 @@ namespace back_end.Controllers
 
             if (hasUsed)
             {
-                // Cho phép sửa: Số lượng, Ngày kết thúc, VÀ GIÁ TRỊ ĐƠN TỐI THIỂU
+                // Cho phép sửa: Số lượng, Ngày kết thúc, giá trị đơn tối thiểu
                 voucher.UsageLimit = dto.UsageLimit;
                 voucher.EndDate = dto.EndDate;
 
-                // --- THÊM DÒNG NÀY ---
                 voucher.MinOrderValue = dto.MinOrderValue;
-                // ---------------------
 
-                // Các logic check lỗi giữ nguyên
                 if (voucher.DiscountValue != dto.DiscountValue || voucher.Code != dto.Code.ToUpper())
                 {
                     return BadRequest("Mã đã có người sử dụng, chỉ được phép thay đổi: Số lượng, Hạn dùng và Đơn tối thiểu.");
@@ -111,7 +105,7 @@ namespace back_end.Controllers
             }
             else
             {
-                // Logic cho voucher chưa dùng giữ nguyên
+                // Logic cho voucher chưa dùng 
                 if (voucher.Code != dto.Code.ToUpper() && await _context.TblVouchers.AnyAsync(v => v.Code == dto.Code && v.IsActive == true))
                 {
                     return BadRequest("Mã code mới bị trùng.");
@@ -131,7 +125,7 @@ namespace back_end.Controllers
             return Ok(voucher);
         }
 
-        // 2.2.3.4 Xóa hoặc ngừng kích hoạt
+        //Xóa hoặc ngừng kích hoạt
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteVoucher(int id)
         {
@@ -145,14 +139,14 @@ namespace back_end.Controllers
 
             if (hasUsed)
             {
-                // Nếu đã dùng -> Chỉ chuyển trạng thái sang ngưng hoạt động (Soft Delete)
+                // Nếu đã dùng -> Chỉ chuyển trạng thái sang ngưng dùng
                 voucher.IsActive = false;
                 await _context.SaveChangesAsync();
                 return Ok(new { message = "Mã đã có người dùng nên hệ thống chỉ tạm khóa (Ngừng kích hoạt)." });
             }
             else
             {
-                // Nếu chưa dùng -> Xóa vĩnh viễn (Hard Delete)
+                //nếu chưa dùng --> Xóa vĩnh viễn
                 _context.TblVouchers.Remove(voucher);
                 await _context.SaveChangesAsync();
                 return Ok(new { message = "Đã xóa mã giảm giá vĩnh viễn." });

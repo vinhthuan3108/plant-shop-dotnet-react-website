@@ -1,5 +1,5 @@
-﻿using back_end.Models; // Namespace chứa DbContext
-using back_end.Helpers; // Namespace chứa SecurityHelper
+﻿using back_end.Models; 
+using back_end.Helpers; 
 using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Net.Mail;
@@ -8,7 +8,7 @@ namespace back_end.Services
 {
     public class EmailService
     {
-        // Lưu ý: EmailService cần được đăng ký là Scoped (AddScoped) trong Program.cs thì mới Inject được DbContext
+
         private readonly DbplantShopThuanCuongContext _context;
         private readonly IConfiguration _configuration;
 
@@ -26,7 +26,7 @@ namespace back_end.Services
 
             if (emailConfig == null || passConfig == null || string.IsNullOrEmpty(emailConfig.ConfigValue))
             {
-                // Nếu chưa cấu hình thì return hoặc throw lỗi tùy bạn
+                
                 Console.WriteLine("Chưa cấu hình Email hệ thống.");
                 return;
             }
@@ -38,7 +38,7 @@ namespace back_end.Services
             string secretKey = _configuration["AppSettings:SecretKey"] ?? "KeyMacDinhChoDev123";
             string appPassword = SecurityHelper.Decrypt(encryptedPass, secretKey);
 
-            // 3. Gửi mail (Code cũ của bạn)
+            // 3. Gửi mail
             var smtpClient = new SmtpClient("smtp.gmail.com")
             {
                 Port = 587,
