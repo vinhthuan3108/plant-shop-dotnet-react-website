@@ -21,6 +21,11 @@ namespace back_end.Controllers
         }
         // API 1: Lấy danh sách danh mục hiển thị cho khách hàng (Public)
         // Chỉ lấy những cái IsActive = true và sắp xếp theo thứ tự
+        [HttpGet("test")]
+        public IActionResult Test()
+        {
+            return Ok("Hello, API đã chạy ngon lành!");
+        }
         [HttpGet("active")]
         public async Task<ActionResult<IEnumerable<TblCategory>>> GetActiveCategories()
         {
@@ -31,26 +36,40 @@ namespace back_end.Controllers
         }
         // GET: api/TblCategories
         // GET: api/TblCategories
+        // GET: api/TblCategories
         [HttpGet]
         public async Task<IActionResult> GetTblCategories()
         {
-            var categories = await _context.TblCategories
-                // --- SỬA: Lọc bỏ danh mục đã xóa ---
-                .Where(c => c.IsDeleted == false || c.IsDeleted == null)
-                .OrderBy(c => c.DisplayOrder) // Sắp xếp cho đẹp
-                .Select(c => new
-                {
-                    c.CategoryId,
-                    c.CategoryName,
-                    c.Description,
-                    c.DisplayOrder,
-                    c.IsActive,
-                    c.IsDeleted,
-                    ProductCount = c.TblProducts.Count()
-                })
-                .ToListAsync();
+            try
+            {
+                // Thử kết nối và lấy dữ liệu
+                var categories = await _context.TblCategories
+                    .Where(c => c.IsDeleted == false || c.IsDeleted == null)
+                    .OrderBy(c => c.DisplayOrder)
+                    .Select(c => new
+                    {
+                        c.CategoryId,
+                        c.CategoryName,
+                        c.Description,
+                        c.DisplayOrder,
+                        c.IsActive,
+                        c.IsDeleted,
+                        ProductCount = c.TblProducts.Count()
+                    })
+                    .ToListAsync();
 
-            return Ok(categories);
+                return Ok(categories);
+            }
+            catch (Exception ex)
+            {
+                // NẾU LỖI: In chi tiết lỗi ra màn hình cho bạn đọc
+                return BadRequest(new
+                {
+                    Loi = "Chết ở bước kết nối Database rồi!",
+                    ChiTiet = ex.Message,
+                    LoiSauCung = ex.InnerException?.Message
+                });
+            }
         }
 
         // GET: api/TblCategories/5
