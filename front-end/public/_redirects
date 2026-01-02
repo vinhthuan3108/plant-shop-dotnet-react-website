@@ -1,1 +1,10 @@
+# Cầu nối cho API (Dữ liệu)
 /api/* http://vinhthuan3108-001-site1.anytempurl.com/api/:splat  200!
+
+# Cầu nối cho HÌNH ẢNH (Dựa theo thư mục trong wwwroot)
+/banners/* http://vinhthuan3108-001-site1.anytempurl.com/banners/:splat      200!
+/products/* http://vinhthuan3108-001-site1.anytempurl.com/products/:splat     200!
+/posts/* http://vinhthuan3108-001-site1.anytempurl.com/posts/:splat        200!
+/testimonials/* http://vinhthuan3108-001-site1.anytempurl.com/testimonials/:splat 200!
+/users/* http://vinhthuan3108-001-site1.anytempurl.com/users/:splat        200!
+/configs/* http://vinhthuan3108-001-site1.anytempurl.com/configs/:splat      200!

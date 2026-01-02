@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './BlogDetail.css'; // Dùng lại CSS của trang chi tiết bài viết cho đẹp
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const IntroPage = () => {
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const API_BASE = 'https://localhost:7298'; 
+    //const API_BASE = 'https://localhost:7298'; 
 
     useEffect(() => {
         const fetchIntroPost = async () => {
