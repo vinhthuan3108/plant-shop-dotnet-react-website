@@ -7,9 +7,18 @@ import './Header.css';
 import defaultLogo from '../../assets/images/logo.png';
 
 // Component hỗ trợ in đậm từ khóa tìm kiếm
+// Thêm hàm này vào trên cùng hoặc trong file utils
+const escapeRegExp = (string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Thêm dấu \ trước các ký tự đặc biệt
+};
+
 const HighlightText = ({ text, highlight }) => {
     if (!highlight.trim()) return <span>{text}</span>;
-    const regex = new RegExp(`(${highlight})`, 'gi');
+    
+    // SỬA DÒNG 121: Bọc highlight bằng hàm escapeRegExp
+    // const regex = new RegExp(`(${highlight})`, 'gi');  <-- Cũ (Lỗi)
+    const regex = new RegExp(`(${escapeRegExp(highlight)})`, 'gi'); // <-- Mới (An toàn)
+
     const parts = text.split(regex);
     return (
         <span>
