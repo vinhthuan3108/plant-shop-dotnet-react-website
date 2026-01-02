@@ -3,13 +3,13 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FaCalendarAlt, FaUser, FaArrowRight } from 'react-icons/fa';
 import './BlogPage.css'; // QUAN TRỌNG: Dùng CSS của trang danh sách (Grid)
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const GuidePage = () => {
     // Sửa thành mảng [] vì Hướng dẫn là danh sách nhiều bài
     const [posts, setPosts] = useState([]); 
     const [loading, setLoading] = useState(true);
 
-    const API_BASE = 'https://localhost:7298'; 
+    //const API_BASE = 'https://localhost:7298'; 
 
     useEffect(() => {
         const fetchGuidePosts = async () => {

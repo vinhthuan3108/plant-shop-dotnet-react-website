@@ -9,7 +9,7 @@ import { FaHome, FaFacebookF, FaArrowUp } from 'react-icons/fa';
 // Import ảnh icon cũ (cho Zalo/Messenger nếu muốn giữ màu gốc)
 import iconZalo from '../../assets/images/zalo.jpg';
 import iconMessenger from '../../assets/images/messenger.jpg';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const FloatingContact = () => {
     const [isOpen, setIsOpen] = useState(true);
     const [showScroll, setShowScroll] = useState(false);
@@ -19,12 +19,12 @@ const FloatingContact = () => {
         messenger: ''
     });
 
-    const BASE_URL = 'https://localhost:7298';
+    //const BASE_URL = 'https://localhost:7298';
 
     useEffect(() => {
         const fetchConfigs = async () => {
             try {
-                const res = await axios.get(`${BASE_URL}/api/TblSystemConfig`);
+                const res = await axios.get(`${API_BASE}/api/TblSystemConfig`);
                 const data = res.data;
                 const getVal = (key) => data.find(x => x.configKey === key)?.configValue || '';
 

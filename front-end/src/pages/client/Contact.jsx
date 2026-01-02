@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import ReCAPTCHA from 'react-google-recaptcha';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function Contact() {
     // State lưu dữ liệu form
     const [formData, setFormData] = useState({
@@ -28,14 +28,14 @@ function Contact() {
     const [qandas, setQandas] = useState([]);
 
     const recaptchaRef = useRef(null);
-    const BASE_URL = 'https://localhost:7298'; 
+    //const BASE_URL = 'https://localhost:7298'; 
 
     // FETCH DỮ LIỆU TỪ BACKEND
     useEffect(() => {
         // Hàm lấy cấu hình hệ thống
         const fetchConfig = async () => {
             try {
-                const res = await axios.get(`${BASE_URL}/api/TblSystemConfig`);
+                const res = await axios.get(`${API_BASE}/api/TblSystemConfig`);
                 const data = res.data; 
 
                 const getValue = (key) => {
@@ -64,7 +64,7 @@ function Contact() {
         const fetchQandA = async () => {
             try {
                 // Gọi API Active: Backend đã xử lý việc lọc IsActive=true và sắp xếp theo DisplayOrder
-                const res = await axios.get(`${BASE_URL}/api/QandA/Active`);
+                const res = await axios.get(`${API_BASE}/api/QandA/Active`);
                 setQandas(res.data);
             } catch (error) {
                 console.error("Lỗi khi lấy danh sách Q&A:", error);
@@ -101,7 +101,7 @@ function Contact() {
 
         setStatus('sending');
         try {
-            await axios.post(`${BASE_URL}/api/Contacts`, {
+            await axios.post(`${API_BASE}/api/Contacts`, {
                 ...formData,
                 subject: 'Liên hệ từ khách hàng',
                 recaptchaToken: captchaToken

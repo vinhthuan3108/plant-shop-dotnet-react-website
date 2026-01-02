@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 // import { toast } from 'react-toastify'; 
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function ShopInfo() {
     // State lưu trữ giá trị các cấu hình
     const [configs, setConfigs] = useState({
@@ -17,7 +17,7 @@ function ShopInfo() {
         FaviconUrl: ''
     });
 
-    const BASE_URL = 'https://localhost:7298'; 
+    //const BASE_URL = 'https://localhost:7298'; 
 
     useEffect(() => {
         fetchConfigs();
@@ -25,7 +25,7 @@ function ShopInfo() {
 
     const fetchConfigs = async () => {
         try {
-            const res = await axios.get(`${BASE_URL}/api/TblSystemConfig`);
+            const res = await axios.get(`${API_BASE}/api/TblSystemConfig`);
             const data = res.data;
             
             const newConfig = { ...configs };
@@ -53,7 +53,7 @@ function ShopInfo() {
         formData.append('file', file);
 
         try {
-            const res = await axios.post(`${BASE_URL}/api/Upload/configs`, formData, {
+            const res = await axios.post(`${API_BASE}/api/Upload/configs`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             
@@ -73,7 +73,7 @@ function ShopInfo() {
         }));
 
         try {
-            await axios.post(`${BASE_URL}/api/TblSystemConfig/BulkUpdate`, payload);
+            await axios.post(`${API_BASE}/api/TblSystemConfig/BulkUpdate`, payload);
             alert('Cập nhật thành công!');
         } catch (error) {
             alert('Lỗi khi lưu cấu hình');
@@ -228,7 +228,7 @@ function ShopInfo() {
                         <label style={labelStyle}>Logo Website</label>
                         <div style={imageBoxStyle}>
                             {configs.LogoUrl ? (
-                                <img src={`${BASE_URL}${configs.LogoUrl}`} alt="Logo" style={imgPreviewStyle}/>
+                                <img src={`${API_BASE}${configs.LogoUrl}`} alt="Logo" style={imgPreviewStyle}/>
                             ) : (
                                 <span style={{color: '#999', fontSize: '12px', marginBottom:'10px'}}>Chưa có Logo</span>
                             )}
@@ -241,7 +241,7 @@ function ShopInfo() {
                         <label style={labelStyle}>Favicon (Icon trên tab)</label>
                         <div style={imageBoxStyle}>
                             {configs.FaviconUrl ? (
-                                <img src={`${BASE_URL}${configs.FaviconUrl}`} alt="Favicon" style={{...imgPreviewStyle, width: '32px', height: '32px'}}/> 
+                                <img src={`${API_BASE}${configs.FaviconUrl}`} alt="Favicon" style={{...imgPreviewStyle, width: '32px', height: '32px'}}/> 
                             ) : (
                                 <span style={{color: '#999', fontSize: '12px', marginBottom:'10px'}}>Chưa có Favicon</span>
                             )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const ContactModal = ({ isOpen, onClose, contact, onUpdateStatus, refreshData }) => {
     // State quản lý nội dung phản hồi
     const [replyMessage, setReplyMessage] = useState('');
@@ -25,7 +25,7 @@ const ContactModal = ({ isOpen, onClose, contact, onUpdateStatus, refreshData })
         setSending(true);
         try {
             // Gọi API Backend vừa viết
-            await axios.post(`https://localhost:7298/api/Contacts/reply/${contact.contactId}`, {
+            await axios.post(`${API_BASE}/api/Contacts/reply/${contact.contactId}`, {
                 subject: contact.subject || "Hỗ trợ khách hàng",
                 message: replyMessage
             });

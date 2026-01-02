@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import QandAModal from '../../components/admin/QandAModal';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function QandAManager() {
     const [qandas, setQandas] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
     
     // API URL
-    const API_URL = 'https://localhost:7298/api/QandA';
+    const API_URL = `${API_BASE}/api/QandA`;
 
     const fetchQandAs = () => {
         fetch(API_URL)

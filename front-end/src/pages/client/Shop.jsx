@@ -9,7 +9,7 @@ import 'rc-slider/assets/index.css';
 import HomeProductCard from '../../components/client/HomeProductCard'; 
 import { CartContext } from '../../context/CartContext';
 import './HomePage.css'; 
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const Shop = () => {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -37,7 +37,7 @@ const Shop = () => {
     const categoryId = queryParams.get('category') || queryParams.get('cate') || queryParams.get('categoryId');
     const keyword = queryParams.get('keyword');
 
-    const API_BASE = 'https://localhost:7298';
+    //const API_BASE = 'https://localhost:7298';
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);

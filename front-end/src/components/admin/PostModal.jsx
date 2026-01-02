@@ -2,10 +2,10 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import ReactQuill from 'react-quill-new'; 
 import 'react-quill-new/dist/quill.snow.css';
 import axios from 'axios';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const PostModal = ({ post, onClose, onSuccess }) => {
     const quillRef = useRef(null);
-    const API_BASE = 'https://localhost:7298';
+    //const API_BASE = 'https://localhost:7298';
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');

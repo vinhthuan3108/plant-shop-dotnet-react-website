@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function RevenueStats() {
     // State chọn ngày (Mặc định: 30 ngày gần nhất)
     const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().slice(0, 10));
@@ -16,7 +16,7 @@ function RevenueStats() {
         setLoading(true);
         try {
             // API cần nhận format yyyy-MM-dd
-            const res = await axios.get(`https://localhost:7298/api/Statistics/revenue?startDate=${startDate}&endDate=${endDate}`);
+            const res = await axios.get(`${API_BASE}/api/Statistics/revenue?startDate=${startDate}&endDate=${endDate}`);
             
             // Format lại data cho biểu đồ (Date sang string ngắn gọn)
             const formattedData = {

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios'; 
 import { FaMapMarkerAlt, FaPhoneAlt, FaEnvelope, FaFacebook, FaYoutube } from 'react-icons/fa';
 import './Footer.css';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const Footer = () => {
     // State lưu cấu hình
     const [config, setConfig] = useState({});
@@ -12,7 +12,7 @@ const Footer = () => {
     // State lưu bài viết hướng dẫn (Cột 2 - Mới thêm)
     const [guidePosts, setGuidePosts] = useState([]);
 
-    const API_BASE = 'https://localhost:7298'; // Cổng backend
+    //const API_BASE = 'https://localhost:7298'; // Cổng backend
 
     useEffect(() => {
         // 1. Hàm lấy cấu hình hệ thống

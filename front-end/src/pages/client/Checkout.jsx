@@ -2,13 +2,13 @@ import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { CartContext } from '../../context/CartContext';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const Checkout = () => {
     // 1. Lấy thêm clearCart từ Context để xử lý sau khi đặt hàng
     const { cartItems, totalAmount, clearCart } = useContext(CartContext);
     const navigate = useNavigate();
     
-    const BASE_URL = 'https://localhost:7298';
+    //const BASE_URL = 'https://localhost:7298';
 
     // --- HELPER: LẤY USER ---
     const getUserData = () => {
@@ -61,8 +61,8 @@ const Checkout = () => {
 
                 // Sửa đường dẫn API thành Profile cho đúng
                 if (userId) {
-                    addrReq = axios.get(`${BASE_URL}/api/Profile/${userId}/addresses`).catch(() => ({ data: [] }));
-                    profileReq = axios.get(`${BASE_URL}/api/Profile/${userId}`).catch(() => ({ data: null }));
+                    addrReq = axios.get(`${API_BASE}/api/Profile/${userId}/addresses`).catch(() => ({ data: [] }));
+                    profileReq = axios.get(`${API_BASE}/api/Profile/${userId}`).catch(() => ({ data: null }));
                 }
 
                 const [provinceRes, addrRes, profileRes] = await Promise.all([provinceReq, addrReq, profileReq]);
@@ -215,7 +215,7 @@ useEffect(() => {
                 }))
             };
 
-            const res = await axios.post(`${BASE_URL}/api/Orders/calculate-fee`, payload);
+            const res = await axios.post(`${API_BASE}/api/Orders/calculate-fee`, payload);
             setShippingFee(res.data.shippingFee);
         } catch (err) {
             console.error("Lỗi tính phí ship:", err);
@@ -236,7 +236,7 @@ useEffect(() => {
     const handleApplyVoucher = async () => {
         if (!voucherCode.trim()) return alert("Vui lòng nhập mã!");
         try {
-            const res = await axios.get(`${BASE_URL}/api/Orders/validate-voucher?code=${voucherCode}&orderValue=${totalAmount}`);
+            const res = await axios.get(`${API_BASE}/api/Orders/validate-voucher?code=${voucherCode}&orderValue=${totalAmount}`);
             setDiscountAmount(res.data.discountAmount);
             alert(`Áp dụng mã thành công! Giảm: ${res.data.discountAmount.toLocaleString()}đ`);
         } catch (err) {
@@ -280,7 +280,7 @@ useEffect(() => {
 
         try {
             // 1. Tạo đơn hàng
-            const res = await axios.post(`${BASE_URL}/api/Orders/checkout`, payload);
+            const res = await axios.post(`${API_BASE}/api/Orders/checkout`, payload);
             const newOrderId = res.data.orderId;
 
             // 2. QUAN TRỌNG: Xóa giỏ hàng ngay lập tức (UI + LocalStorage)
@@ -288,7 +288,7 @@ useEffect(() => {
 
             // 3. Xử lý thanh toán
             if (formData.paymentMethod === 'PAYOS') {
-                const payRes = await axios.post(`${BASE_URL}/api/Payment/create-payment-link`, { orderId: newOrderId });
+                const payRes = await axios.post(`${API_BASE}/api/Payment/create-payment-link`, { orderId: newOrderId });
                 if (payRes.data.checkoutUrl) {
                     window.location.href = payRes.data.checkoutUrl;
                 } else {

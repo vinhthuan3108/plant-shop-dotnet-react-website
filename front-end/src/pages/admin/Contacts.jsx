@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import ContactModal from '../../components/admin/ContactModal';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function Contacts() {
     // --- STATE QUẢN LÝ DỮ LIỆU ---
     const [contacts, setContacts] = useState([]);
@@ -19,7 +19,7 @@ function Contacts() {
     const [selectedContact, setSelectedContact] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const API_URL = 'https://localhost:7298/api/Contacts'; 
+    const API_URL = `{API_BASE}/api/Contacts`; 
 
     // --- LOGIC GỌI API ---
     const fetchContacts = async () => {

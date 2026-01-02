@@ -3,7 +3,7 @@ import axios from 'axios';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import OrderModal from '../../components/admin/OrderModal';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 // --- ICONS SVG ---
 const Icons = {
     Search: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
@@ -105,7 +105,7 @@ const AdminOrders = () => {
                 params.maxPrice = priceRange[1];
             }
 
-            const res = await axios.get(`https://localhost:7298/api/Orders/admin/list`, { params });
+            const res = await axios.get(`${API_BASE}/api/Orders/admin/list`, { params });
             setOrders(res.data.data);
             setTotalPages(res.data.totalPages);
 
@@ -139,7 +139,7 @@ const AdminOrders = () => {
 
     const handleViewDetail = async (id) => {
         try {
-            const res = await axios.get(`https://localhost:7298/api/Orders/admin/detail/${id}`);
+            const res = await axios.get(`${API_BASE}/api/Orders/admin/detail/${id}`);
             setSelectedOrder(res.data);
             setShowModal(true);
         } catch (error) {
@@ -151,7 +151,7 @@ const AdminOrders = () => {
         if (!window.confirm(`Xác nhận chuyển trạng thái sang: ${newStatus}?`)) return;
         setUpdating(true);
         try {
-            await axios.put(`https://localhost:7298/api/Orders/admin/update-status/${selectedOrder.orderId}`, {
+            await axios.put(`${API_BASE}/api/Orders/admin/update-status/${selectedOrder.orderId}`, {
                 newStatus: newStatus
             });
             setSelectedOrder(prev => ({ ...prev, orderStatus: newStatus }));
@@ -172,7 +172,7 @@ const AdminOrders = () => {
             return;
         }
         try {
-            await axios.delete(`https://localhost:7298/api/Orders/admin/delete/${id}`);
+            await axios.delete(`${API_BASE}/api/Orders/admin/delete/${id}`);
             alert("Đã xóa đơn hàng thành công!");
             if (orders.length === 1 && page > 1) {
                 setPage(page - 1);
@@ -187,7 +187,7 @@ const AdminOrders = () => {
 
     const handleQuickUpdateStatus = async (orderId, newStatus) => {
         try {
-            await axios.put(`https://localhost:7298/api/Orders/admin/update-status/${orderId}`, {
+            await axios.put(`${API_BASE}/api/Orders/admin/update-status/${orderId}`, {
                 newStatus: newStatus
             });
             setOrders(prevOrders => prevOrders.map(o => 

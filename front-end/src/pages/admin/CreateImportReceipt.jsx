@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaTrash, FaPlus } from 'react-icons/fa'; // Cần cài: npm install react-icons
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const CreateImportReceipt = () => {
     // --- STATE DỮ LIỆU GỐC (MASTER DATA) ---
     const [suppliers, setSuppliers] = useState([]);
@@ -20,7 +20,7 @@ const CreateImportReceipt = () => {
         { tempCategoryId: '', tempProductId: '', variantId: '', quantity: 1, importPrice: 0 }
     ]);
 
-    const BASE_URL = 'https://localhost:7298';
+    //const BASE_URL = 'https://localhost:7298';
 
     // 1. LOAD DỮ LIỆU
     useEffect(() => {
@@ -28,10 +28,10 @@ const CreateImportReceipt = () => {
             try {
                 setLoading(true);
                 const [resSup, resCat, resProd] = await Promise.all([
-                    axios.get(`${BASE_URL}/api/suppliers`),
-                    axios.get(`${BASE_URL}/api/TblCategories`),
+                    axios.get(`${API_BASE}/api/suppliers`),
+                    axios.get(`${API_BASE}/api/TblCategories`),
                     // Gọi API lấy full sản phẩm kèm biến thể (Dùng API filter hoặc API get all)
-                    axios.get(`${BASE_URL}/api/TblProducts/filter`) 
+                    axios.get(`${API_BASE}/api/TblProducts/filter`) 
                 ]);
 
                 // Xử lý dữ liệu (đề phòng trường hợp trả về $values của .NET)
@@ -153,7 +153,7 @@ const CreateImportReceipt = () => {
         try {
             console.log(">>> 3. Đang gửi request với Header:", `Bearer ${token}`);
             
-            const res = await axios.post(`${BASE_URL}/api/ImportReceipts`, payload, {
+            const res = await axios.post(`${API_BASE}/api/ImportReceipts`, payload, {
                 headers: { 
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json' 

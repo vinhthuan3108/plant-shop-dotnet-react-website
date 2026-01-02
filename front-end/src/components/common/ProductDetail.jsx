@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FaChevronLeft, FaChevronRight, FaMinus, FaPlus, FaCheck } from 'react-icons/fa'; 
 import { CartContext } from '../../context/CartContext';
 import HomeProductCard from '../../components/client/HomeProductCard';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const ProductDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -22,7 +22,7 @@ const ProductDetail = () => {
     // State quản lý biến thể (MỚI)
     const [selectedVariantId, setSelectedVariantId] = useState(null);
 
-    const BASE_URL = 'https://localhost:7298';
+    //const BASE_URL = 'https://localhost:7298';
 
     // --- FETCH DỮ LIỆU ---
     useEffect(() => {
@@ -34,7 +34,7 @@ const ProductDetail = () => {
         setSelectedVariantId(null); // Reset biến thể
         window.scrollTo(0, 0);
 
-        fetch(`${BASE_URL}/api/TblProducts/${id}`) // [cite: 107]
+        fetch(`${API_BASE}/api/TblProducts/${id}`) // [cite: 107]
             .then(res => res.json())
             .then(data => {
                 setProduct(data);
@@ -61,7 +61,7 @@ const ProductDetail = () => {
                     }
                 }
 
-                return fetch(`${BASE_URL}/api/TblProducts/related/${id}`); // [cite: 109]
+                return fetch(`${API_BASE}/api/TblProducts/related/${id}`); // [cite: 109]
             })
             .then(res => res.json())
             .then(relatedData => setRelatedProducts(relatedData))
@@ -80,7 +80,7 @@ const ProductDetail = () => {
     const nextImage = () => setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
     const prevImage = () => setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
     const currentImgUrl = images.length > 0 
-        ? (images[currentIndex].imageUrl?.startsWith('http') ? images[currentIndex].imageUrl : `${BASE_URL}${images[currentIndex].imageUrl}`) 
+        ? (images[currentIndex].imageUrl?.startsWith('http') ? images[currentIndex].imageUrl : `${API_BASE}${images[currentIndex].imageUrl}`) 
         : '';
 
     // --- XỬ LÝ HTML ---
@@ -250,7 +250,7 @@ const ProductDetail = () => {
                     </div>
                     <div style={{ display: 'flex', gap: '10px', marginTop: '15px', overflowX: 'auto', paddingBottom: '5px' }}>
                         {images.map((img, index) => (
-                            <img key={index} src={img.imageUrl?.startsWith('http') ? img.imageUrl : `${BASE_URL}${img.imageUrl}`} 
+                            <img key={index} src={img.imageUrl?.startsWith('http') ? img.imageUrl : `${API_BASE}${img.imageUrl}`} 
                                  alt="sub" onClick={() => setCurrentIndex(index)}
                                  style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer', border: currentIndex === index ? '2px solid #2e7d32' : '2px solid transparent' }} />
                         ))}
@@ -393,7 +393,7 @@ const ProductDetail = () => {
                 {relatedProducts.length > 0 ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
                         {relatedProducts.map(p => (
-                            <HomeProductCard key={p.productId} product={p} addToCart={addToCart} baseUrl={BASE_URL} />
+                            <HomeProductCard key={p.productId} product={p} addToCart={addToCart} baseUrl={API_BASE} />
                         ))}
                     </div>
                 ) : (

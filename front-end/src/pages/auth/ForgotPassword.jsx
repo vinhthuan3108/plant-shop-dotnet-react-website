@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function ForgotPassword() {
     // step 1: Nhập email, step 2: Nhập OTP & Pass mới
     const [step, setStep] = useState(1); 
@@ -18,7 +18,7 @@ function ForgotPassword() {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await fetch('https://localhost:7298/api/Auth/forgot-password', {
+            const res = await fetch(`${API_BASE}/api/Auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
@@ -50,7 +50,7 @@ function ForgotPassword() {
 
         setLoading(true);
         try {
-            const res = await fetch('https://localhost:7298/api/Auth/reset-password', {
+            const res = await fetch(`${API_BASE}/api/Auth/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import VoucherModal from '../../components/admin/VoucherModal';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function Vouchers() {
     // --- STATE QUẢN LÝ DỮ LIỆU ---
     const [vouchers, setVouchers] = useState([]);
@@ -16,7 +16,7 @@ function Vouchers() {
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
 
-    const API_URL = 'https://localhost:7298/api/vouchers';
+    const API_URL = `${API_BASE}/api/vouchers`;
 
     // --- LOGIC GỌI API ---
     const fetchVouchers = async () => {

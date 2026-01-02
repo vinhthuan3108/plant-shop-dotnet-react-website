@@ -1,7 +1,7 @@
 import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -12,7 +12,7 @@ function Login() {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('https://localhost:7298/api/Auth/login', {
+            const res = await fetch(`${API_BASE}/api/Auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })

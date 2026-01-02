@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function BannerModal({ isOpen, onClose, onSubmit, initialData }) {
     const [title, setTitle] = useState('');
     const [link, setLink] = useState('');
@@ -11,7 +11,7 @@ function BannerModal({ isOpen, onClose, onSubmit, initialData }) {
     const [currentImageUrl, setCurrentImageUrl] = useState(''); // Link ảnh (cũ hoặc mới)
     const [previewUrl, setPreviewUrl] = useState(''); // Để hiển thị xem trước
 
-    const API_DOMAIN = 'https://localhost:7298'; 
+    //const API_DOMAIN = 'https://localhost:7298'; 
 
     useEffect(() => {
         if (initialData) {
@@ -20,7 +20,7 @@ function BannerModal({ isOpen, onClose, onSubmit, initialData }) {
             setOrder(initialData.displayOrder || 0);
             setActive(initialData.isActive ?? true);
             setCurrentImageUrl(initialData.imageUrl || ''); // Lưu link ảnh cũ
-            setPreviewUrl(initialData.imageUrl ? `${API_DOMAIN}${initialData.imageUrl}` : '');
+            setPreviewUrl(initialData.imageUrl ? `${API_BASE}${initialData.imageUrl}` : '');
         } else {
             resetForm();
         }
@@ -50,7 +50,7 @@ function BannerModal({ isOpen, onClose, onSubmit, initialData }) {
         formData.append('file', file);
         
         // Gọi vào API UploadController bạn vừa gửi, type="banners"
-        const res = await fetch(`${API_DOMAIN}/api/Upload/banners`, {
+        const res = await fetch(`${API_BASE}/api/Upload/banners`, {
             method: 'POST',
             body: formData
         });

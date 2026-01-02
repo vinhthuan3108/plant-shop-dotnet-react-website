@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios'; // Hoặc instance axios bạn đã cấu hình
 import { toast } from 'react-toastify';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 const SystemBackup = () => {
     const [loading, setLoading] = useState(false);
 
@@ -17,7 +17,7 @@ if (!token) {
     return;
 }
             // Gọi API với responseType là blob để nhận file
-            const response = await axios.get('https://localhost:7298/api/backup/download-json', {
+            const response = await axios.get(`${API_BASE}/api/backup/download-json`, {
                 responseType: 'blob', 
                 headers: {
                     // Nhớ kèm token nếu bạn dùng JWT

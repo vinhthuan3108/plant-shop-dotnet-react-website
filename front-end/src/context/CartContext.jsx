@@ -1,10 +1,10 @@
 import React, { createContext, useState, useEffect } from 'react';
-
+import { API_BASE } from '../utils/apiConfig.jsx';
 export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
     const [cartItems, setCartItems] = useState([]);
-    const BASE_URL = 'https://localhost:7298'; 
+    //const API_BASE = 'https://localhost:7298'; 
 
     // --- CÁC HÀM HELPER ---
     const getUser = () => {
@@ -61,7 +61,7 @@ export const CartProvider = ({ children }) => {
 
         if (userId) {
             // DB: Load từ API
-            fetch(`${BASE_URL}/api/Cart/get-cart/${userId}`)
+            fetch(`${API_BASE}/api/Cart/get-cart/${userId}`)
                 .then(res => { if (!res.ok) return []; return res.json(); })
                 .then(data => {
                     setCartItems(mapApiDataToCart(data));
@@ -86,7 +86,7 @@ export const CartProvider = ({ children }) => {
 
         if (userId) {
             try {
-                const res = await fetch(`${BASE_URL}/api/Cart/get-cart/${userId}`);
+                const res = await fetch(`${API_BASE}/api/Cart/get-cart/${userId}`);
                 if (res.ok) {
                     const data = await res.json();
                     setCartItems(mapApiDataToCart(data));
@@ -108,7 +108,7 @@ export const CartProvider = ({ children }) => {
         if (userId) {
             // --- LOGIC DB (GIỮ NGUYÊN) ---
             try {
-                const res = await fetch(`${BASE_URL}/api/Cart/add-to-cart`, {
+                const res = await fetch(`${API_BASE}/api/Cart/add-to-cart`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -172,7 +172,7 @@ export const CartProvider = ({ children }) => {
         const userId = user?.userId;
 
         if (userId) {
-            await fetch(`${BASE_URL}/api/Cart/remove-item?userId=${userId}&variantId=${variantId}`, { method: 'DELETE' });
+            await fetch(`${API_BASE}/api/Cart/remove-item?userId=${userId}&variantId=${variantId}`, { method: 'DELETE' });
         }
         
         setCartItems(prev => {
@@ -191,7 +191,7 @@ export const CartProvider = ({ children }) => {
         const userId = user?.userId;
 
         if (userId) {
-            await fetch(`${BASE_URL}/api/Cart/update-quantity`, {
+            await fetch(`${API_BASE}/api/Cart/update-quantity`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: parseInt(userId), variantId: variantId, quantity: newQuantity })

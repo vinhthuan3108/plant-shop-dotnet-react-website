@@ -7,7 +7,7 @@ const Suppliers = () => {
     const [suppliers, setSuppliers] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSupplier, setSelectedSupplier] = useState(null);
-
+    
     // --- STATE PHÂN TRANG (MỚI) ---
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; // Số lượng hiển thị mỗi trang
