@@ -33,7 +33,8 @@ function HomePage() {
   const minSwipeDistance = 50;
 
   //const BASE_URL = 'https://localhost:7298';
-const BASE_URL = 'http://vinhthuan3108-001-site1.anytempurl.com/api';
+//const BASE_URL = 'http://vinhthuan3108-001-site1.anytempurl.com/api';
+const BASE_URL = '';
   // --- 1. THEO DÕI RESIZE MÀN HÌNH ---
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
