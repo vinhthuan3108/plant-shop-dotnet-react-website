@@ -10,7 +10,7 @@ import HomeProductCard from '../../components/client/HomeProductCard';
 import phuQuyImg from '../../assets/images/phuquy.png';
 import senDaImg from '../../assets/images/sendavienlua.png';
 import thachBichImg from '../../assets/images/senthachbich.png';
-
+import { API_BASE } from '../../utils/apiConfig.jsx';
 function HomePage() {
   const { addToCart } = useContext(CartContext);
   
@@ -34,7 +34,7 @@ function HomePage() {
 
   //const BASE_URL = 'https://localhost:7298';
 //const BASE_URL = 'http://vinhthuan3108-001-site1.anytempurl.com/api';
-const BASE_URL = '';
+//const BASE_URL = '';  
   // --- 1. THEO DÕI RESIZE MÀN HÌNH ---
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -48,12 +48,12 @@ const BASE_URL = '';
 
   // --- 2. CÁC API CALL (Giữ nguyên) ---
   useEffect(() => {
-    fetch(`${BASE_URL}/api/TblBanners/public`)
+    fetch(`${API_BASE}/api/TblBanners/public`)
       .then(res => res.json())
       .then(data => {
         const formattedBanners = data.map(b => ({
             id: b.bannerId,
-            image: b.imageUrl && b.imageUrl.startsWith('http') ? b.imageUrl : `${BASE_URL}${b.imageUrl}`,
+            image: b.imageUrl && b.imageUrl.startsWith('http') ? b.imageUrl : `${API_BASE}${b.imageUrl}`,
             title: b.title || '', subtitle: '', link: b.linkUrl || '/shop'
         }));
         if (formattedBanners.length > 0) setBanners(formattedBanners);
@@ -61,7 +61,7 @@ const BASE_URL = '';
   }, []);
 
   useEffect(() => {
-    fetch(`${BASE_URL}/api/TblProducts/best-sellers?top=8`)
+    fetch(`${API_BASE}/api/TblProducts/best-sellers?top=8`)
       .then(res => res.json())
       .then(data => { if (Array.isArray(data)) setBestSellerProducts(data); })
       .catch(err => console.error(err));
@@ -77,14 +77,14 @@ const BASE_URL = '';
   const prevSlide = () => setCurrentBanner(prev => (prev === 0 ? banners.length - 1 : prev - 1));
 
   useEffect(() => {
-    fetch(`${BASE_URL}/api/TblProducts/shop?page=1&pageSize=8`)
+    fetch(`${API_BASE}/api/TblProducts/shop?page=1&pageSize=8`)
       .then(res => res.json())
       .then(response => { if (response && response.data) setFeaturedProducts(response.data); })
       .catch(err => console.error(err));
   }, []);
 
   useEffect(() => {
-    fetch(`${BASE_URL}/api/TblTestimonials`)
+    fetch(`${API_BASE}/api/TblTestimonials`)
       .then(res => res.json())
       .then(data => {
         const activeTestimonials = data.filter(t => t.isActive === true);
@@ -93,7 +93,7 @@ const BASE_URL = '';
   }, []);
 
   useEffect(() => {
-    fetch(`${BASE_URL}/api/TblPosts?status=Published`) 
+    fetch(`${API_BASE}/api/TblPosts?status=Published`) 
       .then(res => res.json())
       .then(data => {
         const news = data.filter(p => {
@@ -136,7 +136,7 @@ const BASE_URL = '';
   const getAvatarUrl = (url) => {
       if (!url) return 'https://via.placeholder.com/150';
       if (url.startsWith('http')) return url;
-      return `${BASE_URL}${url}`;
+      return `${API_BASE}${url}`;
   };
 
   // --- SWIPE HANDLERS ---
@@ -240,7 +240,7 @@ const BASE_URL = '';
         <div className="product-list-grid">
           {bestSellerProducts.length > 0 ? (
             bestSellerProducts.map(product => (
-                <HomeProductCard key={product.productId} product={product} addToCart={addToCart} baseUrl={BASE_URL} />
+                <HomeProductCard key={product.productId} product={product} addToCart={addToCart} baseUrl={API_BASE} />
             ))
           ) : (<p style={{textAlign: 'center', width: '100%', gridColumn: '1 / -1', color: '#888'}}>Đang cập nhật dữ liệu...</p>)}
         </div>
@@ -252,7 +252,7 @@ const BASE_URL = '';
         <div className="product-list-grid">
           {featuredProducts.length > 0 ? (
             featuredProducts.map(product => (
-                <HomeProductCard key={product.productId} product={product} addToCart={addToCart} baseUrl={BASE_URL} />
+                <HomeProductCard key={product.productId} product={product} addToCart={addToCart} baseUrl={API_BASE} />
             ))
           ) : (<p style={{textAlign: 'center', width: '100%', gridColumn: '1 / -1'}}>Đang tải sản phẩm...</p>)}
         </div>
@@ -326,7 +326,7 @@ const BASE_URL = '';
         <div className="blog-grid" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '30px' }}>
              {/* ... (Giữ nguyên phần map nội dung bên trong) ... */}
              {getVisibleBlogs().map((post, index) => {
-                 const imgUrl = post.thumbnailUrl && post.thumbnailUrl.startsWith('http') ? post.thumbnailUrl : `${BASE_URL}${post.thumbnailUrl}`;
+                 const imgUrl = post.thumbnailUrl && post.thumbnailUrl.startsWith('http') ? post.thumbnailUrl : `${API_BASE}${post.thumbnailUrl}`;
                  return (
                     <div key={`${post.postId}-${index}`} className="blog-card">
                         <div className="blog-img-wrap">
