@@ -34,10 +34,7 @@ builder.Services.AddCors(options =>
 
 var secretKey = builder.Configuration["AppSettings:Token"];
 
-if (string.IsNullOrEmpty(secretKey))
-{
-    secretKey = "Dung_Quen_Cau_Hinh_Token_Trong_AppSettings_Nhe";
-}
+
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
