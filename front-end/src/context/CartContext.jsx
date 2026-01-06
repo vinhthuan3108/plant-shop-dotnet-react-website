@@ -1,10 +1,11 @@
 import React, { createContext, useState, useEffect } from 'react';
-import Swal from 'sweetalert2'; // 1. Import SweetAlert2
+import Swal from 'sweetalert2'; 
 import { API_BASE } from '../utils/apiConfig.jsx';
 
 export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
+    // Luôn đảm bảo cartItems là mảng để tránh lỗi .map hoặc .reduce
     const [cartItems, setCartItems] = useState([]);
 
     // --- CÁC HÀM HELPER ---
@@ -23,40 +24,30 @@ export const CartProvider = ({ children }) => {
 
     const syncLocalStorage = (items) => {
         const user = getUser();
+        // Chỉ lưu vào local storage nếu KHÔNG phải là user đăng nhập (hoặc tùy logic dự án của bạn)
+        // Ở đây logic là: Nếu chưa đăng nhập thì lưu Local
         if (!user) { 
             localStorage.setItem('shoppingCart', JSON.stringify(items));
         }
     };
 
-    // --- FIX VẤN ĐỀ 2: HOÀN THIỆN HÀM CLEAR CART ---
-    const clearCart = async () => {
-        const user = getUser();
-        const userId = user?.userId;
-
-        // 1. Nếu đã đăng nhập -> Xóa trên Server
-        if (userId && cartItems.length > 0) {
-            try {
-                // Vì API hiện tại chỉ có remove-item, ta dùng vòng lặp để xóa hết
-                // (Nếu Backend có API /clear-cart thì nên dùng cái đó sẽ tốt hơn)
-                const deletePromises = cartItems.map(item => 
-                    fetch(`${API_BASE}/api/Cart/remove-item?userId=${userId}&variantId=${item.variantId}`, { 
-                        method: 'DELETE' 
-                    })
-                );
-                await Promise.all(deletePromises);
-            } catch (err) {
-                console.error("Lỗi xóa data server:", err);
-            }
-        }
-
-        // 2. Xóa State (làm mới giao diện ngay lập tức)
-        setCartItems([]);
-
-        // 3. Xóa Local Storage
-        localStorage.removeItem('shoppingCart');
+    // --- QUAN TRỌNG: Hàm chuẩn hóa dữ liệu đầu vào ---
+    // Giúp đồng bộ cấu trúc dữ liệu giữa API và LocalStorage
+    const mapProductToCartItem = (product) => {
+        return {
+            productId: product.productId,
+            variantId: product.variantId,
+            productName: product.productName,
+            variantName: product.variantName,
+            originalPrice: product.originalPrice || product.price || 0,
+            salePrice: product.salePrice || 0,
+            // Giá bán thực tế (ưu tiên giá sale)
+            price: (product.salePrice && product.salePrice > 0) ? product.salePrice : (product.originalPrice || product.price || 0),
+            image: product.imageUrl || product.image || '',
+            quantity: product.quantity
+        };
     };
 
-    // --- QUAN TRỌNG: Hàm chuẩn hóa dữ liệu từ API ---
     const mapApiDataToCart = (data) => {
         if (!Array.isArray(data)) return [];
         return data.map(item => ({
@@ -118,25 +109,23 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    // --- 2. THÊM VÀO GIỎ (SỬ DỤNG SWEETALERT2) ---
-    // --- 2. THÊM VÀO GIỎ (SỬA LẠI) ---
-    // Thêm tham số showAlert (mặc định là true)
+    // --- 2. THÊM VÀO GIỎ (FULL LOGIC) ---
     const addToCart = async (product, showAlert = true) => {
         const user = getUser();
         
         // Check quyền Admin
         if (user && !isCustomer(user)) { 
-            if (showAlert) { // Chỉ hiện khi cần
+            if (showAlert) { 
                 Swal.fire({ icon: 'error', title: 'Hạn chế', text: 'Quản trị viên không thể mua hàng!' });
             }
-            return false; // Trả về false để biết là thất bại
+            return false; 
         }
 
         const userId = user?.userId;
-        let success = false; // Biến đánh dấu kết quả
+        let success = false; // Biến cờ đánh dấu kết quả
 
         if (userId) {
-            // --- LOGIC DB ---
+            // ============ LOGIC DB (ĐÃ ĐĂNG NHẬP) ============
             try {
                 const res = await fetch(`${API_BASE}/api/Cart/add-to-cart`, {
                     method: 'POST',
@@ -149,7 +138,7 @@ export const CartProvider = ({ children }) => {
                 });
                 
                 if (res.ok) {
-                    await refreshCart(); // Đợi refresh xong
+                    await refreshCart(); // Tải lại giỏ hàng từ server
                     success = true;
                 } else {
                     if (showAlert) Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể thêm vào giỏ hàng (Lỗi API).' });
@@ -159,15 +148,36 @@ export const CartProvider = ({ children }) => {
                 if (showAlert) Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: 'Không thể kết nối đến máy chủ!' });
             }
         } else {
-            // --- LOGIC LOCAL STORAGE ---
-            // ... (Giữ nguyên logic cũ của bạn đoạn này) ...
-            // Thay đổi đoạn cuối:
+            // ============ LOGIC LOCAL STORAGE (KHÁCH VÃNG LAI) ============
+            // 1. Sao chép mảng state hiện tại để xử lý
+            let currentCart = [...cartItems];
+            
+            // 2. Kiểm tra sản phẩm đã tồn tại chưa
+            const existIndex = currentCart.findIndex(x => x.variantId === product.variantId);
+            
+            if (existIndex !== -1) {
+                // Nếu đã tồn tại -> Cộng dồn số lượng
+                currentCart[existIndex] = {
+                    ...currentCart[existIndex],
+                    quantity: currentCart[existIndex].quantity + product.quantity
+                };
+            } else {
+                // Nếu chưa -> Thêm mới vào mảng
+                // Sử dụng hàm helper mapProductToCartItem để đảm bảo đủ trường dữ liệu
+                const newItem = mapProductToCartItem(product);
+                currentCart.push(newItem);
+            }
+
+            // 3. Cập nhật State
             setCartItems(currentCart);
+
+            // 4. Đồng bộ xuống Local Storage
             syncLocalStorage(currentCart);
+            
             success = true;
         }
 
-        // Chỉ hiện thông báo khi showAlert = true VÀ thành công
+        // ============ THÔNG BÁO CHUNG ============
         if (success && showAlert) {
             Swal.fire({
                 icon: 'success',
@@ -178,7 +188,7 @@ export const CartProvider = ({ children }) => {
             });
         }
 
-        return success; // Trả về kết quả để bên ngoài biết
+        return success;
     };
 
     // --- 3. XÓA SẢN PHẨM ---
@@ -221,6 +231,30 @@ export const CartProvider = ({ children }) => {
             syncLocalStorage(newCart);
             return newCart;
         });
+    };
+
+    // --- 5. CLEAR CART (ĐĂNG XUẤT / THANH TOÁN XONG) ---
+    const clearCart = async () => {
+        const user = getUser();
+        const userId = user?.userId;
+
+        // 1. Xóa trên Server (nếu user đang đăng nhập)
+        if (userId && cartItems.length > 0) {
+            try {
+                const deletePromises = cartItems.map(item => 
+                    fetch(`${API_BASE}/api/Cart/remove-item?userId=${userId}&variantId=${item.variantId}`, { 
+                        method: 'DELETE' 
+                    })
+                );
+                await Promise.all(deletePromises);
+            } catch (err) {
+                console.error("Lỗi xóa data server:", err);
+            }
+        }
+
+        // 2. Xóa State & Local Storage
+        setCartItems([]);
+        localStorage.removeItem('shoppingCart');
     };
 
     // --- TÍNH TOÁN ---
