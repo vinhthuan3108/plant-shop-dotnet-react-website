@@ -8,3 +8,5 @@
 /testimonials/* https://caycanh-api-dsdshnbxgyhwgmbq.southeastasia-01.azurewebsites.net/testimonials/:splat 200!
 /users/* https://caycanh-api-dsdshnbxgyhwgmbq.southeastasia-01.azurewebsites.net/users/:splat        200!
 /configs/* https://caycanh-api-dsdshnbxgyhwgmbq.southeastasia-01.azurewebsites.net/configs/:splat      200!
+
+/* /index.html  200
