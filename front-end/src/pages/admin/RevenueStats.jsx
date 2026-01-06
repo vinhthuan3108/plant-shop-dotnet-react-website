@@ -57,7 +57,7 @@ function RevenueStats() {
     return (
         <div style={containerStyle}>
             <div style={headerStyle}>
-                <h2>Thống kê Doanh thu & Lợi nhuận</h2>
+                <h2 style={{color: '#4e73df', marginBottom: '20px'}}>Thống kê doanh thu và lợi nhuận</h2>
             </div>
 
             {/* 1. BỘ LỌC THỜI GIAN */}

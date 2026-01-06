@@ -14,7 +14,8 @@ function ShopInfo() {
         SocialFacebook: '',
         SocialMessenger: '',
         LogoUrl: '',
-        FaviconUrl: ''
+        FaviconUrl: '',
+        GoogleMapEmbed: ''
     });
 
     //const BASE_URL = 'https://localhost:7298'; 
@@ -154,7 +155,7 @@ function ShopInfo() {
     return (
         <div style={containerStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2 style={{ margin: 0 }}>Cấu hình hệ thống</h2>
+                <h2 style={{color: '#4e73df', marginBottom: '20px'}}>Cấu hình thông tin cửa hàng</h2>
                 <button 
                     onClick={handleSave} 
                     style={{ 
@@ -174,7 +175,7 @@ function ShopInfo() {
             
             {/* KHỐI 1: THÔNG TIN CHUNG */}
             <div style={sectionStyle}>
-                <div style={headerStyle}>🏠 Thông tin cửa hàng</div>
+                <div style={headerStyle}>🏠 Thông tin cửa hàng (footer)</div>
                 <div style={gridStyle}>
                     <div style={formGroupStyle}>
                         <label style={labelStyle}>Tên cửa hàng</label>
@@ -249,6 +250,28 @@ function ShopInfo() {
                         </div>
                     </div>
 
+                </div>
+            </div>
+            {/* KHỐI 4: BẢN ĐỒ (MỚI) */}
+            <div style={sectionStyle}>
+                <div style={headerStyle}>🗺️ Cấu hình Bản đồ (Google Map)</div>
+                <div style={formGroupStyle}>
+                    <label style={labelStyle}>Đường dẫn nhúng (Link trong src="")</label>
+                    <textarea 
+                        name="GoogleMapEmbed" 
+                        value={configs.GoogleMapEmbed} 
+                        onChange={handleChange} 
+                        style={{
+                            ...inputStyle,
+                            height: '80px', // Tăng chiều cao vì link map rất dài
+                            resize: 'vertical',
+                            fontFamily: 'monospace'
+                        }}
+                        placeholder="Paste link bản đồ vào đây (Ví dụ: https://www.google.com/maps/embed?...)"
+                    />
+                    <p style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                        * Hướng dẫn: Vào Google Maps - Chia sẻ - Nhúng bản đồ - Copy đoạn link trong thẻ <b>src="..."</b> (bỏ thẻ iframe đi).
+                    </p>
                 </div>
             </div>
         </div>

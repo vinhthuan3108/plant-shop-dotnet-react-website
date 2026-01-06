@@ -116,6 +116,11 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/guide" element={<GuidePage />} />
         <Route path="shop" element={<Shop />} />
+
+        <Route path="/login" element={<Login />} />
+        <Route path="register" element={<Register />} />
+        <Route path="verify-otp" element={<VerifyOtp />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
       </Route>
 
       {/* --- NHÓM 2: DÀNH CHO ADMIN (Dùng AdminLayout) --- */}
@@ -167,10 +172,10 @@ function App() {
       </Route>
 
       {/* --- NHÓM 3: AUTH (Login/Register thường không có Layout) --- */}
-      <Route path="/login" element={<Login />} />
+      {/* <Route path="/login" element={<Login />} />
       <Route path="register" element={<Register />} />
       <Route path="verify-otp" element={<VerifyOtp />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} /> */}
       
     </Routes>
     <ToastContainer 

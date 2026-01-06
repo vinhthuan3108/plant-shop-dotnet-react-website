@@ -76,7 +76,7 @@ function AdminBanners() {
 
     return (
         <div style={{ padding: '20px' }}>
-            <h2>Quản Lý Banner</h2>
+            <h2 style={{color: '#4e73df', marginBottom: '20px'}}>Quản Lý Banner</h2>
             
             {/* Thanh công cụ (Nút thêm) - Style giống Products */}
             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>

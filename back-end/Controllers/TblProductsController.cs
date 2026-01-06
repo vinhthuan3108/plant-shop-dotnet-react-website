@@ -24,7 +24,7 @@ namespace back_end.Controllers
             _context = context;
             _environment = environment;
         }
-
+        //lọc phía admin
         [HttpGet("filter")]
         public async Task<ActionResult<IEnumerable<object>>> GetFilteredProducts([FromQuery] ProductFilterDto filter)
         {
@@ -358,7 +358,79 @@ namespace back_end.Controllers
 
             return Ok(relatedProducts);
         }
+        
 
+        [HttpGet("top-categories")]
+        public async Task<IActionResult> GetTopCategories(int top = 3)
+        {
+            //Top 3 Danh mục có số lượng bán cao nhất (chỉ tính đơn Completed)
+            var topCatStats = await _context.TblOrderDetails
+                .Include(od => od.Order)
+                .Include(od => od.Variant).ThenInclude(v => v.Product).ThenInclude(p => p.Category)
+                .Where(od => od.Order.OrderStatus == "Completed"
+                             && od.Variant.Product.IsActive == true
+                             && (od.Variant.Product.IsDeleted == false || od.Variant.Product.IsDeleted == null))
+                .GroupBy(od => new {
+                    od.Variant.Product.CategoryId,
+                    od.Variant.Product.Category.CategoryName
+                })
+                .Select(g => new
+                {
+                    CategoryId = g.Key.CategoryId,
+                    CategoryName = g.Key.CategoryName,
+                    TotalSold = g.Sum(od => od.Quantity)
+                })
+                .OrderByDescending(x => x.TotalSold)
+                .Take(top)
+                .ToListAsync();
+
+            // Nếu chưa có đơn hàng nào, trả về danh sách rỗng
+            if (!topCatStats.Any()) return Ok(new List<object>());
+
+            var result = new List<object>();
+
+            //Với mỗi danh mục, tìm ảnh của sản phẩm bán chạy nhất trong danh mục đó
+            foreach (var cat in topCatStats)
+            {
+                // Tìm sản phẩm bán chạy nhất trong danh mục này
+                var bestProductInCat = await _context.TblOrderDetails
+                    .Where(od => od.Order.OrderStatus == "Completed"
+                                 && od.Variant.Product.CategoryId == cat.CategoryId
+                                 && od.Variant.Product.IsActive == true)
+                    .GroupBy(od => od.Variant.Product)
+                    .Select(g => new {
+                        Product = g.Key,
+                        Sold = g.Sum(x => x.Quantity)
+                    })
+                    .OrderByDescending(x => x.Sold)
+                    .FirstOrDefaultAsync();
+
+                string imgUrl = ""; 
+
+                if (bestProductInCat != null)
+                {
+                    // Lấy ảnh Thumbnail
+                    var imgObj = await _context.TblProductImages
+                        .Where(img => img.ProductId == bestProductInCat.Product.ProductId)
+                        .OrderByDescending(img => img.IsThumbnail) 
+                        .FirstOrDefaultAsync();
+
+                    if (imgObj != null) imgUrl = imgObj.ImageUrl;
+                }
+
+               
+
+                result.Add(new
+                {
+                    cat.CategoryId,
+                    cat.CategoryName,
+                    ImageUrl = imgUrl,
+                    cat.TotalSold
+                });
+            }
+
+            return Ok(result);
+        }
         //(Tạo mới)
         [HttpPost]
         public async Task<ActionResult<TblProduct>> PostTblProduct(TblProduct tblProduct)

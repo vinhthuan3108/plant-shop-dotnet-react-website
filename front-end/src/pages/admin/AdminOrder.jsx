@@ -205,10 +205,7 @@ const AdminOrders = () => {
 
     return (
         <div style={{ padding: '24px', backgroundColor: '#f4f6f9', minHeight: '100vh' }}>
-            <div style={{ marginBottom: '24px' }}>
-                <h2 style={{ margin: 0, color: '#2c3e50', fontWeight: 'bold' }}>Quản Lý Đơn Hàng</h2>
-                <p style={{ margin: 0, color: '#6c757d', fontSize: '14px' }}>Theo dõi trạng thái và xử lý đơn hàng</p>
-            </div>
+            <h2 style={{color: '#4e73df', marginBottom: '20px'}}>Quản Lý Đơn Hàng</h2>
 
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', marginBottom: '24px' }}>
                 <form onSubmit={handleSearch}>
