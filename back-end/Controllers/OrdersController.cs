@@ -195,7 +195,80 @@ namespace back_end.Controllers
                 return StatusCode(500, "Lỗi server: " + ex.Message);
             }
         }
+        // [BỔ SUNG VÀO OrdersController.cs]
 
+        // 1. API lấy chi tiết đơn hàng (Dành cho User - để khôi phục giỏ hàng)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetOrderById(int id)
+        {
+            var order = await _context.TblOrders
+                .Include(o => o.TblOrderDetails)
+                    .ThenInclude(od => od.Variant) // Để lấy lại VariantId
+                .FirstOrDefaultAsync(o => o.OrderId == id);
+
+            if (order == null) return NotFound("Không tìm thấy đơn hàng");
+
+            // Trả về cấu trúc đơn giản để frontend map vào giỏ hàng
+            return Ok(new
+            {
+                order.OrderId,
+                Items = order.TblOrderDetails.Select(od => new
+                {
+                    VariantId = od.VariantId,
+                    Quantity = od.Quantity,
+                    // Các thông tin khác nếu cần cho Context
+                    ProductName = od.ProductName,
+                    Price = od.PriceAtTime
+                })
+            });
+        }
+
+        // 2. API Hủy đơn hàng (Dành cho User - khi Payment Fail)
+        [HttpPut("cancel-order/{id}")]
+        public async Task<IActionResult> CancelOrderUser(int id)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var order = await _context.TblOrders
+                    .Include(o => o.TblOrderDetails)
+                    .FirstOrDefaultAsync(o => o.OrderId == id);
+
+                if (order == null) return NotFound();
+
+                // Chỉ cho phép hủy nếu chưa thanh toán hoặc đang chờ xác nhận
+                if (order.PaymentStatus == "Paid" || order.OrderStatus == "Completed")
+                {
+                    return BadRequest("Không thể hủy đơn hàng đã thanh toán.");
+                }
+
+                // Hoàn kho (Copy logic từ UpdateOrderStatus của bạn)
+                if (order.OrderStatus != "Cancelled")
+                {
+                    foreach (var item in order.TblOrderDetails)
+                    {
+                        var variant = await _context.TblProductVariants.FindAsync(item.VariantId);
+                        if (variant != null)
+                        {
+                            variant.StockQuantity = (variant.StockQuantity ?? 0) + item.Quantity;
+                        }
+                    }
+                }
+
+                order.OrderStatus = "Cancelled";
+                order.Note += " | Khách hủy giao dịch PayOS";
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new { Message = "Đã hủy đơn hàng" });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, ex.Message);
+            }
+        }
         [HttpPost("calculate-fee")]
         public async Task<IActionResult> CalculateShippingFeePreview([FromBody] ShippingFeeRequest request)
         {
@@ -457,6 +530,7 @@ namespace back_end.Controllers
 
                     Items = o.TblOrderDetails.Select(od => new
                     {
+                        VariantId = od.VariantId,
                         ProductName = od.ProductName ?? od.Variant.Product.ProductName,
                         VariantName = od.VariantName ?? od.Variant.VariantName, 
 

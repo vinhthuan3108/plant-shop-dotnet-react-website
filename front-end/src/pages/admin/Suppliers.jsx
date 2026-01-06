@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios'; 
+import Swal from 'sweetalert2'; // 1. Import SweetAlert
 import SupplierModal from '../../components/admin/SupplierModal';
+import { API_BASE } from '../../utils/apiConfig.jsx'; // 2. Import API_BASE
 
 const Suppliers = () => {
     // --- STATE DỮ LIỆU ---
@@ -8,26 +10,29 @@ const Suppliers = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSupplier, setSelectedSupplier] = useState(null);
     
-    // --- STATE PHÂN TRANG (MỚI) ---
+    // --- STATE PHÂN TRANG ---
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10; // Số lượng hiển thị mỗi trang
+    const itemsPerPage = 10; 
 
-    const API_URL = 'https://localhost:7298/api/suppliers';
+    // 3. Sử dụng API_BASE thay vì hardcode localhost
+    const API_URL = `${API_BASE}/api/suppliers`;
 
     const fetchSuppliers = async () => {
         try {
             const res = await axios.get(API_URL);
-            setSuppliers(res.data);
-            // Reset về trang 1 khi load lại dữ liệu
+            // Xử lý dữ liệu trả về (đề phòng trường hợp $values của .NET)
+            const data = res.data?.$values || res.data;
+            setSuppliers(Array.isArray(data) ? data : []);
             setCurrentPage(1);
         } catch (error) {
             console.error("Lỗi khi tải dữ liệu:", error);
+            // Swal.fire('Lỗi', 'Không thể tải danh sách nhà cung cấp', 'error');
         }
     };
 
     useEffect(() => { fetchSuppliers(); }, []);
 
-    // --- LOGIC PHÂN TRANG (Client-side) ---
+    // --- LOGIC PHÂN TRANG ---
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = suppliers.slice(indexOfFirstItem, indexOfLastItem);
@@ -44,6 +49,7 @@ const Suppliers = () => {
         setIsModalOpen(true);
     };
 
+    // 4. XỬ LÝ LƯU (SweetAlert)
     const handleSave = async (data) => {
         try {
             if (selectedSupplier) {
@@ -51,20 +57,62 @@ const Suppliers = () => {
             } else {
                 await axios.post(API_URL, data);
             }
+            
             setIsModalOpen(false);
+            
+            // Thông báo thành công
+            Swal.fire({
+                title: 'Thành công!',
+                text: 'Đã lưu thông tin nhà cung cấp.',
+                icon: 'success',
+                timer: 700,
+                showConfirmButton: false
+            });
+
             fetchSuppliers();
         } catch (error) {
-            alert('Có lỗi xảy ra: ' + error.message);
+            console.error(error);
+            Swal.fire({
+                title: 'Lỗi!',
+                text: 'Không thể lưu dữ liệu: ' + (error.response?.data?.message || error.message),
+                icon: 'error'
+            });
         }
     };
 
+    // 5. XỬ LÝ XÓA (SweetAlert Confirm)
     const handleDelete = async (id) => {
-        if(window.confirm("Bạn có chắc chắn muốn xóa nhà cung cấp này?")) {
+        const result = await Swal.fire({
+            title: 'Bạn chắc chắn muốn xóa?',
+            text: "Hành động này không thể hoàn tác!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (result.isConfirmed) {
             try {
                 await axios.delete(`${API_URL}/${id}`);
+                
+                Swal.fire({
+                    title: 'Đã xóa!',
+                    text: 'Nhà cung cấp đã được xóa.',
+                    icon: 'success',
+                    timer: 700,
+                    showConfirmButton: false
+                });
+
                 fetchSuppliers();
             } catch (error) {
-                alert('Không thể xóa: ' + error.message);
+                console.error(error);
+                Swal.fire({
+                    title: 'Không thể xóa!',
+                    text: error.response?.data?.message || error.message,
+                    icon: 'error'
+                });
             }
         }
     };
@@ -86,25 +134,19 @@ const Suppliers = () => {
                         <tr>
                             <th style={{ padding: '12px', textAlign: 'center', width: '50px' }}>STT</th>
                             <th style={{ padding: '12px', textAlign: 'left', width: '15%' }}>Tên Nhà Cung Cấp</th>
-                            {/* 1. THÊM HEADER EMAIL */}
                             <th style={{ padding: '12px', textAlign: 'left', width: '15%' }}>Email</th> 
                             <th style={{ padding: '12px', textAlign: 'center', width: '13%' }}>SĐT</th>
                             <th style={{ padding: '12px', textAlign: 'left', width: '24%' }}>Địa chỉ</th>
-                            {/* Giảm width cột Ghi chú lại một chút để nhường chỗ */}
                             <th style={{ padding: '12px', textAlign: 'left', width: '18%' }}>Ghi chú</th> 
                             <th style={{ padding: '12px', textAlign: 'center', width: '150px' }}>Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
                         {currentItems.length > 0 ? currentItems.map((s, index) => {
-                            // TÍNH STT
                             const stt = (currentPage - 1) * itemsPerPage + index + 1;
-
                             return (
                                 <tr key={s.supplierId} style={{ borderBottom: '1px solid #eee' }}>
-                                    {/* Hiển thị STT */}
                                     <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: '#888' }}>{stt}</td>
-
                                     <td style={{ padding: '12px', wordWrap: 'break-word' }}>
                                         <strong style={{color: '#333'}}>{s.supplierName}</strong>
                                     </td>
@@ -120,35 +162,16 @@ const Suppliers = () => {
                                     <td style={{ padding: '12px', color: '#666', fontStyle: 'italic', wordWrap: 'break-word' }}>
                                         {s.note}
                                     </td>
-                                    
-                                    {/* CỘT THAO TÁC (Giao diện mới) */}
                                     <td style={{ padding: '12px', textAlign: 'center' }}>
                                         <button 
                                             onClick={() => handleOpenEdit(s)}
-                                            style={{ 
-                                                marginRight: '8px', 
-                                                cursor: 'pointer', 
-                                                background: 'transparent', 
-                                                color: '#4e73df', 
-                                                border: '1px solid #4e73df', 
-                                                padding: '5px 10px', 
-                                                borderRadius: '4px', 
-                                                fontSize: '12px' 
-                                            }}
+                                            style={{ marginRight: '8px', cursor: 'pointer', background: 'transparent', color: '#4e73df', border: '1px solid #4e73df', padding: '5px 10px', borderRadius: '4px', fontSize: '12px' }}
                                         >
                                             Sửa
                                         </button>
                                         <button 
                                             onClick={() => handleDelete(s.supplierId)}
-                                            style={{ 
-                                                cursor: 'pointer', 
-                                                background: 'transparent', 
-                                                color: '#e74a3b', 
-                                                border: '1px solid #e74a3b', 
-                                                padding: '5px 10px', 
-                                                borderRadius: '4px', 
-                                                fontSize: '12px' 
-                                            }}
+                                            style={{ cursor: 'pointer', background: 'transparent', color: '#e74a3b', border: '1px solid #e74a3b', padding: '5px 10px', borderRadius: '4px', fontSize: '12px' }}
                                         >
                                             Xóa
                                         </button>
@@ -157,7 +180,7 @@ const Suppliers = () => {
                             );
                         }) : (
                             <tr>
-                                <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#888' }}>
+                                <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#888' }}>
                                     Chưa có dữ liệu nhà cung cấp
                                 </td>
                             </tr>
@@ -165,90 +188,35 @@ const Suppliers = () => {
                     </tbody>
                 </table>
 
-                {/* --- THANH PHÂN TRANG (UI giống AdminProduct) --- */}
+                {/* --- THANH PHÂN TRANG --- */}
                 {suppliers.length > itemsPerPage && (
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px 0', gap: '5px', borderTop: '1px solid #eee' }}>
-                        
-                        {/* NHÓM NÚT TRÁI */}
                         {currentPage > 1 && (
                             <>
-                                <button 
-                                    onClick={() => paginate(1)} 
-                                    style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', color: '#4e73df', fontWeight: 'bold' }}
-                                    title="Về trang đầu"
-                                >
-                                    &#171; Đầu
-                                </button>
-                                <button 
-                                    onClick={() => paginate(currentPage - 1)} 
-                                    style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px' }}
-                                >
-                                    &lsaquo; Trước
-                                </button>
+                                <button onClick={() => paginate(1)} style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', color: '#4e73df', fontWeight: 'bold' }}>&#171; Đầu</button>
+                                <button onClick={() => paginate(currentPage - 1)} style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px' }}>&lsaquo; Trước</button>
                             </>
                         )}
-
-                        {/* DANH SÁCH SỐ TRANG */}
                         {(() => {
                             let startPage, endPage;
-                            if (totalPages <= 10) {
-                                startPage = 1;
-                                endPage = totalPages;
-                            } else {
-                                if (currentPage <= 6) {
-                                    startPage = 1;
-                                    endPage = 10;
-                                } else if (currentPage + 4 >= totalPages) {
-                                    startPage = totalPages - 9;
-                                    endPage = totalPages;
-                                } else {
-                                    startPage = currentPage - 5;
-                                    endPage = currentPage + 4;
-                                }
+                            if (totalPages <= 10) { startPage = 1; endPage = totalPages; } 
+                            else {
+                                if (currentPage <= 6) { startPage = 1; endPage = 10; } 
+                                else if (currentPage + 4 >= totalPages) { startPage = totalPages - 9; endPage = totalPages; } 
+                                else { startPage = currentPage - 5; endPage = currentPage + 4; }
                             }
-
                             const pages = [];
-                            for (let i = startPage; i <= endPage; i++) {
-                                pages.push(i);
-                            }
-
+                            for (let i = startPage; i <= endPage; i++) { pages.push(i); }
                             return pages.map(number => (
-                                <button 
-                                    key={number} 
-                                    onClick={() => paginate(number)}
-                                    style={{ 
-                                        padding: '6px 12px', 
-                                        border: '1px solid #ddd', 
-                                        background: currentPage === number ? '#4e73df' : 'white', 
-                                        color: currentPage === number ? 'white' : '#333',
-                                        cursor: 'pointer', 
-                                        borderRadius: '4px',
-                                        fontWeight: currentPage === number ? 'bold' : 'normal',
-                                        fontSize: '13px',
-                                        minWidth: '32px'
-                                    }}
-                                >
+                                <button key={number} onClick={() => paginate(number)} style={{ padding: '6px 12px', border: '1px solid #ddd', background: currentPage === number ? '#4e73df' : 'white', color: currentPage === number ? 'white' : '#333', cursor: 'pointer', borderRadius: '4px', fontWeight: currentPage === number ? 'bold' : 'normal', fontSize: '13px', minWidth: '32px' }}>
                                     {number}
                                 </button>
                             ));
                         })()}
-
-                        {/* NHÓM NÚT PHẢI */}
                         {currentPage < totalPages && (
                             <>
-                                <button 
-                                    onClick={() => paginate(currentPage + 1)} 
-                                    style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px' }}
-                                >
-                                    Sau &rsaquo;
-                                </button>
-                                <button 
-                                    onClick={() => paginate(totalPages)} 
-                                    style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', color: '#4e73df', fontWeight: 'bold' }}
-                                    title="Đến trang cuối"
-                                >
-                                    Cuối &#187;
-                                </button>
+                                <button onClick={() => paginate(currentPage + 1)} style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px' }}>Sau &rsaquo;</button>
+                                <button onClick={() => paginate(totalPages)} style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', color: '#4e73df', fontWeight: 'bold' }}>Cuối &#187;</button>
                             </>
                         )}
                     </div>
@@ -261,6 +229,13 @@ const Suppliers = () => {
                 onSave={handleSave}
                 selectedSupplier={selectedSupplier}
             />
+
+            {/* 6. STYLE FIX Z-INDEX (Để Swal luôn đè lên Modal) */}
+            <style>{`
+                .swal2-container {
+                    z-index: 20000 !important;
+                }
+            `}</style>
         </div>
     );
 };

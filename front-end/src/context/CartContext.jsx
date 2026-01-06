@@ -1,10 +1,11 @@
 import React, { createContext, useState, useEffect } from 'react';
+import Swal from 'sweetalert2'; // 1. Import SweetAlert2
 import { API_BASE } from '../utils/apiConfig.jsx';
+
 export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
     const [cartItems, setCartItems] = useState([]);
-    //const API_BASE = 'https://localhost:7298'; 
 
     // --- CÁC HÀM HELPER ---
     const getUser = () => {
@@ -28,11 +29,30 @@ export const CartProvider = ({ children }) => {
     };
 
     // --- FIX VẤN ĐỀ 2: HOÀN THIỆN HÀM CLEAR CART ---
-    const clearCart = () => {
-        // 1. Xóa State
-        setCartItems([]); 
-        
-        // 2. Xóa Local Storage (cho khách vãng lai)
+    const clearCart = async () => {
+        const user = getUser();
+        const userId = user?.userId;
+
+        // 1. Nếu đã đăng nhập -> Xóa trên Server
+        if (userId && cartItems.length > 0) {
+            try {
+                // Vì API hiện tại chỉ có remove-item, ta dùng vòng lặp để xóa hết
+                // (Nếu Backend có API /clear-cart thì nên dùng cái đó sẽ tốt hơn)
+                const deletePromises = cartItems.map(item => 
+                    fetch(`${API_BASE}/api/Cart/remove-item?userId=${userId}&variantId=${item.variantId}`, { 
+                        method: 'DELETE' 
+                    })
+                );
+                await Promise.all(deletePromises);
+            } catch (err) {
+                console.error("Lỗi xóa data server:", err);
+            }
+        }
+
+        // 2. Xóa State (làm mới giao diện ngay lập tức)
+        setCartItems([]);
+
+        // 3. Xóa Local Storage
         localStorage.removeItem('shoppingCart');
     };
 
@@ -98,15 +118,25 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    // --- 2. THÊM VÀO GIỎ (ĐÃ SỬA LỖI DOUBLE ALERT) ---
-    const addToCart = async (product) => {
+    // --- 2. THÊM VÀO GIỎ (SỬ DỤNG SWEETALERT2) ---
+    // --- 2. THÊM VÀO GIỎ (SỬA LẠI) ---
+    // Thêm tham số showAlert (mặc định là true)
+    const addToCart = async (product, showAlert = true) => {
         const user = getUser();
-        if (user && !isCustomer(user)) { alert("Quản trị viên không thể mua hàng!"); return; }
+        
+        // Check quyền Admin
+        if (user && !isCustomer(user)) { 
+            if (showAlert) { // Chỉ hiện khi cần
+                Swal.fire({ icon: 'error', title: 'Hạn chế', text: 'Quản trị viên không thể mua hàng!' });
+            }
+            return false; // Trả về false để biết là thất bại
+        }
 
         const userId = user?.userId;
+        let success = false; // Biến đánh dấu kết quả
 
         if (userId) {
-            // --- LOGIC DB (GIỮ NGUYÊN) ---
+            // --- LOGIC DB ---
             try {
                 const res = await fetch(`${API_BASE}/api/Cart/add-to-cart`, {
                     method: 'POST',
@@ -119,51 +149,36 @@ export const CartProvider = ({ children }) => {
                 });
                 
                 if (res.ok) {
-                    refreshCart(); 
-                    alert("Đã thêm vào giỏ hàng!");
+                    await refreshCart(); // Đợi refresh xong
+                    success = true;
                 } else {
-                    alert("Lỗi khi thêm vào giỏ hàng (API).");
+                    if (showAlert) Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể thêm vào giỏ hàng (Lỗi API).' });
                 }
             } catch (error) {
                 console.error("Lỗi thêm giỏ hàng DB", error);
-                alert("Lỗi kết nối server!");
+                if (showAlert) Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: 'Không thể kết nối đến máy chủ!' });
             }
         } else {
-            // --- LOGIC LOCAL STORAGE (ĐÃ SỬA) ---
-            // 1. Tính toán giỏ hàng mới dựa trên state hiện tại
-            let currentCart = [...cartItems];
-            const existIndex = currentCart.findIndex(x => x.variantId === product.variantId);
-            
-            if (existIndex !== -1) {
-                // Nếu đã tồn tại -> Tăng số lượng
-                currentCart[existIndex] = {
-                    ...currentCart[existIndex],
-                    quantity: currentCart[existIndex].quantity + product.quantity
-                };
-            } else {
-                // Nếu chưa -> Thêm mới
-                currentCart.push({ 
-                    productId: product.productId,
-                    variantId: product.variantId,
-                    productName: product.productName,
-                    variantName: product.variantName,
-                    originalPrice: product.originalPrice || product.price,
-                    salePrice: product.salePrice || 0,
-                    price: product.price || product.salePrice || product.originalPrice, 
-                    image: product.imageUrl || product.image || '', 
-                    quantity: product.quantity 
-                });
-            }
-
-            // 2. Cập nhật State
+            // --- LOGIC LOCAL STORAGE ---
+            // ... (Giữ nguyên logic cũ của bạn đoạn này) ...
+            // Thay đổi đoạn cuối:
             setCartItems(currentCart);
-
-            // 3. Đồng bộ LocalStorage
             syncLocalStorage(currentCart);
-
-            // 4. Alert 1 lần duy nhất
-            alert("Đã thêm vào giỏ (Local)!");
+            success = true;
         }
+
+        // Chỉ hiện thông báo khi showAlert = true VÀ thành công
+        if (success && showAlert) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Đã thêm!',
+                text: 'Sản phẩm đã được thêm vào giỏ hàng.',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+
+        return success; // Trả về kết quả để bên ngoài biết
     };
 
     // --- 3. XÓA SẢN PHẨM ---
@@ -226,7 +241,7 @@ export const CartProvider = ({ children }) => {
             cartCount, 
             totalAmount, 
             refreshCart,
-            clearCart // <-- Đã export hàm này để dùng ở trang Checkout
+            clearCart
         }}>
             {children}
         </CartContext.Provider>

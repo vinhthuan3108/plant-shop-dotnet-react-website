@@ -16,21 +16,51 @@ namespace back_end.Controllers
             _context = context;
         }
 
-        //Xem danh sách mã giảm giá (Có lọc và tìm kiếm)
+        
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TblVoucher>>> GetVouchers(string? search, bool? isActive)
+        public async Task<ActionResult<IEnumerable<TblVoucher>>> GetVouchers(string? search, string? status, DateTime? from, DateTime? to)
         {
             var query = _context.TblVouchers.AsQueryable();
 
-            // Tìm kiếm theo tên mã
+            // 1. Tìm kiếm theo tên mã
             if (!string.IsNullOrEmpty(search))
             {
                 query = query.Where(v => v.Code.Contains(search));
             }
 
-            if (isActive.HasValue)
+            // "active": Đang kích hoạt (IsActive = true VÀ chưa hết hạn)
+            // "expired": Hết hạn (Ngày kết thúc < ngày hiện tại)
+            var now = DateTime.Now;
+            if (!string.IsNullOrEmpty(status))
             {
-                query = query.Where(v => v.IsActive == isActive.Value);
+                switch (status.ToLower())
+                {
+                    case "active":
+                        
+                        query = query.Where(v => v.IsActive == true && v.EndDate >= now);
+                        break;
+
+                    case "expired":
+                        
+                        //Có thể expired dù IsActive vẫn true)
+                        query = query.Where(v => v.EndDate < now);
+                        break;
+
+                    case "inactive":
+                        
+                        query = query.Where(v => v.IsActive == false);
+                        break;
+                }
+            }
+
+            //Lọc theo khoảng thời gian (Dựa trên ngày bắt đầu và kết thúc của Voucher)
+            if (from.HasValue)
+            {
+                query = query.Where(v => v.StartDate >= from.Value);
+            }
+            if (to.HasValue)
+            {
+                query = query.Where(v => v.EndDate <= to.Value);
             }
 
             return await query.OrderByDescending(v => v.VoucherId).ToListAsync();
@@ -95,7 +125,7 @@ namespace back_end.Controllers
                 // Cho phép sửa: Số lượng, Ngày kết thúc, giá trị đơn tối thiểu
                 voucher.UsageLimit = dto.UsageLimit;
                 voucher.EndDate = dto.EndDate;
-
+                voucher.IsActive = dto.IsActive;
                 voucher.MinOrderValue = dto.MinOrderValue;
 
                 if (voucher.DiscountValue != dto.DiscountValue || voucher.Code != dto.Code.ToUpper())
@@ -119,6 +149,7 @@ namespace back_end.Controllers
                 voucher.StartDate = dto.StartDate;
                 voucher.EndDate = dto.EndDate;
                 voucher.UsageLimit = dto.UsageLimit;
+                voucher.IsActive = dto.IsActive;
             }
 
             await _context.SaveChangesAsync();

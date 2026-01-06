@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import BannerModal from "../../components/admin/BannerModal";
 import { API_BASE } from '../../utils/apiConfig.jsx';
+import Swal from 'sweetalert2'; // Import SweetAlert2
+
 function AdminBanners() {
     const [banners, setBanners] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
 
     //const API_DOMAIN = 'https://localhost:7298'; 
-    const API_URL = `${API_BASE}/api/TblBanners`; 
-
+    const API_URL = `${API_BASE}/api/TblBanners`;
+    
     const fetchBanners = () => {
         fetch(`${API_URL}/admin`)
             .then(res => res.json())
@@ -38,7 +40,7 @@ function AdminBanners() {
         const url = editingItem ? `${API_URL}/${editingItem.bannerId}` : API_URL;
         
         if (editingItem) jsonData.bannerId = editingItem.bannerId;
-
+        
         try {
             const res = await fetch(url, {
                 method: method,
@@ -47,29 +49,75 @@ function AdminBanners() {
                 },
                 body: JSON.stringify(jsonData) 
             });
-
+            
             if (res.ok) {
+                // Thay alert bằng Swal Success
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công',
+                    text: 'Lưu dữ liệu banner thành công!',
+                    timer: 700,
+                    showConfirmButton: false
+                });
                 setIsModalOpen(false);
                 fetchBanners();
             } else {
-                alert("Lỗi khi lưu dữ liệu");
+                // Thay alert bằng Swal Error
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: 'Lỗi khi lưu dữ liệu'
+                });
             }
         } catch (error) {
             console.error(error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối',
+                text: 'Không thể kết nối đến server.'
+            });
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Bạn có chắc chắn muốn xóa banner này?')) {
+        // Thay window.confirm bằng Swal
+        const result = await Swal.fire({
+            title: 'Bạn có chắc chắn muốn xóa?',
+            text: "Hành động này không thể hoàn tác!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33', // Màu đỏ cho nút xóa
+            cancelButtonColor: '#3085d6', // Màu xanh cho nút hủy
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy bỏ'
+        });
+
+        if (result.isConfirmed) {
             try {
                 const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
                 if (res.ok) {
+                    Swal.fire({
+                        title: 'Đã xóa!',
+                        text: 'Banner đã được xóa thành công.',
+                        icon: 'success',
+                        timer: 1000,
+                        showConfirmButton: false
+                    });
                     fetchBanners();
                 } else {
-                    alert('Lỗi khi xóa!');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Không thể xóa!',
+                        text: 'Có lỗi xảy ra khi xóa banner.'
+                    });
                 }
             } catch (error) {
                 console.error(error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi!',
+                    text: 'Lỗi kết nối server.'
+                });
             }
         }
     };
@@ -137,7 +185,7 @@ function AdminBanners() {
                             </td>
                             
                             <td style={{ padding: '8px', textAlign: 'center' }}>
-                                {item.isActive ? 
+                                {item.isActive ?
                                     <span style={{color: 'green', fontWeight:'bold'}}>Đang hiện</span> : 
                                     <span style={{color: 'red'}}>Đang ẩn</span>
                                 }

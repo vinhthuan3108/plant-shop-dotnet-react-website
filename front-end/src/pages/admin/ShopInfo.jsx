@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-// import { toast } from 'react-toastify'; 
 import { API_BASE } from '../../utils/apiConfig.jsx';
+import Swal from 'sweetalert2'; // Import SweetAlert2
+
 function ShopInfo() {
     // State lưu trữ giá trị các cấu hình
     const [configs, setConfigs] = useState({
@@ -17,13 +18,13 @@ function ShopInfo() {
         FaviconUrl: '',
         GoogleMapEmbed: ''
     });
-
-    //const BASE_URL = 'https://localhost:7298'; 
-
+    // State lưu lỗi validate (Mới thêm)
+    const [errors, setErrors] = useState({});
+    
     useEffect(() => {
         fetchConfigs();
     }, []);
-
+    
     const fetchConfigs = async () => {
         try {
             const res = await axios.get(`${API_BASE}/api/TblSystemConfig`);
@@ -41,9 +42,25 @@ function ShopInfo() {
         }
     };
 
+    // --- LOGIC VALIDATE ---
+    const isValidEmail = (email) => {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
+        // 1. Chặn nhập ký tự chữ vào Hotline
+        if (name === 'Hotline') {
+            if (!/^\d*$/.test(value)) {
+                return;
+            }
+        }
+
         setConfigs(prev => ({ ...prev, [name]: value }));
+        // 2. Xóa lỗi hiển thị khi người dùng bắt đầu sửa lại
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: '' }));
+        }
     };
 
     const handleUpload = async (e, keyName) => {
@@ -52,32 +69,74 @@ function ShopInfo() {
 
         const formData = new FormData();
         formData.append('file', file);
-
         try {
             const res = await axios.post(`${API_BASE}/api/Upload/configs`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            
             if (res.data.url) {
                 setConfigs(prev => ({ ...prev, [keyName]: res.data.url }));
             }
         } catch (error) {
             console.error(error);
-            alert('Upload ảnh thất bại');
+            // Thay alert lỗi upload
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Upload ảnh thất bại'
+            });
         }
     };
 
     const handleSave = async () => {
+        // --- BƯỚC KIỂM TRA DỮ LIỆU TRƯỚC KHI LƯU ---
+        const newErrors = {};
+        // Validate Email
+        if (configs.Email && !isValidEmail(configs.Email)) {
+            newErrors.Email = "Định dạng email không hợp lệ!";
+        }
+
+        // Validate Hotline (10-11 số)
+        if (configs.Hotline) {
+            if (configs.Hotline.length < 10 || configs.Hotline.length > 11) {
+                newErrors.Hotline = "Số điện thoại phải từ 10 đến 11 số!";
+            }
+        }
+
+        // Nếu có lỗi thì set state lỗi và dừng hàm Save
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            // Thay alert cảnh báo
+            Swal.fire({
+                icon: 'warning',
+                title: 'Dữ liệu không hợp lệ',
+                text: 'Vui lòng kiểm tra lại thông tin nhập lỗi!'
+            });
+            return;
+        }
+
+        // --- NẾU KHÔNG CÓ LỖI THÌ TIẾP TỤC LƯU ---
         const payload = Object.keys(configs).map(key => ({
             configKey: key,
             configValue: configs[key]
         }));
-
         try {
             await axios.post(`${API_BASE}/api/TblSystemConfig/BulkUpdate`, payload);
-            alert('Cập nhật thành công!');
+            
+            // Thay alert thành công
+            Swal.fire({
+                icon: 'success',
+                title: 'Thành công',
+                text: 'Cập nhật cấu hình cửa hàng thành công!',
+                timer: 700,
+                showConfirmButton: false
+            });
         } catch (error) {
-            alert('Lỗi khi lưu cấu hình');
+            // Thay alert lỗi server
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Có lỗi xảy ra khi lưu cấu hình'
+            });
         }
     };
 
@@ -87,7 +146,6 @@ function ShopInfo() {
         maxWidth: '1000px',
         margin: '0 auto'
     };
-
     const sectionStyle = {
         backgroundColor: '#fff',
         padding: '20px',
@@ -95,7 +153,6 @@ function ShopInfo() {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         marginBottom: '20px'
     };
-
     const headerStyle = {
         borderBottom: '1px solid #eee',
         paddingBottom: '10px',
@@ -104,54 +161,54 @@ function ShopInfo() {
         fontWeight: 'bold',
         color: '#333'
     };
-
     const gridStyle = {
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr', // Chia 2 cột
+        gridTemplateColumns: '1fr 1fr',
         gap: '20px'
     };
-
     const formGroupStyle = {
         marginBottom: '1px'
     };
-
     const labelStyle = {
         display: 'block',
         marginBottom: '1px',
         fontWeight: '500',
         fontSize: '14px'
     };
-
     const inputStyle = {
         width: '100%',
         padding: '8px 12px',
         borderRadius: '4px',
         border: '1px solid #ccc',
         fontSize: '14px',
-        boxSizing: 'border-box' // Quan trọng để padding không làm vỡ layout
+        boxSizing: 'border-box'
     };
-
-    // Style cho khung upload ảnh để tránh vỡ giao diện
+    // Style hiển thị lỗi màu đỏ
+    const errorStyle = {
+        color: '#dc3545',
+        fontSize: '12px',
+        marginTop: '4px',
+        display: 'block'
+    };
     const imageBoxStyle = {
         border: '2px dashed #ddd',
         borderRadius: '6px',
         padding: '10px',
         textAlign: 'center',
         backgroundColor: '#fafafa',
-        height: '180px', // Chiều cao cố định
+        height: '180px',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center'
     };
-
     const imgPreviewStyle = {
         maxWidth: '100%',
-        maxHeight: '100px', // Giới hạn chiều cao ảnh
+        maxHeight: '100px',
         objectFit: 'contain',
         marginBottom: '10px'
     };
-
+    
     return (
         <div style={containerStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -181,14 +238,39 @@ function ShopInfo() {
                         <label style={labelStyle}>Tên cửa hàng</label>
                         <input type="text" name="StoreName" value={configs.StoreName} onChange={handleChange} style={inputStyle}/>
                     </div>
+                    
+                    {/* --- HOTLINE ĐÃ CÓ VALIDATE --- */}
                     <div style={formGroupStyle}>
                         <label style={labelStyle}>Hotline</label>
-                        <input type="text" name="Hotline" value={configs.Hotline} onChange={handleChange} style={inputStyle}/>
+                        <input 
+                            type="text" 
+                            name="Hotline" 
+                            value={configs.Hotline} 
+                            onChange={handleChange} 
+                            style={{
+                                ...inputStyle,
+                                borderColor: errors.Hotline ? '#dc3545' : '#ccc'
+                            }}
+                        />
+                        {errors.Hotline && <span style={errorStyle}>{errors.Hotline}</span>}
                     </div>
+
+                    {/* --- EMAIL ĐÃ CÓ VALIDATE --- */}
                     <div style={formGroupStyle}>
                         <label style={labelStyle}>Email</label>
-                        <input type="email" name="Email" value={configs.Email} onChange={handleChange} style={inputStyle}/>
+                        <input 
+                            type="email" 
+                            name="Email" 
+                            value={configs.Email} 
+                            onChange={handleChange} 
+                            style={{
+                                ...inputStyle,
+                                borderColor: errors.Email ? '#dc3545' : '#ccc'
+                            }}
+                        />
+                        {errors.Email && <span style={errorStyle}>{errors.Email}</span>}
                     </div>
+
                     <div style={formGroupStyle}>
                         <label style={labelStyle}>Địa chỉ</label>
                         <input type="text" name="Address" value={configs.Address} onChange={handleChange} style={inputStyle}/>
@@ -203,7 +285,7 @@ function ShopInfo() {
             {/* KHỐI 2: MẠNG XÃ HỘI */}
             <div style={sectionStyle}>
                 <div style={headerStyle}>🌐 Mạng xã hội</div>
-                <div style={{ ...gridStyle, gridTemplateColumns: '1fr 1fr 1fr' }}> {/* Chia 3 cột */}
+                <div style={{ ...gridStyle, gridTemplateColumns: '1fr 1fr 1fr' }}>
                     <div style={formGroupStyle}>
                         <label style={labelStyle}>Zalo (SĐT/Link)</label>
                         <input type="text" name="SocialZalo" value={configs.SocialZalo} onChange={handleChange} style={inputStyle}/>
@@ -252,7 +334,8 @@ function ShopInfo() {
 
                 </div>
             </div>
-            {/* KHỐI 4: BẢN ĐỒ (MỚI) */}
+            
+            {/* KHỐI 4: BẢN ĐỒ */}
             <div style={sectionStyle}>
                 <div style={headerStyle}>🗺️ Cấu hình Bản đồ (Google Map)</div>
                 <div style={formGroupStyle}>
@@ -263,7 +346,7 @@ function ShopInfo() {
                         onChange={handleChange} 
                         style={{
                             ...inputStyle,
-                            height: '80px', // Tăng chiều cao vì link map rất dài
+                            height: '80px',
                             resize: 'vertical',
                             fontFamily: 'monospace'
                         }}

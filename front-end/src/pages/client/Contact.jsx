@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { API_BASE } from '../../utils/apiConfig.jsx';
+import Swal from 'sweetalert2'; // Import SweetAlert2
+
 function Contact() {
     // State lưu dữ liệu form
     const [formData, setFormData] = useState({
@@ -12,10 +14,8 @@ function Contact() {
     });
     const [status, setStatus] = useState(''); 
     const [captchaToken, setCaptchaToken] = useState(null);
-    
     // 1. State lưu SiteKey Recaptcha
     const [siteKey, setSiteKey] = useState(null);
-
     // 2. State lưu thông tin cửa hàng
     const [shopInfo, setShopInfo] = useState({
         storeName: 'Đang tải...',
@@ -24,10 +24,8 @@ function Contact() {
         hotline: 'Đang tải...',
         mapUrl: ''
     });
-
     // 3. (MỚI) State lưu danh sách câu hỏi thường gặp
     const [qandas, setQandas] = useState([]);
-
     const recaptchaRef = useRef(null);
     //const BASE_URL = 'https://localhost:7298'; 
 
@@ -51,7 +49,6 @@ function Contact() {
                     hotline: getValue('Hotline'),
                     mapUrl: getValue('GoogleMapEmbed') || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3528.4810863297434!2d109.17483147453608!3d12.241600130463471!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3170678749018e2f%3A0x4b0e1e18074eb956!2zQ8O0bmcgdHkgY-G7lSBwaOG6p24gU3dlZXRTb2Z0!5e1!3m2!1svi!2s!4v1766377102808!5m2!1svi!2s"
                 });
-
                 const recaptchaConfig = data.find(x => x.configKey === 'Recaptcha_SiteKey');
                 if (recaptchaConfig && recaptchaConfig.configValue) {
                     setSiteKey(recaptchaConfig.configValue);
@@ -74,7 +71,8 @@ function Contact() {
         };
 
         fetchConfig();
-        fetchQandA(); // Gọi hàm lấy Q&A
+        fetchQandA();
+        // Gọi hàm lấy Q&A
     }, []);
 
     const handleChange = (e) => {
@@ -84,7 +82,7 @@ function Contact() {
         }
         setFormData(prev => ({ ...prev, [name]: value }));
     };
-
+    
     const handleCaptchaChange = (token) => {
         setCaptchaToken(token);
         setStatus(''); 
@@ -92,12 +90,22 @@ function Contact() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // --- THAY ALERT VALIDATION ---
         if (!captchaToken) {
-            alert('Vui lòng xác nhận bạn không phải là robot!');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Chưa xác thực',
+                text: 'Vui lòng xác nhận bạn không phải là robot!'
+            });
             return;
         }
         if (formData.phoneNumber.length < 10 || formData.phoneNumber.length > 11) {
-            alert('Số điện thoại phải từ 10 đến 11 số!');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Số điện thoại không hợp lệ',
+                text: 'Số điện thoại phải từ 10 đến 11 số!'
+            });
             return;
         }
 
@@ -108,14 +116,28 @@ function Contact() {
                 subject: 'Liên hệ từ khách hàng',
                 recaptchaToken: captchaToken
             });
-            alert('Gửi tin nhắn thành công!');
+            
+            // --- THAY ALERT THÀNH CÔNG ---
+            await Swal.fire({
+                icon: 'success',
+                title: 'Gửi thành công!',
+                text: 'Cảm ơn bạn đã liên hệ. Chúng tôi sẽ phản hồi sớm nhất.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+
             setStatus('success');
             setFormData({ fullName: '', email: '', phoneNumber: '', message: '' });
             if (recaptchaRef.current) recaptchaRef.current.reset();
             setCaptchaToken(null);
         } catch (error) {
             console.error(error);
-            alert('Có lỗi xảy ra, vui lòng thử lại.');
+            // --- THAY ALERT LỖI ---
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi gửi tin',
+                text: 'Có lỗi xảy ra, vui lòng thử lại sau.'
+            });
             setStatus('error');
         }
     };

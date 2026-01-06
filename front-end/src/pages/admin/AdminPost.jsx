@@ -3,19 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import PostModal from '../../components/admin/PostModal';
 import axios from 'axios';
 import { API_BASE } from '../../utils/apiConfig.jsx';
+import Swal from 'sweetalert2'; // Import SweetAlert2
+
 const AdminPosts = () => {
     // --- STATE QUẢN LÝ DỮ LIỆU ---
     const [posts, setPosts] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPost, setSelectedPost] = useState(null);
-    
     // --- STATE PHÂN TRANG (MỚI) ---
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10; // Số lượng hiển thị mỗi trang
+    const itemsPerPage = 10;
+    // Số lượng hiển thị mỗi trang
 
     //const API_BASE = 'https://localhost:7298';
     const navigate = useNavigate();
-
     const fetchPosts = async () => {
         try {
             const res = await axios.get(`${API_BASE}/api/TblPosts`);
@@ -26,18 +27,44 @@ const AdminPosts = () => {
     };
 
     const handleHardDelete = async (id) => {
-        if (window.confirm("CẢNH BÁO: Bài viết sẽ bị xóa vĩnh viễn khỏi Database!")) {
+        // Thay window.confirm bằng Swal
+        const result = await Swal.fire({
+            title: 'CẢNH BÁO: Xóa vĩnh viễn?',
+            text: "Bài viết sẽ bị xóa hoàn toàn khỏi Database và không thể khôi phục!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33', // Màu đỏ cho nút xóa
+            cancelButtonColor: '#3085d6', // Màu xanh cho nút hủy
+            confirmButtonText: 'Vâng, xóa nó!',
+            cancelButtonText: 'Hủy bỏ'
+        });
+
+        if (result.isConfirmed) {
             try {
                 await axios.delete(`${API_BASE}/api/TblPosts/hard/${id}`);
+                
+                // Thông báo thành công
+                Swal.fire({
+                    title: 'Đã xóa!',
+                    text: 'Bài viết đã được xóa vĩnh viễn.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
                 fetchPosts();
             } catch (error) { 
-                alert("Lỗi khi xóa vĩnh viễn!");
+                // Thông báo lỗi
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: 'Có lỗi xảy ra khi xóa bài viết!'
+                });
             }
         }
     };
 
     useEffect(() => { fetchPosts(); }, []);
-
     // --- LOGIC PHÂN TRANG ---
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -81,7 +108,8 @@ const AdminPosts = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {currentItems.length > 0 ? currentItems.map((post, index) => {
+                        {currentItems.length > 0 ?
+                        currentItems.map((post, index) => {
                              // TÍNH TOÁN STT
                              const stt = (currentPage - 1) * itemsPerPage + index + 1;
                              
@@ -89,7 +117,7 @@ const AdminPosts = () => {
                                 <tr key={post.postId} style={{ borderBottom: '1px solid #eee', backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9' }}>
                                     {/* HIỂN THỊ STT */}
                                     <td style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold', color: '#888' }}>{stt}</td>
-                                    
+                                     
                                     <td style={{ textAlign: 'center', padding: '12px' }}>
                                         <img src={`${API_BASE}${post.thumbnailUrl}`} width="60" height="40" style={{ objectFit: 'cover', borderRadius: '4px', border: '1px solid #eee' }} alt="" />
                                     </td>

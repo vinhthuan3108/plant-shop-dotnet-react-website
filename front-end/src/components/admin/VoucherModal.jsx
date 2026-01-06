@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2'; 
+// 1. Import SweetAlert2
 
 const VoucherModal = ({ isOpen, onClose, onSubmit, editingVoucher }) => {
     // State quản lý form
@@ -10,7 +12,8 @@ const VoucherModal = ({ isOpen, onClose, onSubmit, editingVoucher }) => {
         minOrderValue: 0,
         startDate: '',
         endDate: '',
-        usageLimit: 100
+        usageLimit: 100,
+        isActive: true // 2. Thêm trạng thái mặc định
     });
 
     useEffect(() => {
@@ -30,7 +33,8 @@ const VoucherModal = ({ isOpen, onClose, onSubmit, editingVoucher }) => {
                     minOrderValue: editingVoucher.minOrderValue || 0,
                     startDate: formatDateTime(editingVoucher.startDate),
                     endDate: formatDateTime(editingVoucher.endDate),
-                    usageLimit: editingVoucher.usageLimit || 0
+                    usageLimit: editingVoucher.usageLimit || 0,
+                    isActive: editingVoucher.isActive // 3. Lấy trạng thái từ voucher đang sửa
                 });
             } else {
                 // Reset form khi thêm mới
@@ -42,7 +46,8 @@ const VoucherModal = ({ isOpen, onClose, onSubmit, editingVoucher }) => {
                     minOrderValue: 0,
                     startDate: new Date().toISOString().slice(0, 16),
                     endDate: '',
-                    usageLimit: 100
+                    usageLimit: 100,
+                    isActive: true // Mặc định thêm mới là active
                 });
             }
         }
@@ -52,24 +57,56 @@ const VoucherModal = ({ isOpen, onClose, onSubmit, editingVoucher }) => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        // Xử lý riêng cho select boolean nếu cần, nhưng với select value string "true"/"false" thì cần parse
+        const val = name === 'isActive' ? (value === 'true') : value;
+        setFormData(prev => ({ ...prev, [name]: val }));
     };
 
     const handleSubmit = () => {
         // 1. Kiểm tra Mã code
-        if (!formData.code.trim()) return alert("Mã code không được trống");
+        if (!formData.code.trim()) {
+            return Swal.fire({
+                title: 'Thiếu thông tin',
+                text: 'Mã code không được trống',
+                icon: 'warning'
+            });
+        }
+        
+        // 2. Kiểm tra ngày
+        if (!formData.startDate) {
+            return Swal.fire({
+                title: 'Thiếu thông tin',
+                text: 'Vui lòng chọn ngày bắt đầu!',
+                icon: 'warning'
+            });
+        }
+        if (!formData.endDate) {
+            return Swal.fire({
+                title: 'Thiếu thông tin',
+                text: 'Vui lòng chọn ngày kết thúc!',
+                icon: 'warning'
+            });
+        }
 
-        // 2. Kiểm tra xem đã chọn ngày chưa (Thêm đoạn này)
-        if (!formData.startDate) return alert("Vui lòng chọn ngày bắt đầu!");
-        if (!formData.endDate) return alert("Vui lòng chọn ngày kết thúc!");
-
-        // 3. Kiểm tra logic ngày (Kết thúc phải sau Bắt đầu)
-        // Lưu ý: new Date() cần chuỗi đúng định dạng, nếu rỗng sẽ ra Invalid Date
+        // 3. Kiểm tra logic ngày
         const start = new Date(formData.startDate);
         const end = new Date(formData.endDate);
 
         if (end < start) {
-            return alert("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu!");
+            return Swal.fire({
+                title: 'Lỗi thời gian',
+                text: 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu!',
+                icon: 'error'
+            });
+        }
+
+        // 4. Validate giá trị âm
+        if (formData.discountValue < 0 || formData.minOrderValue < 0) {
+             return Swal.fire({
+                title: 'Lỗi giá trị',
+                text: 'Giá trị giảm hoặc đơn tối thiểu không được âm.',
+                icon: 'warning'
+            });
         }
 
         // Chuẩn bị dữ liệu gửi đi
@@ -78,11 +115,12 @@ const VoucherModal = ({ isOpen, onClose, onSubmit, editingVoucher }) => {
             discountValue: Number(formData.discountValue),
             maxDiscountAmount: Number(formData.maxDiscountAmount),
             minOrderValue: Number(formData.minOrderValue),
-            usageLimit: Number(formData.usageLimit)
+            usageLimit: Number(formData.usageLimit),
+            isActive: formData.isActive // Gửi trạng thái lên server
         };
-        
         onSubmit(payload);
     };
+
     // Style chung cho input
     const inputStyle = { width: '100%', padding: '8px', marginBottom: '10px', boxSizing: 'border-box' };
     const labelStyle = { display: 'block', marginBottom: '5px', fontWeight: '500' };
@@ -90,11 +128,32 @@ const VoucherModal = ({ isOpen, onClose, onSubmit, editingVoucher }) => {
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', 
+            zIndex: 1000 // Modal z-index
         }}>
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', width: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
+                
                 <h3>{editingVoucher ? 'Cập Nhật Voucher' : 'Tạo Mã Giảm Giá Mới'}</h3>
                 
+                {/* 4. Thêm phần chỉnh trạng thái (Chỉ hiện khi đang Edit) */}
+                {editingVoucher && (
+                    <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid #e9ecef' }}>
+                        <label style={{...labelStyle, color: '#4e73df'}}>Trạng thái hoạt động:</label>
+                        <select 
+                            name="isActive" 
+                            value={formData.isActive} 
+                            onChange={handleChange} 
+                            style={{...inputStyle, marginBottom: 0, borderColor: formData.isActive ? '#28a745' : '#6c757d'}}
+                        >
+                            <option value="true">Đang kích hoạt (Mở)</option>
+                            <option value="false">Ngừng kích hoạt (Khóa)</option>
+                        </select>
+                        <small style={{color: '#666', fontStyle: 'italic'}}>
+                            * Lưu ý: Nếu chọn "Mở" nhưng ngày kết thúc đã qua, hệ thống vẫn tính là "Hết hạn".
+                        </small>
+                    </div>
+                )}
+
                 {/* Hàng 1: Code + Số lượng */}
                 <div style={{ display: 'flex', gap: '20px' }}>
                     <div style={{ flex: 1 }}>

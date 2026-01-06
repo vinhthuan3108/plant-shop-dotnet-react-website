@@ -1,25 +1,36 @@
-import React, { useState, useEffect } from 'react';
+// [THÊM] import useContext
+import React, { useState, useEffect, useContext } from 'react'; 
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './ProfilePage.css';
 import { API_BASE } from '../../utils/apiConfig.jsx';
+import Swal from 'sweetalert2';
+
+// [THÊM] Import CartContext
+import { CartContext } from '../../context/CartContext';
+// --- KHAI BÁO MAPPING TRẠNG THÁI ---
+    // Giúp map id của Tab (Tiếng Anh) sang các text lưu trong Database (Có thể là Việt hoặc Anh)
+    const STATUS_MAPPING = {
+        'Pending': ['Chờ xác nhận', 'Pending'],
+        'Processing': ['Đang đóng gói', 'Processing', 'Confirmed'],
+        'Shipped': ['Đang vận chuyển', 'Shipping', 'Shipped'],
+        'Completed': ['Hoàn thành', 'Completed', 'Success'],
+        'Cancelled': ['Đã hủy', 'Cancelled']
+    };
 // --- COMPONENT MODAL CHI TIẾT ĐƠN HÀNG (DÀNH CHO USER) ---
 const UserOrderDetailModal = ({ isOpen, onClose, order }) => {
     if (!isOpen || !order) return null;
-
     const overlayStyle = {
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
         display: 'flex', justifyContent: 'center', alignItems: 'center'
     };
-
     // Style modal đã được chuyển class 'modal-content-responsive' ở dưới để responsive
     const modalStyle = {
         backgroundColor: 'white', padding: '25px', borderRadius: '8px',
         width: '600px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto',
         boxShadow: '0 4px 15px rgba(0,0,0,0.2)', position: 'relative'
     };
-
     return (
         <div style={overlayStyle} onClick={onClose}>
             <div className="modal-content-responsive" style={modalStyle} onClick={e => e.stopPropagation()}>
@@ -41,7 +52,8 @@ const UserOrderDetailModal = ({ isOpen, onClose, order }) => {
                         <strong style={{display:'block', marginBottom:'5px', color:'#555'}}>Thông tin đơn</strong>
                         <div>Ngày đặt: {new Date(order.orderDate).toLocaleDateString('vi-VN')}</div>
                         <div>Trạng thái: <span style={{fontWeight:'bold'}}>{order.orderStatus}</span></div>
-                        <div>Thanh toán: {order.paymentStatus === 'Paid' ? <span style={{color:'green', fontWeight:'bold'}}>Đã thanh toán</span> : <span style={{color:'orange', fontWeight:'bold'}}>Chưa thanh toán</span>}</div>
+                        <div>Thanh toán: {order.paymentStatus === 'Paid' ?
+                            <span style={{color:'green', fontWeight:'bold'}}>Đã thanh toán</span> : <span style={{color:'orange', fontWeight:'bold'}}>Chưa thanh toán</span>}</div>
                     </div>
                 </div>
 
@@ -80,11 +92,12 @@ const UserOrderDetailModal = ({ isOpen, onClose, order }) => {
 const ProfilePage = () => {
     //const API_BASE_URL = "https://localhost:7298";
     const navigate = useNavigate();
-
+    const { addToCart } = useContext(CartContext);
     const getUserData = () => {
         const userStr = localStorage.getItem('user');
         if (userStr) {
-            try { return JSON.parse(userStr); } catch (e) { return null; }
+            try { return JSON.parse(userStr);
+            } catch (e) { return null; }
         }
         return null;
     };
@@ -110,7 +123,6 @@ const ProfilePage = () => {
     const [orderStatusTab, setOrderStatusTab] = useState('Pending');
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [showOrderModal, setShowOrderModal] = useState(false);
-
     const ORDER_TABS = [
         { id: 'Pending', label: 'Chờ xác nhận' },
         { id: 'Processing', label: 'Đang đóng gói' },
@@ -118,12 +130,10 @@ const ProfilePage = () => {
         { id: 'Completed', label: 'Hoàn thành' },
         { id: 'Cancelled', label: 'Đã hủy' },
     ];
-
     // --- STATE CHANGE PASSWORD ---
     const [passwordForm, setPasswordForm] = useState({
         currentPassword: '', newPassword: '', confirmPassword: ''
     });
-
     const isValidPassword = (password) => {
         const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
         return password.length >= 8 && hasSpecialChar;
@@ -138,8 +148,14 @@ const ProfilePage = () => {
         if (!userId) {
             const oldUserId = localStorage.getItem('userId');
             if(!oldUserId) {
-                alert("Vui lòng đăng nhập để xem hồ sơ!");
-                navigate('/login');
+                // Thay alert bằng Swal
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Chưa đăng nhập',
+                    text: 'Vui lòng đăng nhập để xem hồ sơ!'
+                }).then(() => {
+                    navigate('/login');
+                });
                 return;
             }
         }
@@ -158,7 +174,6 @@ const ProfilePage = () => {
             setProfile({ ...res.data, dateofBirth: formattedDob });
         } catch (err) { console.error(err); }
     };
-
     const fetchAddresses = async () => {
         const effectiveId = userId || localStorage.getItem('userId');
         try {
@@ -166,7 +181,6 @@ const ProfilePage = () => {
             setAddresses(res.data);
         } catch (err) { console.error(err); }
     };
-
     const fetchOrders = async () => {
         const effectiveId = userId || localStorage.getItem('userId');
         try {
@@ -174,24 +188,23 @@ const ProfilePage = () => {
             setOrders(res.data);
         } catch (err) { console.error("Lỗi lấy đơn hàng:", err); }
     };
-
     const fetchLocationProvinces = async () => {
         try {
             const res = await axios.get('https://provinces.open-api.vn/api/?depth=1');
             setProvinces(res.data);
         } catch (err) { console.error("Lỗi lấy tỉnh thành:", err); }
     };
-
     const getStatusBadge = (status) => {
-        switch (status) {
-            case 'Pending': return <span className="badge badge-warning">Chờ xác nhận</span>;
-            case 'Processing': return <span className="badge badge-info">Đang đóng gói</span>;
-            case 'Shipping': 
-            case 'Shipped': return <span className="badge badge-primary">Đang vận chuyển</span>;
-            case 'Completed': return <span className="badge badge-success">Hoàn thành</span>;
-            case 'Cancelled': return <span className="badge badge-danger">Đã hủy</span>;
-            default: return <span className="badge badge-secondary">{status}</span>;
-        }
+        // Chuẩn hóa về chữ thường để so sánh cho dễ
+        const s = status ? status.toLowerCase() : ''; 
+
+        if (s === 'pending' || s === 'chờ xác nhận') return <span className="badge badge-warning">Chờ xác nhận</span>;
+        if (s === 'processing' || s === 'đang đóng gói') return <span className="badge badge-info">Đang đóng gói</span>;
+        if (s === 'shipping' || s === 'shipped' || s === 'đang vận chuyển') return <span className="badge badge-primary">Đang vận chuyển</span>;
+        if (s === 'completed' || s === 'hoàn thành') return <span className="badge badge-success">Hoàn thành</span>;
+        if (s === 'cancelled' || s === 'đã hủy') return <span className="badge badge-danger">Đã hủy</span>;
+        
+        return <span className="badge badge-secondary">{status}</span>;
     };
 
     const getAvatarSrc = (url) => {
@@ -239,7 +252,16 @@ const ProfilePage = () => {
                 dateofBirth: profile.dateofBirth ? profile.dateofBirth : null
             };
             await axios.put(`${API_BASE}/api/Profile/${effectiveId}`, payload);
-            alert("Cập nhật hồ sơ thành công!");
+            
+            // Thay alert thành công
+            await Swal.fire({
+                icon: 'success',
+                title: 'Thành công',
+                text: 'Cập nhật hồ sơ thành công!',
+                timer: 700,
+                showConfirmButton: false
+            });
+
             if(currentUser) {
                 currentUser.fullName = profile.fullName;
                 localStorage.setItem('user', JSON.stringify(currentUser));
@@ -247,10 +269,14 @@ const ProfilePage = () => {
             }
         } catch (err) {
             console.error("Lỗi update:", err);
-            alert("Lỗi cập nhật! Vui lòng kiểm tra lại thông tin.");
+            // Thay alert lỗi
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Lỗi cập nhật! Vui lòng kiểm tra lại thông tin.'
+            });
         }
     };
-
     const handleAvatarUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -262,7 +288,11 @@ const ProfilePage = () => {
             });
             setProfile({ ...profile, avatarUrl: res.data.url }); 
         } catch (err) {
-            alert("Có lỗi khi tải ảnh lên server");
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Có lỗi khi tải ảnh lên server'
+            });
         }
     };
 
@@ -285,7 +315,11 @@ const ProfilePage = () => {
     const handleSaveAddress = async () => {
         const effectiveId = userId || localStorage.getItem('userId');
         if (!addressForm.recipientName || !addressForm.addressDetail || !addressForm.province) {
-            alert("Vui lòng điền đầy đủ thông tin!");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Thiếu thông tin',
+                text: 'Vui lòng điền đầy đủ thông tin!'
+            });
             return;
         }
         try {
@@ -294,32 +328,172 @@ const ProfilePage = () => {
             } else {
                 await axios.post(`${API_BASE}/api/Profile/${effectiveId}/addresses`, addressForm);
             }
-            alert("Thao tác thành công!");
+            
+            await Swal.fire({
+                icon: 'success',
+                title: 'Thành công',
+                text: 'Lưu địa chỉ thành công!',
+                timer: 700,
+                showConfirmButton: false
+            });
+
             setShowAddressForm(false);
             fetchAddresses();
-        } catch (err) { alert("Có lỗi xảy ra"); }
+        } catch (err) { 
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Có lỗi xảy ra khi lưu địa chỉ'
+            });
+        }
     };
-
     const handleDeleteAddress = async (id, isDefault) => {
-        if (isDefault) { alert("Không thể xóa địa chỉ mặc định!"); return; }
-        if (window.confirm("Bạn chắc chắn muốn xóa?")) {
+        if (isDefault) { 
+            Swal.fire({
+                icon: 'warning',
+                title: 'Không thể xóa',
+                text: 'Không thể xóa địa chỉ mặc định!'
+            });
+            return; 
+        }
+
+        // Thay window.confirm bằng Swal
+        const result = await Swal.fire({
+            title: 'Bạn chắc chắn muốn xóa?',
+            text: "Hành động này không thể hoàn tác!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (result.isConfirmed) {
             try {
                 await axios.delete(`${API_BASE}/api/Profile/addresses/${id}`);
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đã xóa!',
+                    text: 'Địa chỉ đã được xóa thành công.',
+                    timer: 1000,
+                    showConfirmButton: false
+                });
+
                 fetchAddresses();
-            } catch (err) { alert("Lỗi xóa địa chỉ"); }
+            } catch (err) { 
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: 'Lỗi xóa địa chỉ'
+                });
+            }
+        }
+    };
+    // --- XỬ LÝ: HỦY ĐƠN HÀNG ---
+    const handleCancelOrder = async (orderId) => {
+        // Hỏi lại cho chắc
+        const result = await Swal.fire({
+            title: 'Hủy đơn hàng?',
+            text: "Bạn có chắc chắn muốn hủy đơn hàng này không?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Đồng ý hủy',
+            cancelButtonText: 'Không'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                // Gọi API Hủy (đã có trong controller của bạn)
+                await axios.put(`${API_BASE}/api/Orders/cancel-order/${orderId}`);
+                
+                await Swal.fire('Đã hủy!', 'Đơn hàng đã được hủy thành công.', 'success');
+                
+                // Tải lại danh sách đơn hàng
+                fetchOrders(); 
+            } catch (err) {
+                Swal.fire('Lỗi!', err.response?.data || 'Không thể hủy đơn hàng.', 'error');
+            }
         }
     };
 
+    // --- XỬ LÝ: MUA LẠI ---
+    // [TRONG ProfilePage.jsx]
+
+    const handleBuyAgain = async (order) => {
+        // 1. Hiện Loading
+        Swal.fire({
+            title: 'Đang xử lý...',
+            text: 'Đang thêm sản phẩm vào giỏ hàng',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        let countSuccess = 0;
+
+        // 2. Duyệt qua từng sản phẩm và thêm vào giỏ (chạy tuần tự để tránh lỗi DB)
+        for (const item of order.items) {
+            const productToAdd = {
+                variantId: item.variantId, // Cần Bước 1 backend mới có cái này
+                productName: item.productName,
+                price: item.price,
+                imageUrl: item.productImage,
+                quantity: item.quantity
+            };
+
+            // Gọi addToCart với tham số false để KHÔNG hiện popup lẻ tẻ
+            const result = await addToCart(productToAdd, false);
+            if (result) countSuccess++;
+        }
+
+        // 3. Xử lý sau khi chạy xong
+        if (countSuccess > 0) {
+            await Swal.fire({
+                icon: 'success',
+                title: 'Thành công',
+                text: `Đã thêm ${countSuccess} sản phẩm vào giỏ hàng!`,
+                timer: 1500,
+                showConfirmButton: false
+            });
+            navigate('/checkout');
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Thất bại',
+                text: 'Không thể thêm sản phẩm nào vào giỏ hàng. Có thể sản phẩm đã ngừng kinh doanh.'
+            });
+        }
+    };
     const handleChangePassword = async () => {
         const effectiveId = userId || localStorage.getItem('userId');
         if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-            alert("Vui lòng nhập đầy đủ thông tin!"); return;
+            Swal.fire({
+                icon: 'warning',
+                title: 'Thiếu thông tin',
+                text: 'Vui lòng nhập đầy đủ thông tin!'
+            });
+            return;
         }
         if (!isValidPassword(passwordForm.newPassword)) {
-            alert("Mật khẩu mới phải có tối thiểu 8 ký tự và chứa ít nhất 1 ký tự đặc biệt!"); return;
+            Swal.fire({
+                icon: 'warning',
+                title: 'Mật khẩu yếu',
+                text: 'Mật khẩu mới phải có tối thiểu 8 ký tự và chứa ít nhất 1 ký tự đặc biệt!'
+            });
+            return;
         }
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-            alert("Mật khẩu xác nhận không khớp!"); return;
+            Swal.fire({
+                icon: 'error',
+                title: 'Không khớp',
+                text: 'Mật khẩu xác nhận không khớp!'
+            });
+            return;
         }
         try {
             const payload = {
@@ -328,20 +502,35 @@ const ProfilePage = () => {
                 newPassword: passwordForm.newPassword
             };
             await axios.post(`${API_BASE}/api/Auth/change-password`, payload);
-            alert("Đổi mật khẩu thành công!");
+            
+            await Swal.fire({
+                icon: 'success',
+                title: 'Thành công',
+                text: 'Đổi mật khẩu thành công!',
+                timer: 700,
+                showConfirmButton: false
+            });
+
             setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
         } catch (err) {
-            alert("Lỗi đổi mật khẩu! Vui lòng kiểm tra lại mật khẩu hiện tại.");
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Lỗi đổi mật khẩu! Vui lòng kiểm tra lại mật khẩu hiện tại.'
+            });
         }
     };
 
     const filteredOrders = orders.filter(o => {
-        if (orderStatusTab === 'Shipped') return o.orderStatus === 'Shipping' || o.orderStatus === 'Shipped';
-        return o.orderStatus === orderStatusTab;
+        // Lấy danh sách các từ khóa cho Tab hiện tại
+        const validStatuses = STATUS_MAPPING[orderStatusTab] || [];
+        return validStatuses.includes(o.orderStatus);
     });
-
-// ... (Tiếp theo từ phần 1)
-
+    // Hàm đếm số đơn theo từng tab
+    const getOrderCount = (tabId) => {
+        const validStatuses = STATUS_MAPPING[tabId] || [];
+        return orders.filter(o => validStatuses.includes(o.orderStatus)).length;
+    };
     return (
         // Sử dụng class 'profile-container' thay vì style inline để responsive
         <div className="container profile-container">
@@ -532,11 +721,33 @@ const ProfilePage = () => {
                     <div>
                         <h2 style={{ marginBottom: '20px' }}>Lịch Sử Đơn Hàng</h2>
                         <div className="order-status-tabs">
-                            {ORDER_TABS.map(tab => (
-                                <div key={tab.id} className={`status-tab-item ${orderStatusTab === tab.id ? 'active' : ''}`} onClick={() => setOrderStatusTab(tab.id)}>
-                                    {tab.label}
-                                </div>
-                            ))}
+                            {ORDER_TABS.map(tab => {
+                                const count = getOrderCount(tab.id); // Lấy số lượng
+                                return (
+                                    <div 
+                                        key={tab.id} 
+                                        className={`status-tab-item ${orderStatusTab === tab.id ? 'active' : ''}`} 
+                                        onClick={() => setOrderStatusTab(tab.id)}
+                                        style={{ position: 'relative' }} // Để căn chỉnh nếu cần
+                                    >
+                                        {tab.label}
+                                        {/* Chỉ hiện số nếu > 0 */}
+                                        {count > 0 && (
+                                            <span style={{
+                                                marginLeft: '5px',
+                                                backgroundColor: '#d32f2f', // Màu đỏ nổi bật
+                                                color: 'white',
+                                                borderRadius: '50%',
+                                                padding: '2px 6px',
+                                                fontSize: '11px',
+                                                verticalAlign: 'middle'
+                                            }}>
+                                                {count}
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                         <div className="order-list-container" style={{ marginTop: '20px' }}>
                             {filteredOrders.length === 0 ? (
@@ -569,14 +780,43 @@ const ProfilePage = () => {
                                                 </div>
                                             ))}
                                         </div>
+                                        {/* ... đoạn render items cũ ... */}
+
                                         <div className="order-footer">
                                             <div className="total-price">
                                                 Thành tiền: <span>{order.totalAmount.toLocaleString()}đ</span>
                                             </div>
-                                            <div className="order-actions" style={{marginTop: '10px'}}>
+                                            
+                                            {/* [SỬA] Khu vực nút bấm hành động */}
+                                            <div className="order-actions" style={{ marginTop: '15px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                                
+                                                {/* Nút Xem chi tiết (Cũ) */}
                                                 <button className="btn-detail" onClick={() => { setSelectedOrder(order); setShowOrderModal(true); }}>
                                                     Xem chi tiết
                                                 </button>
+
+                                                {/* [THÊM] Nút Hủy đơn - Chỉ hiện khi Pending */}
+                                                {(order.orderStatus === 'Pending' || order.orderStatus === 'Chờ xác nhận') && (
+                                                    <button 
+                                                        className="btn btn-danger" 
+                                                        style={{ padding: '5px 15px', borderRadius: '4px', fontSize: '14px' }}
+                                                        onClick={() => handleCancelOrder(order.orderId)}
+                                                    >
+                                                        Hủy đơn
+                                                    </button>
+                                                )}
+
+                                                {/* [THÊM] Nút Mua lại - Chỉ hiện khi Completed */}
+                                                {(order.orderStatus === 'Completed' || order.orderStatus === 'Hoàn thành') && (
+                                                    <button 
+                                                        className="btn btn-primary" 
+                                                        style={{ padding: '5px 15px', borderRadius: '4px', fontSize: '14px', backgroundColor: '#2e7d32', borderColor: '#2e7d32' }}
+                                                        onClick={() => handleBuyAgain(order)}
+                                                    >
+                                                        Mua lại
+                                                    </button>
+                                                )}
+
                                             </div>
                                         </div>
                                     </div>
@@ -587,71 +827,71 @@ const ProfilePage = () => {
                 )}
 
                 {/* --- TAB ĐỔI MẬT KHẨU --- */}
-                {/* --- TAB ĐỔI MẬT KHẨU (Đã sửa lỗi Responsive) --- */}
-{activeTab === 'password' && (
-    <div className="password-form-container">
-        <h2 style={{borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '20px'}}>
-            Đổi Mật Khẩu
-        </h2>
+                {activeTab === 'password' && (
+                    <div className="password-form-container">
+                        <h2 style={{borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '20px'}}>
+                            Đổi Mật Khẩu
+                        </h2>
+                        
+                        <div>
+                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                <label style={{fontWeight: 'bold', display: 'block', marginBottom: '8px'}}>
+                                    Mật khẩu hiện tại (*)
+                                </label>
+                                <input 
+                                    type="password" 
+                                    className="form-control" 
+                                    value={passwordForm.currentPassword} 
+                                    onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})} 
+                                    placeholder="Nhập mật khẩu cũ" 
+                                    style={{ padding: '10px' }}
+                                />
+                            </div>
+
+                            <div className="form-group" style={{ marginBottom: '20px' }}>
+                                <label style={{fontWeight: 'bold', display: 'block', marginBottom: '8px'}}>
+                                    Mật khẩu mới (*)
+                                </label>
+                                <input 
+                                    type="password" 
+                                    className="form-control" 
+                                    value={passwordForm.newPassword} 
+                                    onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})} 
+                                    placeholder="Nhập mật khẩu mới" 
+                                    style={{ padding: '10px' }}
+                                />
+                                <small style={{display: 'block', marginTop: '5px', color: '#666', fontStyle: 'italic'}}>
+                                    * Tối thiểu 8 ký tự và chứa ít nhất 1 ký tự đặc biệt
+                                </small>
+                            </div>
+
+                            <div className="form-group" style={{ marginBottom: '25px' }}>
+                                <label style={{fontWeight: 'bold', display: 'block', marginBottom: '8px'}}>
+                                    Xác nhận mật khẩu (*)
+                                </label>
+                                <input 
+                                    type="password" 
+                                    className="form-control" 
+                                    value={passwordForm.confirmPassword} 
+                                    onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})} 
+                                    placeholder="Nhập lại mật khẩu mới" 
+                                    style={{ padding: '10px' }}
+                                />
+                            </div>
+
+                            <div style={{ textAlign: 'right', borderTop: '1px solid #ddd', paddingTop: '20px' }}>
+                                <button 
+                                    className="btn btn-primary" 
+                                    onClick={handleChangePassword} 
+                                    style={{ padding: '10px 25px', fontWeight: 'bold' }}
+                                >
+                                    Cập nhật
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
         
-        <div>
-            <div className="form-group" style={{ marginBottom: '20px' }}>
-                <label style={{fontWeight: 'bold', display: 'block', marginBottom: '8px'}}>
-                    Mật khẩu hiện tại (*)
-                </label>
-                <input 
-                    type="password" 
-                    className="form-control" 
-                    value={passwordForm.currentPassword} 
-                    onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})} 
-                    placeholder="Nhập mật khẩu cũ" 
-                    style={{ padding: '10px' }}
-                />
-            </div>
-
-            <div className="form-group" style={{ marginBottom: '20px' }}>
-                <label style={{fontWeight: 'bold', display: 'block', marginBottom: '8px'}}>
-                    Mật khẩu mới (*)
-                </label>
-                <input 
-                    type="password" 
-                    className="form-control" 
-                    value={passwordForm.newPassword} 
-                    onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})} 
-                    placeholder="Nhập mật khẩu mới" 
-                    style={{ padding: '10px' }}
-                />
-                <small style={{display: 'block', marginTop: '5px', color: '#666', fontStyle: 'italic'}}>
-                    * Tối thiểu 8 ký tự và chứa ít nhất 1 ký tự đặc biệt
-                </small>
-            </div>
-
-            <div className="form-group" style={{ marginBottom: '25px' }}>
-                <label style={{fontWeight: 'bold', display: 'block', marginBottom: '8px'}}>
-                    Xác nhận mật khẩu (*)
-                </label>
-                <input 
-                    type="password" 
-                    className="form-control" 
-                    value={passwordForm.confirmPassword} 
-                    onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})} 
-                    placeholder="Nhập lại mật khẩu mới" 
-                    style={{ padding: '10px' }}
-                />
-            </div>
-
-            <div style={{ textAlign: 'right', borderTop: '1px solid #ddd', paddingTop: '20px' }}>
-                <button 
-                    className="btn btn-primary" 
-                    onClick={handleChangePassword} 
-                    style={{ padding: '10px 25px', fontWeight: 'bold' }}
-                >
-                    Cập nhật
-                </button>
-            </div>
-        </div>
-    </div>
-)}
             </div>
 
             {/* HIỂN THỊ MODAL */}

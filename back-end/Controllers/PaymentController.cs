@@ -72,14 +72,15 @@ namespace back_end.Controllers
                 }
 
                 long orderCode = order.OrderId;
-                //Khi deploy thật thì domain lấy từ config hoặc request(chắc tui sẽ xem lại)
-                string domain = "http://localhost:5173";
+                
+                string domain = _configuration["PayOS:ReturnUrl"] ?? "http://localhost:5173";
 
                 PaymentData paymentData = new PaymentData(
                     orderCode: orderCode,
                     amount: (int)(order.TotalAmount ?? 0),
                     description: $"Thanh toan don {orderCode}",
                     items: items,
+                    // Các đường dẫn sẽ tự động nối với domain đã lấy
                     cancelUrl: $"{domain}/payment-cancel",
                     returnUrl: $"{domain}/payment-success"
                 );

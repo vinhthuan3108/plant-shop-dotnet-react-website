@@ -4,6 +4,8 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import OrderModal from '../../components/admin/OrderModal';
 import { API_BASE } from '../../utils/apiConfig.jsx';
+import Swal from 'sweetalert2'; // [cite: 1] Import SweetAlert2
+
 // --- ICONS SVG ---
 const Icons = {
     Search: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
@@ -23,14 +25,36 @@ const StatusSelect = ({ orderId, currentStatus, onUpdate }) => {
     };
     const config = statusConfig[currentStatus] || { color: '#333', bg: '#eee' };
     
-    const handleChange = (e) => {
+    // Xử lý thay đổi trạng thái với Swal
+    const handleChange = async (e) => {
         const newStatus = e.target.value;
         if (newStatus === currentStatus) return;
-        const confirmMsg = `Bạn muốn đổi trạng thái đơn #${orderId} sang "${statusConfig[newStatus].label}"?`;
-        if (window.confirm(confirmMsg)) {
+
+        // Thay window.confirm bằng Swal
+        const result = await Swal.fire({
+            title: 'Xác nhận thay đổi?',
+            text: `Bạn muốn đổi trạng thái đơn #${orderId} sang "${statusConfig[newStatus].label}"?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (result.isConfirmed) {
             onUpdate(orderId, newStatus);
+            // Có thể thêm thông báo nhỏ thành công nếu muốn
+            Swal.fire({
+                position: "top-end",
+                icon: "success",
+                title: "Đã cập nhật trạng thái",
+                showConfirmButton: false,
+                timer: 1000
+            });
         } else {
-            e.target.value = currentStatus;
+            // Nếu hủy, React sẽ tự render lại value cũ do props chưa đổi
+            e.target.value = currentStatus; 
         }
     };
 
@@ -70,7 +94,7 @@ const AdminOrders = () => {
     // Filters & Pagination
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const itemsPerPage = 10; // Cố định số lượng để tính STT
+    const itemsPerPage = 10; 
     
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -78,10 +102,10 @@ const AdminOrders = () => {
     const [toDate, setToDate] = useState('');
 
     // --- LOGIC SLIDER GIÁ TỰ ĐỘNG ---
-    const [priceRange, setPriceRange] = useState([0, 1000000]); // Mặc định tạm
-    const [maxPriceBound, setMaxPriceBound] = useState(1000000); // Giới hạn max của slider
-    const isFirstLoad = useRef(true); // Check lần đầu load trang
-    const [filterTrigger, setFilterTrigger] = useState(0); // Biến để kích hoạt fetch khi bấm nút Lọc
+    const [priceRange, setPriceRange] = useState([0, 1000000]);
+    const [maxPriceBound, setMaxPriceBound] = useState(1000000);
+    const isFirstLoad = useRef(true);
+    const [filterTrigger, setFilterTrigger] = useState(0);
 
     // Modal State
     const [showModal, setShowModal] = useState(false);
@@ -99,7 +123,6 @@ const AdminOrders = () => {
                 page, pageSize: itemsPerPage, search, status: statusFilter,
                 fromDate: fromDate || null, toDate: toDate || null,
             };
-            // Nếu không phải lần đầu mới gửi kèm bộ lọc giá
             if (!isFirstLoad.current) {
                 params.minPrice = priceRange[0];
                 params.maxPrice = priceRange[1];
@@ -143,12 +166,28 @@ const AdminOrders = () => {
             setSelectedOrder(res.data);
             setShowModal(true);
         } catch (error) {
-            alert("Lỗi tải chi tiết đơn hàng");
+            // Thay alert bằng Swal
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Không thể tải chi tiết đơn hàng.'
+            });
         }
     };
 
     const handleUpdateStatus = async (newStatus) => {
-        if (!window.confirm(`Xác nhận chuyển trạng thái sang: ${newStatus}?`)) return;
+        // Thay window.confirm bằng Swal
+        const result = await Swal.fire({
+            title: 'Xác nhận cập nhật',
+            text: `Bạn muốn chuyển trạng thái đơn hàng sang: ${newStatus}?`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Đồng ý',
+            cancelButtonText: 'Hủy'
+        });
+
+        if (!result.isConfirmed) return;
+
         setUpdating(true);
         try {
             await axios.put(`${API_BASE}/api/Orders/admin/update-status/${selectedOrder.orderId}`, {
@@ -157,31 +196,75 @@ const AdminOrders = () => {
             setSelectedOrder(prev => ({ ...prev, orderStatus: newStatus }));
             fetchOrders(); 
             setShowModal(false);
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Thành công',
+                text: 'Đã cập nhật trạng thái đơn hàng!',
+                timer: 700,
+                showConfirmButton: false
+            });
+
         } catch (error) {
-            alert("Lỗi cập nhật: " + (error.response?.data?.message || error.message));
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi cập nhật',
+                text: error.response?.data?.message || error.message
+            });
         }
         setUpdating(false);
     };
 
     const handleDelete = async (id, status) => {
         if (status !== 'Pending' && status !== 'Cancelled') {
-            alert("Chỉ có thể xóa đơn hàng 'Đã hủy' hoặc 'Chờ xác nhận'.");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Không thể xóa',
+                text: "Chỉ có thể xóa đơn hàng 'Đã hủy' hoặc 'Chờ xác nhận'."
+            });
             return;
         }
-        if (!window.confirm("Bạn có chắc chắn muốn xóa đơn hàng này? Hành động này không thể hoàn tác!")) {
-            return;
-        }
-        try {
-            await axios.delete(`${API_BASE}/api/Orders/admin/delete/${id}`);
-            alert("Đã xóa đơn hàng thành công!");
-            if (orders.length === 1 && page > 1) {
-                setPage(page - 1);
-            } else {
-                fetchOrders();
+
+        // Cấu hình Swal giống Category [cite: 20]
+        const result = await Swal.fire({
+            title: 'Bạn chắc chắn muốn xóa?',
+            text: "Hành động này không thể hoàn tác!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33', // Màu đỏ cho nút xóa
+            cancelButtonColor: '#3085d6', // Màu xanh cho nút hủy
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy bỏ'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await axios.delete(`${API_BASE}/api/Orders/admin/delete/${id}`);
+                
+                // Thông báo thành công tự đóng [cite: 22, 23]
+                Swal.fire({
+                    title: 'Đã xóa!',
+                    text: 'Đơn hàng đã được xóa thành công.',
+                    icon: 'success',
+                    timer: 700,
+                    showConfirmButton: false
+                });
+
+                if (orders.length === 1 && page > 1) {
+                    setPage(page - 1);
+                } else {
+                    fetchOrders();
+                }
+            } catch (error) {
+                console.error("Lỗi xóa đơn", error);
+                // Thông báo lỗi [cite: 25, 26]
+                Swal.fire({
+                    title: 'Không thể xóa!',
+                    text: error.response?.data?.message || error.message,
+                    icon: 'error',
+                    confirmButtonText: 'Đã hiểu'
+                });
             }
-        } catch (error) {
-            console.error("Lỗi xóa đơn", error);
-            alert("Lỗi xóa: " + (error.response?.data?.message || error.message));
         }
     };
 
@@ -195,12 +278,16 @@ const AdminOrders = () => {
             ));
         } catch (error) {
             console.error("Lỗi cập nhật", error);
-            alert("Lỗi cập nhật: " + (error.response?.data?.message || error.message));
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi cập nhật',
+                text: error.response?.data?.message || error.message
+            });
             fetchOrders();
         }
     };
 
-    // Hàm đổi trang (để khớp với logic copy từ Product)
+    // Hàm đổi trang
     const paginate = (pageNumber) => setPage(pageNumber);
 
     return (
@@ -209,6 +296,7 @@ const AdminOrders = () => {
 
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', marginBottom: '24px' }}>
                 <form onSubmit={handleSearch}>
+                    
                     {/* DÒNG 1 */}
                     <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '20px' }}>
                         <div style={{ flex: 2, minWidth: '200px' }}>
@@ -362,14 +450,13 @@ const AdminOrders = () => {
                     </tbody>
                 </table>
               
-                {/* --- UI PHÂN TRANG MỚI (THEO KIỂU ADMIN PRODUCTS) --- */}
+                {/* --- UI PHÂN TRANG --- */}
                 {totalPages > 1 && (
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px 0', gap: '5px', borderTop: '1px solid #eee' }}>
                         
                         {/* NHÓM NÚT TRÁI */}
                         {page > 1 && (
                             <>
-                                {/* Nút về Trang đầu */}
                                 <button 
                                     onClick={() => paginate(1)} 
                                     style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', color: '#4e73df', fontWeight: 'bold' }}
@@ -377,8 +464,6 @@ const AdminOrders = () => {
                                 >
                                     &#171; Đầu
                                 </button>
-
-                                {/* Nút Trước */}
                                 <button 
                                     onClick={() => paginate(page - 1)} 
                                     style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px' }}
@@ -391,12 +476,10 @@ const AdminOrders = () => {
                         {/* DANH SÁCH SỐ TRANG */}
                         {(() => {
                             let startPage, endPage;
-                            // Nếu tổng số trang <= 10 thì hiện hết
                             if (totalPages <= 10) {
                                 startPage = 1;
                                 endPage = totalPages;
                             } else {
-                                // Nếu tổng > 10, tính toán cửa sổ trượt
                                 if (page <= 6) {
                                     startPage = 1;
                                     endPage = 10;
@@ -409,7 +492,6 @@ const AdminOrders = () => {
                                 }
                             }
 
-                            // Tạo mảng số trang để map
                             const pages = [];
                             for (let i = startPage; i <= endPage; i++) {
                                 pages.push(i);
@@ -439,15 +521,12 @@ const AdminOrders = () => {
                         {/* NHÓM NÚT PHẢI */}
                         {page < totalPages && (
                             <>
-                                {/* Nút Sau */}
                                 <button 
                                     onClick={() => paginate(page + 1)} 
                                     style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px' }}
                                 >
                                     Sau &rsaquo;
                                 </button>
-
-                                {/* Nút đến Trang cuối */}
                                 <button 
                                     onClick={() => paginate(totalPages)} 
                                     style={{ padding: '6px 12px', border: '1px solid #ddd', background: 'white', cursor: 'pointer', borderRadius: '4px', fontSize: '13px', color: '#4e73df', fontWeight: 'bold' }}

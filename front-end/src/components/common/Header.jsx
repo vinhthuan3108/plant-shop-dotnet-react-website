@@ -1,24 +1,23 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaSearch, FaShoppingCart, FaUserCircle, FaSignOutAlt, FaChevronDown, FaTools, FaTimes, FaBars } from 'react-icons/fa';
+// [VT + MC] Import thêm FaMinus, FaPlus cho giỏ hàng
+import { FaSearch, FaShoppingCart, FaUserCircle, FaSignOutAlt, FaChevronDown, FaTools, FaTimes, FaBars, FaMinus, FaPlus } from 'react-icons/fa';
 import { CartContext } from '../../context/CartContext';
 import axios from 'axios'; 
 import './Header.css';
+// [MC] Import CSS cho giao diện giỏ hàng mới
+import './CartDropdown.css'; 
 import defaultLogo from '../../assets/images/logo.png';
 import { API_BASE } from '../../utils/apiConfig.jsx';
+
 // Component hỗ trợ in đậm từ khóa tìm kiếm
-// Thêm hàm này vào trên cùng hoặc trong file utils
 const escapeRegExp = (string) => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Thêm dấu \ trước các ký tự đặc biệt
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
 const HighlightText = ({ text, highlight }) => {
     if (!highlight.trim()) return <span>{text}</span>;
-    
-    // SỬA DÒNG 121: Bọc highlight bằng hàm escapeRegExp
-    // const regex = new RegExp(`(${highlight})`, 'gi');  <-- Cũ (Lỗi)
-    const regex = new RegExp(`(${escapeRegExp(highlight)})`, 'gi'); // <-- Mới (An toàn)
-
+    const regex = new RegExp(`(${escapeRegExp(highlight)})`, 'gi');
     const parts = text.split(regex);
     return (
         <span>
@@ -31,14 +30,14 @@ const HighlightText = ({ text, highlight }) => {
 
 const Header = () => {
     // --- STATE & CONTEXT ---
-    const [user, setUser] = useState(null); 
+    const [user, setUser] = useState(null);
     const [config, setConfig] = useState({});
-    const [categories, setCategories] = useState([]); 
+    const [categories, setCategories] = useState([]);
     
     // State cho Mobile Menu
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const closeMobileMenu = () => setIsMobileMenuOpen(false);
-
+    
     // State tìm kiếm
     const [keyword, setKeyword] = useState("");
     const [searchCate, setSearchCate] = useState("");
@@ -46,8 +45,10 @@ const Header = () => {
     const [showSuggestions, setShowSuggestions] = useState(false); 
     
     const navigate = useNavigate();
-    const { cartCount, refreshCart, cartItems, removeFromCart, totalAmount } = useContext(CartContext);
-    //const API_BASE = 'https://localhost:7298'; 
+    
+    // [MC] Thêm updateQuantity vào context để dùng cho nút +/-
+    const { cartCount, refreshCart, cartItems, removeFromCart, totalAmount, updateQuantity } = useContext(CartContext);
+    
     const searchRef = useRef(null);
 
     const formatCurrency = (amount) => {
@@ -55,14 +56,26 @@ const Header = () => {
     };
 
     // --- EFFECTS ---
+    // [VT] Giữ nguyên logic kiểm tra login realtime của HeaderVT
     useEffect(() => {
-        // Lấy thông tin user
-        const userStr = localStorage.getItem('user');
-        if (userStr) setUser(JSON.parse(userStr));
-        else {
-            const oldName = localStorage.getItem('userName');
-            if (oldName) setUser({ fullName: oldName, roleId: 2 });
-        }
+        // 1. Hàm kiểm tra và lấy thông tin User từ LocalStorage
+        const checkUserLogin = () => {
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                setUser(JSON.parse(userStr));
+            } else {
+                // Logic cũ để hỗ trợ code cũ
+                const oldName = localStorage.getItem('userName');
+                if (oldName) setUser({ fullName: oldName, roleId: 2 });
+                else setUser(null); 
+            }
+        };
+
+        // Gọi hàm ngay khi Header hiện lên lần đầu
+        checkUserLogin();
+
+        // Lắng nghe sự kiện 'user-change' từ trang Login bắn sang
+        window.addEventListener('user-change', checkUserLogin);
 
         // Lấy cấu hình hệ thống
         const fetchConfig = async () => {
@@ -86,14 +99,18 @@ const Header = () => {
         };
         fetchCategories();
 
-        // Click ra ngoài thì đóng gợi ý tìm kiếm
         const handleClickOutside = (event) => {
             if (searchRef.current && !searchRef.current.contains(event.target)) {
                 setShowSuggestions(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        
+        // Cleanup function
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            window.removeEventListener('user-change', checkUserLogin); // Gỡ lắng nghe user-change
+        };
     }, []);
 
     // Logic tìm kiếm (Debounce)
@@ -118,7 +135,6 @@ const Header = () => {
                 const posts = (postRes.data || []).map(p => ({ ...p, type: 'blog' })); 
                 
                 const combinedResults = [...products, ...posts];
-                
                 if (combinedResults.length > 0) {
                     setSearchResults(combinedResults);
                     setShowSuggestions(true);
@@ -141,10 +157,15 @@ const Header = () => {
 
     const handleKeyDown = (e) => { if (e.key === 'Enter') handleSearchSubmit(); };
 
+    // [VT] Giữ nguyên logic logout dispatch event
     const handleLogout = () => {
         if (window.confirm("Bạn muốn đăng xuất?")) {
             localStorage.clear();
             setUser(null);
+            
+            // Dispatch event để các component khác (như chính Header này) cập nhật lại
+            window.dispatchEvent(new Event('user-change'));
+            
             refreshCart(); 
             navigate('/login');
         }
@@ -200,8 +221,15 @@ const Header = () => {
                                                 <Link to={`/product/${item.productId}`} key={`p-${item.productId}`} className="search-item" onClick={() => setShowSuggestions(false)}>
                                                     <img src={item.thumbnail && item.thumbnail.startsWith('http') ? item.thumbnail : `${API_BASE}${item.thumbnail}`} alt={item.productName} className="search-item-img" />
                                                     <div className="search-item-info">
-                                                        <span className="search-item-name"><HighlightText text={item.productName} highlight={keyword} /></span>
-                                                        <span className="search-item-price">{formatCurrency(item.salePrice || item.originalPrice)}</span>
+                                                        {/* Tên sản phẩm */}
+                                                        <span className="search-item-name">
+                                                            <HighlightText text={item.productName} highlight={keyword} />
+                                                        </span>
+                                                        
+                                                        {/* SỬA Ở ĐÂY: Thêm gạch nối (-) hoặc margin-left để tạo khoảng trắng */}
+                                                        <span className="search-item-price" style={{ marginLeft: '10px', color: '#d32f2f', fontWeight: 'bold' }}>
+                                                            - {formatCurrency(item.salePrice || item.originalPrice)}
+                                                        </span>
                                                     </div>
                                                 </Link>
                                             );
@@ -230,7 +258,7 @@ const Header = () => {
 
                 {/* User & Cart Actions */}
                 <div className="header-actions">
-                    {/* Phần User (Sẽ ẩn trên Mobile bằng CSS .auth-links) */}
+                    {/* Phần User */}
                     <div className="auth-links">
                         {user ? (
                             <div className="user-logged-in">
@@ -248,7 +276,7 @@ const Header = () => {
                         )}
                     </div>
 
-                    {/* Giỏ hàng & Mini Cart (Luôn hiện) */}
+                    {/* Giỏ hàng & Mini Cart (Code từ HeaderMC) */}
                     {!isAdmin && (
                         <div className="cart-wrapper">
                             <Link to="/cart" className="cart-box">
@@ -259,35 +287,92 @@ const Header = () => {
                                 <div className="cart-info"><span className="cart-label">GIỎ HÀNG</span></div>
                             </Link>
 
-                            {/* Dropdown Mini Cart */}
-                            <div className="mini-cart-dropdown">
-                                {cartItems && cartItems.length > 0 ? (
-                                    <>
-                                        <div className="mini-cart-list">
-                                            {cartItems.map((item, idx) => (
-                                                <div key={idx} className="mini-cart-item">
-                                                    <img src={item.image && item.image.startsWith('http') ? item.image : `${API_BASE}${item.image}`} alt={item.productName} className="mini-cart-img" />
-                                                    <div className="mini-cart-info">
-                                                        <Link to={`/product/${item.productId}`} className="mini-cart-name">{item.productName}</Link>
-                                                        <div className="mini-cart-price">{item.quantity} x {formatCurrency(item.salePrice || item.originalPrice)}</div>
+                            {/* [MC] Dropdown Mini Cart Giao diện mới */}
+                            <div className="cart-dropdown">
+                                <div className="cart-items-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                    {cartItems && cartItems.length > 0 ? (
+                                        cartItems.map((item, idx) => (
+                                            <div key={idx} className="cart-item">
+                                                {/* Ảnh sản phẩm */}
+                                                <img 
+                                                    src={item.image && item.image.startsWith('http') ? item.image : `${API_BASE}${item.image}`} 
+                                                    alt={item.productName} 
+                                                    className="cart-item-img" 
+                                                />
+                                                
+                                                {/* Thông tin - Có nút tăng giảm */}
+                                                <div className="cart-item-info">
+                                                    <Link to={`/product/${item.productId}`} className="item-name" style={{textDecoration: 'none'}}>
+                                                        {item.productName}
+                                                    </Link>
+                                                    
+                                                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px'}}>
+                                                        {/* Nút tăng giảm số lượng */}
+                                                        <div className="qty-control-group">
+                                                            <button 
+                                                                className="qty-btn" 
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    if(item.quantity > 1) updateQuantity(item.variantId, item.quantity - 1);
+                                                                }}
+                                                            >
+                                                                <FaMinus />
+                                                            </button>
+                                                            
+                                                            <span className="qty-value">{item.quantity}</span>
+                                                            
+                                                            <button 
+                                                                className="qty-btn" 
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    updateQuantity(item.variantId, item.quantity + 1);
+                                                                }}
+                                                            >
+                                                                <FaPlus />
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Giá tiền */}
+                                                        <div className="item-price" style={{fontWeight: 'bold', color: '#2e7d32'}}>
+                                                            {formatCurrency(item.salePrice || item.originalPrice)}
+                                                        </div>
                                                     </div>
-                                                    <button className="mini-cart-remove" onClick={(e) => { e.preventDefault(); removeFromCart(item.variantId); }}>
-                                                        <FaTimes />
-                                                    </button>
                                                 </div>
-                                            ))}
+
+                                                {/* Nút xóa */}
+                                                <button 
+                                                    className="remove-btn" 
+                                                    onClick={(e) => { e.preventDefault(); removeFromCart(item.variantId); }}
+                                                    title="Xóa sản phẩm"
+                                                >
+                                                    <FaTimes /> 
+                                                </button>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div style={{textAlign: 'center', padding: '20px', color: '#888'}}>
+                                            Giỏ hàng đang trống
                                         </div>
-                                        <div className="mini-cart-total">
-                                            <span>Tổng tiền:</span>
+                                    )}
+                                </div>
+
+                                {/* Tổng tiền & Nút bấm */}
+                                {cartItems && cartItems.length > 0 && (
+                                    <>
+                                        <div className="cart-total">
+                                            <span>Tổng cộng:</span>
                                             <span className="total-price">{formatCurrency(totalAmount)}</span>
                                         </div>
-                                        <div className="mini-cart-actions">
-                                            <Link to="/cart" className="btn-view-cart">XEM GIỎ HÀNG</Link>
-                                            <Link to="/checkout" className="btn-checkout">THANH TOÁN</Link>
+
+                                        <div className="cart-actions">
+                                            <button className="btn-view-cart" onClick={() => navigate('/cart')}>
+                                                Xem giỏ hàng
+                                            </button>
+                                            <button className="btn-checkout" onClick={() => navigate('/checkout')}>
+                                                Thanh toán
+                                            </button>
                                         </div>
                                     </>
-                                ) : (
-                                    <div className="mini-cart-empty"><p>Chưa có sản phẩm nào trong giỏ.</p></div>
                                 )}
                             </div>
                         </div>
@@ -295,7 +380,7 @@ const Header = () => {
                 </div>
             </div>
 
-            {/* 2. NAVIGATION BAR (Desktop Only - Hidden on Mobile via CSS) */}
+            {/* 2. NAVIGATION BAR */}
             <nav className="nav-bar">
                 <div className="nav-container">
                      <ul className="nav-list">
@@ -317,7 +402,7 @@ const Header = () => {
                 </div>
             </nav>
 
-            {/* 3. MOBILE MENU (Sidebar & Overlay) */}
+            {/* 3. MOBILE MENU */}
             <div 
                 className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : ''}`} 
                 onClick={closeMobileMenu}
@@ -332,7 +417,7 @@ const Header = () => {
                 </div>
 
                 <ul className="mobile-menu-list">
-                    {/* --- A. PHẦN TÀI KHOẢN (Đưa lên đầu) --- */}
+                    {/* --- A. PHẦN TÀI KHOẢN --- */}
                     {user ? (
                         <>
                             <li className="mobile-auth-item">
