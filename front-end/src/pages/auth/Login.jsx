@@ -2,6 +2,8 @@ import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from '../../context/CartContext';
 import { API_BASE } from '../../utils/apiConfig.jsx';
+import Swal from 'sweetalert2'; 
+
 function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -17,15 +19,20 @@ function Login() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
-
-            // --- BẮT ĐẦU ĐOẠN SỬA ---
             
             // 1. Kiểm tra nếu có lỗi từ Backend (status code != 200-299)
             if (!res.ok) {
-                // Backend trả về BadRequest("Chuỗi lỗi") nên ta dùng text() để đọc
                 const errorMsg = await res.text(); 
-                alert(errorMsg || "Đăng nhập thất bại");
-                return; // Dừng hàm tại đây
+                
+                // --- THAY ALERT BẰNG SWEETALERT (LỖI) ---
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Đăng nhập thất bại!',
+                    text: errorMsg || "Sai email hoặc mật khẩu", // Backend trả về: "Sai email hoặc mật khẩu."
+                    confirmButtonText: 'Thử lại',
+                    confirmButtonColor: '#d33'
+                });
+                return; 
             }
 
             // 2. Nếu thành công thì mới parse JSON
@@ -40,23 +47,37 @@ function Login() {
                 token: data.token,
                 phoneNumber: data.phoneNumber
             };
-
             localStorage.setItem('user', JSON.stringify(userSave));
             localStorage.setItem('token', data.token);
-
+            window.dispatchEvent(new Event('user-change'));
             await refreshCart(); 
+
+            // --- THÊM SWEETALERT (THÀNH CÔNG) ---
+            // Hiện thông báo nhỏ góc trên rồi mới chuyển trang
+            await Swal.fire({
+                icon: 'success',
+                title: `Xin chào, ${data.fullName}!`,
+                text: 'Đăng nhập thành công',
+                timer: 700, // Tự tắt sau 1.5s
+                showConfirmButton: false,
+                position: 'center'
+            });
 
             if (data.role === 1 || data.role === 3 || data.role === 4) {
                 navigate('/admin/products');
             } else {
-                navigate('/'); 
+                navigate('/');
             }
             
-            // --- KẾT THÚC ĐOẠN SỬA ---
-
         } catch (error) {
             console.error(error);
-            alert('Lỗi kết nối server');
+            // --- THAY ALERT BẰNG SWEETALERT (LỖI KẾT NỐI) ---
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối!',
+                text: 'Không thể kết nối đến server. Vui lòng kiểm tra mạng.',
+                confirmButtonText: 'Đóng'
+            });
         }
     };
 
@@ -65,23 +86,19 @@ function Login() {
             <h2 style={{textAlign: 'center', marginBottom: '20px'}}>Đăng Nhập</h2>
             <form onSubmit={handleLogin}>
                 <div style={{ marginBottom: '15px' }}>
-                    <label>vinhthuan9@gmail.com</label>
-                    <div></div>
                     <label>Email:</label>
                     <input 
                         type="email" 
                         value={email} 
                         onChange={e => {
                             setEmail(e.target.value);
-                            e.target.setCustomValidity(''); // 1. Xóa lỗi cũ để trình duyệt kiểm tra lại
+                            e.target.setCustomValidity(''); 
 
-                            // 2. Kiểm tra ngay: Nếu sai định dạng email (typeMismatch) thì gán lại lỗi tiếng Việt luôn
                             if (e.target.validity.typeMismatch) {
                                 e.target.setCustomValidity('Vui lòng nhập đúng định dạng email (ví dụ: abc@gmail.com)');
                             }
                         }} 
                         onInvalid={e => {
-                            // Xử lý các trường hợp khác (ví dụ như bỏ trống - required)
                             if (e.target.validity.valueMissing) {
                                 e.target.setCustomValidity('Vui lòng nhập email không được để trống');
                             } else {
@@ -118,7 +135,7 @@ function Login() {
                 </button>
 
                 <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px' }}>
-                    <span>Chưa có tài khoản? </span>
+                    <span>Chưa có tài khoản?</span>
                     <span 
                         onClick={() => navigate('/register')} 
                         style={{ color: '#007bff', cursor: 'pointer', fontWeight: 'bold', marginLeft: '5px' }}
@@ -127,12 +144,11 @@ function Login() {
                     </span>
                 </div>
 
-                {/* --- MỚI THÊM: Tiếp tục mà không đăng nhập --- */}
                 <div style={{ marginTop: '15px', textAlign: 'center', borderTop: '1px solid #eee', paddingTop: '15px' }}>
                     <span 
                         onClick={() => navigate('/')} 
                         style={{ 
-                            color: '#6c757d', // Màu xám nhẹ để không nổi bật bằng nút Đăng nhập
+                            color: '#6c757d', 
                             cursor: 'pointer', 
                             fontSize: '14px',
                             textDecoration: 'underline'

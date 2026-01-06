@@ -94,15 +94,7 @@ const OrderModal = ({ isOpen, onClose, order, onUpdateStatus, updating }) => {
                                 <p style={{ margin: '4px 0', fontSize: '14px' }}>
                                     Hình thức: <strong>{getPaymentMethodText(order.paymentMethod)}</strong>
                                 </p>
-                                <p style={{ margin: '4px 0', fontSize: '14px' }}>
-                                    Trạng thái: 
-                                    <strong style={{ 
-                                        color: order.paymentStatus === 'Paid' ? '#198754' : '#dc3545',
-                                        marginLeft: '5px'
-                                    }}>
-                                        {order.paymentStatus === 'Paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
-                                    </strong>
-                                </p>
+
                             </div>
                             {/* --------------------------------- */}
 

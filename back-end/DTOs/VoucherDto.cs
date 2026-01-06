@@ -24,6 +24,7 @@ namespace back_end.DTOs
         [Required]
         public DateTime EndDate { get; set; }
 
-        public int? UsageLimit { get; set; } 
+        public int? UsageLimit { get; set; }
+        public bool IsActive { get; set; }
     }
 }

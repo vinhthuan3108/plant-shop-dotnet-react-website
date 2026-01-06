@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import CategoryModal from "../../components/admin/CategoryModal"
 import { API_BASE } from '../../utils/apiConfig.jsx';
+import Swal from 'sweetalert2';
 function Categories() {
     // --- STATE DỮ LIỆU ---
     const [categories, setCategories] = useState([]);
@@ -72,9 +73,53 @@ function Categories() {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Bạn chắc chắn muốn xóa?')) {
-            await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-            fetchCategories();
+        // Thay window.confirm bằng Swal
+        const result = await Swal.fire({
+            title: 'Bạn chắc chắn muốn xóa?',
+            text: "Hành động này không thể hoàn tác!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33', // Màu đỏ cho nút xóa
+            cancelButtonColor: '#3085d6', // Màu xanh cho nút hủy
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy bỏ'
+        });
+
+        // Nếu người dùng nhấn nút "Vâng, xóa nó!"
+        if (result.isConfirmed) {
+            try {
+                const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+
+                if (res.ok) {
+                    // Xóa thành công -> Hiện thông báo đẹp
+                    Swal.fire({
+                        title: 'Đã xóa!',
+                        text: 'Danh mục đã được xóa thành công.',
+                        icon: 'success',
+                        timer: 700, 
+                        showConfirmButton: false
+                    });
+                    fetchCategories();
+                } else {
+                    // Xóa thất bại -> Lấy lỗi từ backend
+                    const data = await res.json();
+                    
+                    // Hiện lỗi bằng Swal thay vì alert
+                    Swal.fire({
+                        title: 'Không thể xóa!',
+                        text: data.message || 'Có lỗi xảy ra khi xóa.',
+                        icon: 'error',
+                        confirmButtonText: 'Đã hiểu'
+                    });
+                }
+            } catch (error) {
+                console.error(error);
+                Swal.fire({
+                    title: 'Lỗi!',
+                    text: 'Không thể kết nối đến server.',
+                    icon: 'error'
+                });
+            }
         }
     };
 

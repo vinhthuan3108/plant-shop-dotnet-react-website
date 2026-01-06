@@ -178,6 +178,19 @@ namespace back_end.Controllers
                 return NotFound();
             }
 
+
+            int productCount = await _context.TblProducts.CountAsync(p => p.CategoryId == id);
+
+            if (productCount > 0)
+            {
+                
+                return BadRequest(new
+                {
+                    message = $"Danh mục này đang chứa {productCount} sản phẩm. Vui lòng chuyển sản phẩm sang danh mục khác trước khi xóa."
+                });
+            }
+            // ------------------------------------------------
+
             _context.TblCategories.Remove(tblCategory);
             await _context.SaveChangesAsync();
 

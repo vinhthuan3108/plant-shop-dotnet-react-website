@@ -1,15 +1,14 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import Swal from 'sweetalert2'; // 1. Import SweetAlert2
 import { CartContext } from '../../context/CartContext';
 import { API_BASE } from '../../utils/apiConfig.jsx';
+
 const Checkout = () => {
-    // 1. Lấy thêm clearCart từ Context để xử lý sau khi đặt hàng
     const { cartItems, totalAmount, clearCart } = useContext(CartContext);
     const navigate = useNavigate();
     
-    //const BASE_URL = 'https://localhost:7298';
-
     // --- HELPER: LẤY USER ---
     const getUserData = () => {
         const userStr = localStorage.getItem('user');
@@ -36,58 +35,45 @@ const Checkout = () => {
     const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
     const [wards, setWards] = useState([]);
-
     const [shippingFee, setShippingFee] = useState(0);
     const [voucherCode, setVoucherCode] = useState('');
     const [discountAmount, setDiscountAmount] = useState(0);
     const [loading, setLoading] = useState(false);
 
     // =========================================================================
-    // 1. LOAD DỮ LIỆU BAN ĐẦU (Tỉnh thành & Thông tin User)
-    // =========================================================================
-    // =========================================================================
-    // 1. LOAD DỮ LIỆU BAN ĐẦU (Tỉnh thành & Thông tin User)
+    // 1. LOAD DỮ LIỆU BAN ĐẦU
     // =========================================================================
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const userId = currentUser?.userId;
-                
-                // 1. Load danh sách Tỉnh/Thành về trước
                 const provinceReq = axios.get('https://provinces.open-api.vn/api/?depth=1');
-                
                 let addrReq = Promise.resolve({ data: [] });
                 let profileReq = Promise.resolve({ data: null });
 
-                // Sửa đường dẫn API thành Profile cho đúng
                 if (userId) {
                     addrReq = axios.get(`${API_BASE}/api/Profile/${userId}/addresses`).catch(() => ({ data: [] }));
                     profileReq = axios.get(`${API_BASE}/api/Profile/${userId}`).catch(() => ({ data: null }));
                 }
 
                 const [provinceRes, addrRes, profileRes] = await Promise.all([provinceReq, addrReq, profileReq]);
-                
                 const provinceList = provinceRes.data; 
                 setProvinces(provinceList);
                 
-                // 2. Auto fill dữ liệu User vào Form
                 if (userId) {
                     const addresses = Array.isArray(addrRes.data) ? addrRes.data : [];
                     const userProfile = profileRes.data;
                     const defaultAddr = addresses.find(a => a.isDefault === true);
-
+                    
                     if (defaultAddr) {
-                        // --- LOGIC TÌM TỈNH CHUẨN ---
                         const normalize = (str) => str ? str.toLowerCase().trim() : '';
                         const dbProvName = normalize(defaultAddr.province);
 
-                        // Tìm tỉnh trong list API khớp với tỉnh trong DB
                         const foundProv = provinceList.find(p => {
                             const apiName = normalize(p.name);
                             return apiName === dbProvName || apiName.includes(dbProvName) || dbProvName.includes(apiName);
                         });
-                        
-                        // Lấy Code và Name CHUẨN từ API (để Dropdown nhận diện được)
+
                         const recoveredCode = foundProv ? String(foundProv.code) : ''; 
                         const recoveredName = foundProv ? foundProv.name : (defaultAddr.province || '');
 
@@ -96,21 +82,16 @@ const Checkout = () => {
                             recipientName: defaultAddr.recipientName || userProfile?.fullName || '',
                             recipientPhone: defaultAddr.phoneNumber || userProfile?.phoneNumber || '',
                             addressDetail: defaultAddr.addressDetail || '',
-                            
-                            // QUAN TRỌNG: Dùng tên từ API để Dropdown hiển thị đúng
                             province: recoveredName, 
                             provinceCode: recoveredCode,
-                            
                             district: defaultAddr.district || '',
                             ward: defaultAddr.ward || '',
                         }));
-                        
-                        // Load tiếp Huyện/Xã nếu tìm được Code
+
                         if (recoveredCode) {
                              await loadLocationForDefaultAddress({ ...defaultAddr, province: recoveredName }, provinceList);
                         }
                     } else {
-                        // Không có địa chỉ mặc định
                         setFormData(prev => ({
                             ...prev,
                             recipientName: userProfile?.fullName || currentUser?.fullName || '',
@@ -127,16 +108,13 @@ const Checkout = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Helper load lại huyện/xã khi có địa chỉ có sẵn
     const loadLocationForDefaultAddress = async (addr, provinceList) => {
         if (!addr.province) return;
         const prov = provinceList.find(p => p.name === addr.province);
         if (!prov) return;
-
         try {
             const distRes = await axios.get(`https://provinces.open-api.vn/api/p/${prov.code}?depth=2`);
             setDistricts(distRes.data.districts);
-
             if (addr.district) {
                 const dist = distRes.data.districts.find(d => d.name === addr.district);
                 if (dist) {
@@ -151,27 +129,25 @@ const Checkout = () => {
     // 2. XỬ LÝ SỰ KIỆN FORM
     // =========================================================================
     const handleProvinceChange = async (e) => {
-    const code = e.target.value; // Lấy Mã (VD: 79)
-    const index = e.target.selectedIndex;
-    const name = index > 0 ? e.target.options[index].text : ''; // Lấy Tên
+        const code = e.target.value;
+        const index = e.target.selectedIndex;
+        const name = index > 0 ? e.target.options[index].text : ''; 
 
-    // Lưu cả Name và Code vào state
-    setFormData({ 
-        ...formData, 
-        province: name, 
-        provinceCode: code, // <--- CẬP NHẬT MÃ TỈNH
-        district: '', 
-        ward: '' 
-    });
-    
-    setDistricts([]); 
-    setWards([]);
+        setFormData({ 
+            ...formData, 
+            province: name, 
+            provinceCode: code, 
+            district: '', 
+            ward: '' 
+        });
+        setDistricts([]); 
+        setWards([]);
 
-    if (code) {
-        const res = await axios.get(`https://provinces.open-api.vn/api/p/${code}?depth=2`);
-        setDistricts(res.data.districts);
-    }
-};
+        if (code) {
+            const res = await axios.get(`https://provinces.open-api.vn/api/p/${code}?depth=2`);
+            setDistricts(res.data.districts);
+        }
+    };
 
     const handleDistrictChange = async (e) => {
         const districtCode = e.target.value;
@@ -179,7 +155,6 @@ const Checkout = () => {
 
         setFormData({ ...formData, district: districtName, ward: '' });
         setWards([]);
-
         if (districtCode) {
             const res = await axios.get(`https://provinces.open-api.vn/api/d/${districtCode}?depth=2`);
             setWards(res.data.wards);
@@ -191,57 +166,76 @@ const Checkout = () => {
         setFormData({ ...formData, ward: wardName });
     };
 
+    // 2.1 Cập nhật handleChange để chặn nhập chữ vào ô số điện thoại (Giống Register)
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    // Tính phí ship
-    // --- TÍNH PHÍ SHIP TỰ ĐỘNG TỪ SERVER ---
-useEffect(() => {
-    const getShippingFee = async () => {
-        // Chỉ tính khi đã có Mã Tỉnh và Giỏ hàng có đồ
-        if (!formData.provinceCode || cartItems.length === 0) {
-            setShippingFee(0);
-            return;
+        const { name, value } = e.target;
+        
+        // Logic validation input real-time
+        if (name === 'recipientPhone') {
+            // Chỉ cho phép nhập số
+            if (!/^\d*$/.test(value)) {
+                return;
+            }
         }
 
-        try {
-            // Gọi API tính phí "xem trước" mà ta vừa viết ở Backend
-            const payload = {
-                provinceCode: String(formData.provinceCode), // Gửi mã tỉnh
-                items: cartItems.map(item => ({
-                    variantId: item.variantId,
-                    quantity: item.quantity
-                }))
-            };
-
-            const res = await axios.post(`${API_BASE}/api/Orders/calculate-fee`, payload);
-            setShippingFee(res.data.shippingFee);
-        } catch (err) {
-            console.error("Lỗi tính phí ship:", err);
-            // Nếu lỗi, có thể fallback về 0 hoặc một mức phí tượng trưng
-            setShippingFee(0); 
-        }
+        setFormData({ ...formData, [name]: value });
     };
 
-    // Debounce nhẹ (chờ 500ms sau khi chọn xong mới gọi API để đỡ spam server)
-    const timeoutId = setTimeout(() => {
-        getShippingFee();
-    }, 500);
+    // --- TÍNH PHÍ SHIP TỰ ĐỘNG ---
+    useEffect(() => {
+        const getShippingFee = async () => {
+            if (!formData.provinceCode || cartItems.length === 0) {
+                setShippingFee(0);
+                return;
+            }
+            try {
+                const payload = {
+                    provinceCode: String(formData.provinceCode),
+                    items: cartItems.map(item => ({
+                        variantId: item.variantId,
+                        quantity: item.quantity
+                    }))
+                };
+                const res = await axios.post(`${API_BASE}/api/Orders/calculate-fee`, payload);
+                setShippingFee(res.data.shippingFee);
+            } catch (err) {
+                console.error("Lỗi tính phí ship:", err);
+                setShippingFee(0);
+            }
+        };
 
-    return () => clearTimeout(timeoutId);
-}, [formData.provinceCode, cartItems]); // Chạy lại khi đổi Tỉnh hoặc đổi Giỏ hàng
+        const timeoutId = setTimeout(() => {
+            getShippingFee();
+        }, 500);
+        return () => clearTimeout(timeoutId);
+    }, [formData.provinceCode, cartItems]);
 
-    // Áp dụng Voucher
+    // Áp dụng Voucher (Dùng Swal thay Alert)
     const handleApplyVoucher = async () => {
-        if (!voucherCode.trim()) return alert("Vui lòng nhập mã!");
+        if (!voucherCode.trim()) {
+            return Swal.fire({
+                icon: 'warning',
+                title: 'Thiếu mã giảm giá',
+                text: 'Vui lòng nhập mã!'
+            });
+        }
         try {
             const res = await axios.get(`${API_BASE}/api/Orders/validate-voucher?code=${voucherCode}&orderValue=${totalAmount}`);
             setDiscountAmount(res.data.discountAmount);
-            alert(`Áp dụng mã thành công! Giảm: ${res.data.discountAmount.toLocaleString()}đ`);
+            Swal.fire({
+                icon: 'success',
+                title: 'Thành công',
+                text: `Áp dụng mã thành công! Giảm: ${res.data.discountAmount.toLocaleString()}đ`,
+                timer: 2000,
+                showConfirmButton: false
+            });
         } catch (err) {
             setDiscountAmount(0);
-            alert(err.response?.data || "Mã không hợp lệ");
+            Swal.fire({
+                icon: 'error',
+                title: 'Mã không hợp lệ',
+                text: err.response?.data || "Vui lòng kiểm tra lại mã giảm giá."
+            });
         }
     };
 
@@ -249,42 +243,62 @@ useEffect(() => {
     // 3. XỬ LÝ ĐẶT HÀNG (QUAN TRỌNG)
     // =========================================================================
     const handlePlaceOrder = async () => {
-        if (cartItems.length === 0) return alert("Giỏ hàng trống!");
+        if (cartItems.length === 0) {
+            return Swal.fire({
+                icon: 'info',
+                title: 'Giỏ hàng trống!',
+                text: 'Vui lòng chọn sản phẩm trước khi thanh toán.'
+            });
+        }
+
         const { recipientName, recipientPhone, addressDetail, province, district, ward } = formData;
         
+        // Validate dữ liệu trống
         if (!recipientName || !recipientPhone || !addressDetail || !province || !district || !ward) {
-            return alert("Vui lòng điền đầy đủ thông tin giao hàng.");
+            return Swal.fire({
+                icon: 'warning',
+                title: 'Thiếu thông tin',
+                text: 'Vui lòng điền đầy đủ thông tin giao hàng.'
+            });
+        }
+
+        // 3.1 Validate Số điện thoại (Giống Register)
+        if (recipientPhone.length < 10 || recipientPhone.length > 11) {
+            return Swal.fire({
+                icon: 'warning',
+                title: 'Số điện thoại không hợp lệ',
+                text: 'Số điện thoại phải từ 10 đến 11 số!',
+                confirmButtonText: 'Đã hiểu'
+            });
         }
 
         setLoading(true);
         const userId = currentUser?.userId;
-        const finalAddress = `${addressDetail}, ${ward}, ${district}, ${province}`;
-
         const payload = {
-    userId: userId ? parseInt(userId) : null,
-    recipientName,
-    recipientPhone,
-    shippingAddress: addressDetail, // Chỉ gửi số nhà/tên đường (ví dụ: "123 Nguyễn Trãi")
-    province: formData.province,    // "Hà Nội"
-    provinceCode: formData.provinceCode, // "01"
-    district: formData.district,    // "Thanh Xuân"
-    ward: formData.ward, // Lưu ý: Backend DTO có thể chưa có Ward, nếu cần lưu Ward riêng thì thêm vào DTO sau
-    voucherCode: voucherCode || null,
-    paymentMethod: formData.paymentMethod,
-    note: formData.note,
-    items: cartItems.map(item => ({
-        variantId: item.variantId,
-        quantity: item.quantity
-    }))
-};
+            userId: userId ? parseInt(userId) : null,
+            recipientName,
+            recipientPhone,
+            shippingAddress: addressDetail,
+            province: formData.province,
+            provinceCode: formData.provinceCode,
+            district: formData.district,
+            ward: formData.ward,
+            voucherCode: voucherCode || null,
+            paymentMethod: formData.paymentMethod,
+            note: formData.note,
+            items: cartItems.map(item => ({
+                variantId: item.variantId,
+                quantity: item.quantity
+            }))
+        };
 
         try {
             // 1. Tạo đơn hàng
             const res = await axios.post(`${API_BASE}/api/Orders/checkout`, payload);
             const newOrderId = res.data.orderId;
 
-            // 2. QUAN TRỌNG: Xóa giỏ hàng ngay lập tức (UI + LocalStorage)
-            clearCart(); 
+            // 2. Xóa giỏ hàng
+            clearCart();
 
             // 3. Xử lý thanh toán
             if (formData.paymentMethod === 'PAYOS') {
@@ -292,18 +306,34 @@ useEffect(() => {
                 if (payRes.data.checkoutUrl) {
                     window.location.href = payRes.data.checkoutUrl;
                 } else {
-                    alert("Lỗi tạo link thanh toán, vui lòng thanh toán sau trong 'Đơn hàng của tôi'.");
-                    navigate('/order-success', { state: { orderId: newOrderId } });
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi thanh toán',
+                        text: "Lỗi tạo link thanh toán, vui lòng thanh toán sau trong 'Đơn hàng của tôi'.",
+                    }).then(() => {
+                        navigate('/order-success', { state: { orderId: newOrderId } });
+                    });
                 }
             } else {
-                // COD
-                alert("Đặt hàng thành công!");
-                navigate('/order-success', { state: { orderId: newOrderId } });
+                // COD: Thông báo thành công bằng Swal
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đặt hàng thành công!',
+                    text: 'Cảm ơn bạn đã mua sắm tại cửa hàng.',
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    navigate('/order-success', { state: { orderId: newOrderId } });
+                });
             }
 
         } catch (error) {
             console.error("Lỗi đặt hàng:", error);
-            alert("Lỗi đặt hàng: " + (error.response?.data?.message || "Có lỗi xảy ra"));
+            Swal.fire({
+                icon: 'error',
+                title: 'Đặt hàng thất bại',
+                text: error.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại sau."
+            });
         } finally {
             setLoading(false);
         }
@@ -319,6 +349,8 @@ useEffect(() => {
                 <h2 style={{ color: '#2e7d32', marginBottom: '20px' }}>Thông tin giao hàng</h2>
                 <div style={{ display: 'grid', gap: '15px' }}>
                     <input type="text" name="recipientName" placeholder="Họ tên người nhận (*)" value={formData.recipientName} onChange={handleChange} style={inputStyle} />
+                    
+                    {/* Input Số điện thoại đã được xử lý onChange để chặn chữ */}
                     <input type="text" name="recipientPhone" placeholder="Số điện thoại (*)" value={formData.recipientPhone} onChange={handleChange} style={inputStyle} />
                     
                     <div style={{ display: 'grid', gap: '10px' }}>
@@ -414,5 +446,4 @@ useEffect(() => {
 const inputStyle = {
     width: '100%', padding: '12px', borderRadius: '4px', border: '1px solid #ccc'
 };
-
 export default Checkout;

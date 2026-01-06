@@ -3,6 +3,7 @@ import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { FaTrash, FaPlus } from 'react-icons/fa'; 
 import { API_BASE } from '../../utils/apiConfig.jsx';
+import Swal from 'sweetalert2';
 function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
     // --- STATE CHUNG ---
     const [code, setCode] = useState('');
@@ -171,44 +172,100 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
     };
 
     const removeVariant = (index) => {
-        if (variants.length === 1) return alert("Phải có ít nhất 1 phân loại hàng!");
+        if (variants.length === 1) {
+            return Swal.fire({
+                title: 'Không thể xóa!',
+                text: 'Sản phẩm phải có ít nhất 1 phân loại hàng.',
+                icon: 'warning'
+            });
+        }
         const newVariants = [...variants];
         newVariants.splice(index, 1);
         setVariants(newVariants);
     };
 
     // --- SUBMIT ---
+    // --- SUBMIT VỚI SWEETALERT2 ---
+    // --- SUBMIT VỚI SWEETALERT2 ---
     const handleSubmit = () => {
-        // 1. Validate cơ bản
-        if (!code.trim()) return alert("Mã sản phẩm không được trống");
-        if (!name.trim()) return alert("Tên sản phẩm không được trống");
-        if (!catId) return alert("Vui lòng chọn danh mục");
+        // 1. Validate thông tin chung
+        if (!code.trim()) return Swal.fire('Thiếu thông tin', 'Mã sản phẩm không được trống', 'warning');
+        if (!name.trim()) return Swal.fire('Thiếu thông tin', 'Tên sản phẩm không được trống', 'warning');
+        if (!catId) return Swal.fire('Thiếu thông tin', 'Vui lòng chọn danh mục', 'warning');
 
-        // 2. Validate Variants
-        for(let v of variants) {
-            if(!v.variantName.trim()) return alert("Tên phân loại không được để trống");
-            if(isNaN(parseFloat(v.originalPrice)) || parseFloat(v.originalPrice) < 0) 
-                return alert("Giá gốc không hợp lệ");
-            // Validate Weight nếu cần (ví dụ không âm)
-            if(isNaN(parseFloat(v.weight)) || parseFloat(v.weight) < 0)
-                return alert("Cân nặng không hợp lệ");
+        // 2. Validate Variants (Phân loại hàng)
+        for (let i = 0; i < variants.length; i++) {
+            const v = variants[i];
+            
+            // Validate Tên loại
+            if (!v.variantName.trim()) {
+                return Swal.fire({
+                    title: 'Dữ liệu không hợp lệ',
+                    text: `Dòng thứ ${i + 1}: Tên phân loại không được để trống`,
+                    icon: 'warning'
+                });
+            }
+
+            const originalPrice = parseFloat(v.originalPrice);
+            const salePrice = parseFloat(v.salePrice) || 0;
+
+            // --- YÊU CẦU CŨ: GIÁ GỐC PHẢI > 0 ---
+            if (isNaN(originalPrice) || originalPrice <= 0) {
+                return Swal.fire({
+                    title: 'Giá không hợp lệ',
+                    text: `Dòng thứ ${i + 1} (${v.variantName}): Giá gốc phải lớn hơn 0đ.`,
+                    icon: 'warning'
+                });
+            }
+
+            // --- YÊU CẦU MỚI: GIÁ KHUYẾN MÃI KHÔNG ĐƯỢC LỚN HƠN GIÁ GỐC ---
+            if (salePrice > originalPrice) {
+                 return Swal.fire({
+                    title: 'Giá không hợp lệ',
+                    text: `Dòng thứ ${i + 1} (${v.variantName}): Giá khuyến mãi (${salePrice.toLocaleString()}đ) không được lớn hơn giá gốc (${originalPrice.toLocaleString()}đ).`,
+                    icon: 'warning'
+                });
+            }
+
+            // Validate Cân nặng (Không được âm)
+            if (isNaN(parseFloat(v.weight)) || parseFloat(v.weight) < 0) {
+                return Swal.fire({
+                    title: 'Trọng lượng lỗi',
+                    text: `Dòng thứ ${i + 1}: Trọng lượng không hợp lệ.`,
+                    icon: 'warning'
+                });
+            }
         }
+        
+        // ... (Giữ nguyên phần logic validate ngày tháng bên dưới) ...
 
         // --- LOGIC VALIDATE KHUYẾN MÃI ---
         const hasSaleDates = saleStart && saleEnd;
         const hasAnySalePrice = variants.some(v => parseFloat(v.salePrice) > 0);
 
+        // Có nhập giá Sale nhưng không nhập ngày
         if (hasAnySalePrice && !hasSaleDates) {
-            return alert("Bạn đã nhập Giá KM nhưng chưa chọn thời gian áp dụng (Bắt đầu - Kết thúc)!");
+            return Swal.fire({
+                title: 'Thiếu thời gian KM',
+                text: 'Bạn đã nhập Giá KM nhưng chưa chọn thời gian áp dụng (Bắt đầu - Kết thúc)!',
+                icon: 'warning'
+            });
         }
 
         if (hasSaleDates) {
+            // Có ngày nhưng không có giá Sale hoặc giá Sale <= 0
             const hasInvalidSalePrice = variants.some(v => !v.salePrice || parseFloat(v.salePrice) <= 0);
             if (hasInvalidSalePrice) {
-                return alert("Bạn đã thiết lập Ngày khuyến mãi, vui lòng nhập đầy đủ Giá KM (> 0) cho tất cả các phân loại!");
+                return Swal.fire({
+                    title: 'Thiếu giá KM',
+                    text: 'Bạn đã thiết lập Ngày khuyến mãi, vui lòng nhập đầy đủ Giá KM (> 0) cho tất cả các phân loại!',
+                    icon: 'warning'
+                });
             }
+            
+            // Check logic ngày
             if (new Date(saleStart) >= new Date(saleEnd)) {
-                return alert("Thời gian kết thúc khuyến mãi phải lớn hơn thời gian bắt đầu!");
+                return Swal.fire('Thời gian lỗi', 'Thời gian kết thúc khuyến mãi phải lớn hơn thời gian bắt đầu!', 'error');
             }
         }   
 
@@ -234,13 +291,12 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                 displayOrder: img.displayOrder || 0
             })),
             
-            // --- CẬP NHẬT: THÊM WEIGHT VÀO PAYLOAD ---
             tblProductVariants: variants.map(v => ({
                 variantId: v.variantId || 0, 
                 variantName: v.variantName.trim(),
                 originalPrice: parseFloat(v.originalPrice) || 0,
                 salePrice: parseFloat(v.salePrice) || 0,
-                weight: parseFloat(v.weight) || 0, // <--- GỬI CÂN NẶNG
+                weight: parseFloat(v.weight) || 0,
                 stockQuantity: parseInt(v.stockQuantity) || 0,
                 minStockAlert: parseInt(v.minStockAlert) || 5, 
             }))
@@ -255,7 +311,7 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999
+            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1050
         }}>
             <div style={{ 
                 backgroundColor: 'white', padding: '20px', borderRadius: '8px', 
@@ -283,10 +339,10 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                                 {categories.map(c => (<option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>))}
                             </select>
                         </div>
-                        <div style={{ marginBottom: '10px' }}>
+                        {/* <div style={{ marginBottom: '10px' }}>
                             <label>Tags Phong thủy:</label>
                             <input type="text" value={fengShui} onChange={e => setFengShui(e.target.value)} style={{ width: '100%', padding: '8px', marginTop:'5px' }} />
-                        </div>
+                        </div> */}
                        
                         {/* KHU VỰC NGÀY SALE */}
                         <div style={{display:'flex', gap:'10px', marginTop:'10px', background:'#f8f9fa', padding:'10px', borderRadius:'4px'}}>
@@ -351,7 +407,7 @@ function ProductModal({ isOpen, onClose, onSubmit, initialData, categories }) {
                                 <th style={{padding:'8px', border:'1px solid #ddd', width:'130px'}}>Giá KM</th>
                                 
                                 {/* CỘT MỚI: CÂN NẶNG */}
-                                <th style={{padding:'8px', border:'1px solid #ddd', width:'100px'}}>Cân nặng (Kg)</th>
+                                <th style={{padding:'8px', border:'1px solid #ddd', width:'100px'}}>Trọng Lượng (Kg)</th>
 
                                 <th style={{padding:'8px', border:'1px solid #ddd', width:'80px'}}>Tồn kho</th>
                                 <th style={{padding:'8px', border:'1px solid #ddd', width:'80px'}}>Min Alert</th>

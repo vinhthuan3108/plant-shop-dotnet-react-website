@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaTrash, FaPlus } from 'react-icons/fa'; // Cần cài: npm install react-icons
 import { API_BASE } from '../../utils/apiConfig.jsx';
+import Swal from 'sweetalert2';
 const CreateImportReceipt = () => {
     // --- STATE DỮ LIỆU GỐC (MASTER DATA) ---
     const [suppliers, setSuppliers] = useState([]);
@@ -118,27 +119,57 @@ const CreateImportReceipt = () => {
     // 4. SUBMIT
     // 4. SUBMIT (Phiên bản Debug lỗi 401)
     const handleSubmit = async () => {
-        // Validate cơ bản
-        if (!supplierId) return alert("Chưa chọn Nhà cung cấp!");
-        if (details.some(d => !d.variantId)) return alert("Vui lòng chọn đầy đủ phân loại hàng!");
-
-        // --- BƯỚC DEBUG: KIỂM TRA TOKEN ---
-        let token = localStorage.getItem('token'); 
-        
-        console.log(">>> 1. Token lấy từ localStorage:", token); // Xem token có null không?
-
-        if (!token) {
-            alert("Lỗi: Không tìm thấy Token! Bạn hãy đăng xuất và đăng nhập lại.");
-            return;
+        // --- VALIDATE DỮ LIỆU ---
+        if (!supplierId) {
+            return Swal.fire({
+                title: 'Thiếu thông tin!',
+                text: 'Vui lòng chọn Nhà cung cấp.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
         }
 
-        // Xử lý lỗi phổ biến: Token bị dính dấu ngoặc kép "..." do JSON.stringify
+        if (details.some(d => !d.variantId)) {
+            return Swal.fire({
+                title: 'Chưa chọn đủ thông tin!',
+                text: 'Vui lòng chọn đầy đủ Phân loại (Variant) cho tất cả các dòng.',
+                icon: 'warning',
+                confirmButtonText: 'Kiểm tra lại'
+            });
+        }
+
+        if (details.length === 0) {
+             return Swal.fire({
+                title: 'Phiếu rỗng!',
+                text: 'Vui lòng thêm ít nhất một sản phẩm.',
+                icon: 'warning'
+            });
+        }
+
+        // --- BƯỚC XÁC NHẬN ---
+        const confirmResult = await Swal.fire({
+            title: 'Xác nhận nhập kho?',
+            html: `Tổng tiền phiếu nhập: <strong style="color:red; font-size: 1.2em">${totalAmount.toLocaleString()} VNĐ</strong><br/>Bạn có chắc chắn muốn lưu phiếu này?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#27ae60',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Đồng ý, Lưu phiếu!',
+            cancelButtonText: 'Hủy bỏ'
+        });
+
+        if (!confirmResult.isConfirmed) return; // Nếu user bấm Hủy thì dừng lại
+
+        // --- XỬ LÝ TOKEN ---
+        let token = localStorage.getItem('token');
+        if (!token) {
+            return Swal.fire('Lỗi đăng nhập', 'Không tìm thấy Token! Vui lòng đăng nhập lại.', 'error');
+        }
         if (token.startsWith('"') && token.endsWith('"')) {
             token = token.slice(1, -1);
-            console.log(">>> 2. Token sau khi cắt bỏ ngoặc kép thừa:", token);
         }
-        // ------------------------------------
 
+        // Tạo payload
         const payload = {
             supplierId: parseInt(supplierId),
             importDate: importDate,
@@ -151,8 +182,16 @@ const CreateImportReceipt = () => {
         };
 
         try {
-            console.log(">>> 3. Đang gửi request với Header:", `Bearer ${token}`);
-            
+            // HIỆN LOADING KHI ĐANG GỌI API
+            Swal.fire({
+                title: 'Đang xử lý...',
+                text: 'Vui lòng chờ trong giây lát',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
             const res = await axios.post(`${API_BASE}/api/ImportReceipts`, payload, {
                 headers: { 
                     'Authorization': `Bearer ${token}`,
@@ -161,19 +200,38 @@ const CreateImportReceipt = () => {
             });
 
             if (res.status === 200 || res.status === 201) {
-                alert("Thành công!");
-                // Reset form...
+                // Tắt loading và hiện thông báo thành công
+                Swal.fire({
+                    title: 'Thành công!',
+                    text: 'Đã tạo phiếu nhập kho thành công.',
+                    icon: 'success',
+                    timer: 700,
+                    showConfirmButton: false
+                });
+
+                // Reset form về trạng thái ban đầu
                 setDetails([{ tempCategoryId: '', tempProductId: '', variantId: '', quantity: 1, importPrice: 0 }]);
                 setNote('');
+                // Giữ nguyên ngày nhập hoặc reset tùy nhu cầu
             }
+
         } catch (err) {
             console.error(">>> LỖI API:", err);
-            // In ra chi tiết lỗi từ backend (nếu có)
-            if (err.response && err.response.status === 401) {
-                alert("Lỗi 401: Token hết hạn hoặc không hợp lệ. Vui lòng ĐĂNG NHẬP LẠI.");
-            } else {
-                alert("Lỗi: " + (err.response?.data?.message || err.message));
+            
+            // Xử lý thông báo lỗi chi tiết
+            let errorMsg = "Có lỗi xảy ra khi lưu phiếu.";
+            if (err.response) {
+                if (err.response.status === 401) errorMsg = "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.";
+                else if (err.response.data && err.response.data.message) errorMsg = err.response.data.message;
+                else if (err.response.data && err.response.data.title) errorMsg = err.response.data.title;
             }
+
+            Swal.fire({
+                title: 'Lỗi!',
+                text: errorMsg,
+                icon: 'error',
+                confirmButtonText: 'Đóng'
+            });
         }
     };
 

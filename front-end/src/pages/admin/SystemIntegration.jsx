@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-// import { toast } from 'react-toastify'; 
+// import { toast } from 'react-toastify';
 import { API_BASE } from '../../utils/apiConfig.jsx';
+import Swal from 'sweetalert2'; // Import SweetAlert2
+
 function SystemIntegration() {
     // 1. Config Email
     const [mailConfig, setMailConfig] = useState({
@@ -106,7 +108,11 @@ function SystemIntegration() {
 
     const handleSaveMail = async () => {
         if (!mailConfig.Email) {
-            alert("Vui lòng nhập Email!");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Thiếu thông tin',
+                text: 'Vui lòng nhập Email!'
+            });
             return;
         }
         try {
@@ -114,11 +120,25 @@ function SystemIntegration() {
                 Email: mailConfig.Email,
                 Password: mailConfig.Password 
             });
-            alert('Cập nhật cấu hình Email thành công!');
+            
+            // Thay alert thành công
+            Swal.fire({
+                icon: 'success',
+                title: 'Thành công',
+                text: 'Cập nhật cấu hình Email thành công!',
+                timer: 700,
+                showConfirmButton: false
+            });
+            
             setMailConfig(prev => ({ ...prev, Password: '' }));
         } catch (error) {
             console.error(error);
-            alert('Lỗi khi lưu cấu hình Email');
+            // Thay alert lỗi
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Lỗi khi lưu cấu hình Email'
+            });
         }
     };
 
@@ -126,7 +146,11 @@ function SystemIntegration() {
         const isFirstTime = !statusFlags.hasClientId || !statusFlags.hasApiKey || !statusFlags.hasChecksumKey;
         if (isFirstTime) {
              if (!payOsConfig.ClientId || !payOsConfig.ApiKey || !payOsConfig.ChecksumKey) {
-                alert("Lần đầu cấu hình vui lòng nhập đủ 3 trường!");
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Thiếu thông tin',
+                    text: 'Lần đầu cấu hình vui lòng nhập đủ 3 trường!'
+                });
                 return;
              }
         }
@@ -136,11 +160,24 @@ function SystemIntegration() {
                 ApiKey: payOsConfig.ApiKey,
                 ChecksumKey: payOsConfig.ChecksumKey
             });
-            alert('Cập nhật PayOS thành công!');
+            
+            // Thay alert thành công
+            await Swal.fire({
+                icon: 'success',
+                title: 'Thành công',
+                text: 'Cập nhật PayOS thành công!',
+                timer: 700,
+                showConfirmButton: false
+            });
+            
             fetchConfigs(); 
         } catch (error) {
             console.error(error);
-            alert('Lỗi lưu cấu hình PayOS');
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Lỗi lưu cấu hình PayOS'
+            });
         }
     };
 
@@ -148,13 +185,21 @@ function SystemIntegration() {
     const handleSaveRecaptcha = async () => {
         // Validation: SiteKey bắt buộc phải có (hoặc đã có trong DB)
         if (!recaptchaConfig.siteKey) {
-            alert("Vui lòng nhập Site Key!");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Thiếu thông tin',
+                text: 'Vui lòng nhập Site Key!'
+            });
             return;
         }
         
         // Nếu chưa từng có Secret Key thì bắt buộc phải nhập
         if (!statusFlags.hasSecretKey && !recaptchaConfig.secretKey) {
-            alert("Vui lòng nhập Secret Key (Lần đầu cấu hình)!");
+            Swal.fire({
+                icon: 'warning',
+                title: 'Thiếu thông tin',
+                text: 'Vui lòng nhập Secret Key (Lần đầu cấu hình)!'
+            });
             return;
         }
 
@@ -163,11 +208,24 @@ function SystemIntegration() {
                 SiteKey: recaptchaConfig.siteKey,
                 SecretKey: recaptchaConfig.secretKey
             });
-            alert('Cập nhật Recaptcha thành công!');
+            
+            // Thay alert thành công
+            await Swal.fire({
+                icon: 'success',
+                title: 'Thành công',
+                text: 'Cập nhật Recaptcha thành công!',
+                timer: 700,
+                showConfirmButton: false
+            });
+            
             fetchConfigs();
         } catch (error) {
             console.error(error);
-            alert('Lỗi lưu cấu hình Recaptcha');
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Lỗi lưu cấu hình Recaptcha'
+            });
         }
     };
 
@@ -185,6 +243,7 @@ function SystemIntegration() {
     return (
         <div style={containerStyle}>
             <h2 style={{color: '#4e73df', marginBottom: '20px'}}>Tích hợp hệ thống & Bảo mật</h2>
+            
             {/* KHỐI 1: CẤU HÌNH EMAIL (SMTP) */}
             <div style={sectionStyle}>
                 <div style={headerStyle}>

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
+import Swal from 'sweetalert2'; // 1. Import SweetAlert
 
 function SupplierModal({ isOpen, onClose, onSave, selectedSupplier }) {
 
     const [supplierName, setSupplierName] = useState('');
-    // 1. Thêm State cho Email
     const [email, setEmail] = useState(''); 
     const [phoneNumber, setPhoneNumber] = useState('');
     const [address, setAddress] = useState('');
@@ -12,14 +12,12 @@ function SupplierModal({ isOpen, onClose, onSave, selectedSupplier }) {
     useEffect(() => {
         if (selectedSupplier) {
             setSupplierName(selectedSupplier.supplierName);
-            // 2. Load Email khi sửa (nếu có thì lấy, không thì rỗng)
             setEmail(selectedSupplier.email || ''); 
             setPhoneNumber(selectedSupplier.phoneNumber || '');
             setAddress(selectedSupplier.address || '');
             setNote(selectedSupplier.note || '');
         } else {
             setSupplierName('');
-            // 3. Reset Email khi thêm mới
             setEmail('');
             setPhoneNumber('');
             setAddress('');
@@ -30,11 +28,19 @@ function SupplierModal({ isOpen, onClose, onSave, selectedSupplier }) {
     if (!isOpen) return null;
 
     const handleSubmit = () => {
-        if (!supplierName.trim()) return alert("Tên nhà cung cấp không được trống");
+        // 2. Thay alert bằng SweetAlert
+        if (!supplierName.trim()) {
+            return Swal.fire({
+                title: 'Thiếu thông tin!',
+                text: 'Tên nhà cung cấp không được để trống.',
+                icon: 'warning',
+                confirmButtonText: 'Đã hiểu'
+            });
+        }
 
         const formData = {
             supplierName,
-            email, // 4. Đưa Email vào dữ liệu gửi đi
+            email, 
             phoneNumber,
             address,
             note
@@ -48,7 +54,8 @@ function SupplierModal({ isOpen, onClose, onSave, selectedSupplier }) {
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', 
+            zIndex: 1000 // Z-index modal
         }}>
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', width: '500px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
                 <h3>{selectedSupplier ? 'Cập Nhật Nhà Cung Cấp' : 'Thêm Nhà Cung Cấp Mới'}</h3>
@@ -63,7 +70,6 @@ function SupplierModal({ isOpen, onClose, onSave, selectedSupplier }) {
                     />
                 </div>
 
-                {/* 5. UI nhập Email - Đặt cạnh hoặc dưới Tên */}
                 <div style={{ marginBottom: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Email:</label>
                     <input 

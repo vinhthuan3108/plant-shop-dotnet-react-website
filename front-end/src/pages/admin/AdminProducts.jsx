@@ -4,6 +4,7 @@ import ProductModal from '../../components/admin/ProductModal';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { API_BASE } from '../../utils/apiConfig.jsx';
+import Swal from 'sweetalert2';
 function Products() {
     // --- STATE QUẢN LÝ DỮ LIỆU ---
     const [products, setProducts] = useState([]);
@@ -148,23 +149,56 @@ function Products() {
     };
 
     // --- SỬA LẠI HÀM XÓA ĐỂ HIỆN MÃ & TÊN ---
+    // --- HÀM XÓA SỬ DỤNG SWEETALERT2 ---
     const handleDelete = async (item) => {
-        if (window.confirm(`Bạn có chắc muốn xóa sản phẩm này không?\n\n- Mã: ${item.productCode}\n- Tên: ${item.productName}`)) {
+        // Hiện popup xác nhận
+        const result = await Swal.fire({
+            title: 'Bạn có chắc muốn xóa?',
+            // Sử dụng HTML để hiển thị thông tin rõ ràng hơn
+            html: `Sản phẩm: <strong>${item.productName}</strong><br/>Mã: ${item.productCode}<br/><br/>Hành động này không thể hoàn tác!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33', // Màu đỏ báo hiệu hành động nguy hiểm
+            cancelButtonColor: '#3085d6', // Màu xanh cho nút hủy
+            confirmButtonText: 'Xóa!',
+            cancelButtonText: 'Hủy bỏ'
+        });
+
+        // Nếu người dùng nhấn nút Xác nhận Xóa
+        if (result.isConfirmed) {
             try {
                 const res = await fetch(`${API_URL}/${item.productId}`, { method: 'DELETE' });
-                
-                // KIỂM TRA KẾT QUẢ TRẢ VỀ TỪ SERVER
+
                 if (res.ok) {
-                    alert("Xóa sản phẩm thành công!");
-                    fetchProducts(); // Tải lại danh sách
+                    // Thông báo thành công (Tự đóng sau 1.5s)
+                    Swal.fire({
+                        title: 'Đã xóa!',
+                        text: 'Sản phẩm đã được xóa thành công.',
+                        icon: 'success',
+                        timer: 700,
+                        showConfirmButton: false
+                    });
+                    
+                    // Tải lại danh sách sau khi xóa
+                    fetchProducts(); 
                 } else {
-                    // Nếu lỗi, đọc nội dung lỗi JSON từ Backend gửi sang
-                    const errData = await res.json(); 
-                    alert(`Lỗi xóa: ${errData.title || "Không thể xóa sản phẩm này."}`);
+                    // Thông báo lỗi từ Backend
+                    const errData = await res.json();
+                    Swal.fire({
+                        title: 'Không thể xóa!',
+                        text: errData.title || "Có lỗi xảy ra khi xóa sản phẩm.",
+                        icon: 'error',
+                        confirmButtonText: 'Đã hiểu'
+                    });
                 }
             } catch (error) {
                 console.error("Lỗi khi xóa:", error);
-                alert("Lỗi kết nối đến máy chủ (Network Error).");
+                // Thông báo lỗi mạng
+                Swal.fire({
+                    title: 'Lỗi kết nối!',
+                    text: 'Không thể kết nối đến máy chủ (Network Error).',
+                    icon: 'error'
+                });
             }
         }
     };
@@ -172,6 +206,8 @@ function Products() {
     const handleSaveFromModal = async (formData) => {
         const method = editingItem ? 'PUT' : 'POST';
         const url = editingItem ? `${API_URL}/${editingItem.productId}` : API_URL;
+        
+        // Đảm bảo có ID nếu đang sửa
         if (editingItem) formData.productId = editingItem.productId;
 
         try {
@@ -184,20 +220,45 @@ function Products() {
             if (res.ok) { 
                 setIsModalOpen(false);
                 fetchProducts(); 
-                alert("Lưu thành công!"); 
+                
+                // --- SỬA: Thay alert bằng Swal Success ---
+                Swal.fire({
+                    title: 'Thành công!',
+                    text: 'Sản phẩm đã được lưu thành công.',
+                    icon: 'success',
+                    timer: 700,
+                    showConfirmButton: false
+                });
+
             } else { 
                 const text = await res.text();
                 try {
                     const errData = JSON.parse(text);
-                    alert('Lỗi: ' + (errData.title || 'Có lỗi xảy ra')); 
+                    // --- SỬA: Thay alert bằng Swal Error (Lỗi từ BE trả về) ---
+                    Swal.fire({
+                        title: 'Lỗi!',
+                        text: errData.title || 'Có lỗi xảy ra khi lưu dữ liệu.',
+                        icon: 'error',
+                        confirmButtonText: 'Đóng'
+                    });
                 } catch (e) {
                     console.error("Server Error HTML:", text);
-                    alert('Lỗi hệ thống (Chi tiết trong Console). Mã lỗi: ' + res.status);
+                    // --- SỬA: Thay alert bằng Swal Error (Lỗi hệ thống/HTML) ---
+                    Swal.fire({
+                        title: 'Lỗi hệ thống',
+                        text: `Mã lỗi: ${res.status}. Vui lòng kiểm tra Console.`,
+                        icon: 'error'
+                    });
                 }
             }
         } catch (error) { 
             console.error("Network Error:", error);
-            alert("Lỗi kết nối tới máy chủ!");
+            // --- SỬA: Thay alert bằng Swal Error (Lỗi mạng) ---
+            Swal.fire({
+                title: 'Lỗi kết nối',
+                text: 'Không thể kết nối tới máy chủ! Vui lòng kiểm tra đường truyền.',
+                icon: 'error'
+            });
         }
     };
 

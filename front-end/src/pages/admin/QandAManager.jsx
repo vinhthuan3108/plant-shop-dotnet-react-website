@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import QandAModal from '../../components/admin/QandAModal';
 import { API_BASE } from '../../utils/apiConfig.jsx';
+import Swal from 'sweetalert2'; // Import SweetAlert2
+
 function QandAManager() {
     const [qandas, setQandas] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -8,7 +10,7 @@ function QandAManager() {
     
     // API URL
     const API_URL = `${API_BASE}/api/QandA`;
-
+    
     const fetchQandAs = () => {
         fetch(API_URL)
             .then(res => res.json())
@@ -34,30 +36,78 @@ function QandAManager() {
         
         // Mapping đúng field name với Backend Model
         if (editingItem) formData.id = editingItem.id;
-
+        
         try {
             const res = await fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
+            
             if (res.ok || res.status === 204) {
                 setIsModalOpen(false);
                 fetchQandAs();
-                // alert('Lưu thành công!'); // Có thể bỏ alert nếu thấy phiền
+                
+                // Thay alert bằng Swal Success
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Thành công',
+                    text: 'Lưu dữ liệu Q&A thành công!',
+                    timer: 700,
+                    showConfirmButton: false
+                });
             } else {
-                alert('Lỗi khi lưu dữ liệu');
+                // Thay alert bằng Swal Error
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: 'Lỗi khi lưu dữ liệu'
+                });
             }
         } catch (error) {
             console.error(error);
-            alert("Lỗi kết nối API");
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối',
+                text: 'Không thể kết nối đến server API'
+            });
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Bạn chắc chắn muốn xóa câu hỏi này?')) {
-            await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-            fetchQandAs();
+        // Thay window.confirm bằng Swal
+        const result = await Swal.fire({
+            title: 'Bạn chắc chắn muốn xóa?',
+            text: "Câu hỏi này sẽ bị xóa vĩnh viễn!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33', // Màu đỏ cho nút xóa
+            cancelButtonColor: '#3085d6', // Màu xanh cho nút hủy
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy bỏ'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                
+                Swal.fire({
+                    title: 'Đã xóa!',
+                    text: 'Câu hỏi đã được xóa thành công.',
+                    icon: 'success',
+                    timer: 1000,
+                    showConfirmButton: false
+                });
+                
+                fetchQandAs();
+            } catch (error) {
+                console.error(error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: 'Có lỗi xảy ra khi xóa.'
+                });
+            }
         }
     };
 
@@ -83,7 +133,8 @@ function QandAManager() {
                         </tr>
                     </thead>
                     <tbody>
-                        {qandas.length > 0 ? qandas.map((item, index) => (
+                        {qandas.length > 0 ?
+                        qandas.map((item, index) => (
                             <tr key={item.id} style={{ borderBottom: '1px solid #eee' }}>
                                 {/* Cột số thứ tự đếm (index) */}
                                 <td style={{ padding: '12px', textAlign: 'center' }}>{index + 1}</td>
