@@ -21,7 +21,8 @@ function Contact() {
         storeName: 'Đang tải...',
         address: 'Đang tải...',
         email: 'Đang tải...',
-        hotline: 'Đang tải...'
+        hotline: 'Đang tải...',
+        mapUrl: ''
     });
 
     // 3. (MỚI) State lưu danh sách câu hỏi thường gặp
@@ -47,7 +48,8 @@ function Contact() {
                     storeName: getValue('StoreName'),
                     address: getValue('Address'),
                     email: getValue('Email'),
-                    hotline: getValue('Hotline')
+                    hotline: getValue('Hotline'),
+                    mapUrl: getValue('GoogleMapEmbed') || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3528.4810863297434!2d109.17483147453608!3d12.241600130463471!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3170678749018e2f%3A0x4b0e1e18074eb956!2zQ8O0bmcgdHkgY-G7lSBwaOG6p24gU3dlZXRTb2Z0!5e1!3m2!1svi!2s!4v1766377102808!5m2!1svi!2s"
                 });
 
                 const recaptchaConfig = data.find(x => x.configKey === 'Recaptcha_SiteKey');
@@ -124,7 +126,7 @@ function Contact() {
             {/* Phần Map */}
             <div style={{ marginBottom: '40px' }}>
                 <iframe 
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3528.4810863297434!2d109.17483147453608!3d12.241600130463471!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3170678749018e2f%3A0x4b0e1e18074eb956!2zQ8O0bmcgdHkgY-G7lSBwaOG6p24gU3dlZXRTb2Z0!5e1!3m2!1svi!2s!4v1766377102808!5m2!1svi!2s" 
+                    src={shopInfo.mapUrl}
                     width="100%" 
                     height="400" 
                     style={{ border: 0 }} 

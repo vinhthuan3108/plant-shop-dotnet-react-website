@@ -49,9 +49,7 @@ const InventoryAdjustHistory = () => {
 
     return (
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', backgroundColor: '#f4f6f9', minHeight: '100vh' }}>
-            <h2 style={{ color: '#2c3e50', marginBottom: '20px', borderLeft: '5px solid #e67e22', paddingLeft: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <FaHistory /> Lịch Sử Điều Chỉnh Kho
-            </h2>
+            <h2 style={{color: '#4e73df', marginBottom: '20px'}}>Lịch Sử Điều Chỉnh Kho</h2>
 
             {/* BỘ LỌC */}
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', marginBottom: '20px', display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'flex-end' }}>

@@ -184,8 +184,7 @@ function SystemIntegration() {
 
     return (
         <div style={containerStyle}>
-            <h2 style={{ marginBottom: '20px', color: '#333' }}>Tích hợp hệ thống & Bảo mật</h2>
-            
+            <h2 style={{color: '#4e73df', marginBottom: '20px'}}>Tích hợp hệ thống & Bảo mật</h2>
             {/* KHỐI 1: CẤU HÌNH EMAIL (SMTP) */}
             <div style={sectionStyle}>
                 <div style={headerStyle}>

@@ -1,41 +1,41 @@
-/* src/pages/client/HomePage.jsx */
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Thêm useNavigate để chuyển trang khi click
 import { FaTree, FaMedal, FaHandshake, FaChevronLeft, FaChevronRight, FaStar, FaCalendarAlt } from 'react-icons/fa';
 import { CartContext } from '../../context/CartContext';
 import './HomePage.css';
 import HomeProductCard from '../../components/client/HomeProductCard';
 
-// Import ảnh tĩnh (Giữ nguyên như cũ)
-import phuQuyImg from '../../assets/images/phuquy.png';
-import senDaImg from '../../assets/images/sendavienlua.png';
-import thachBichImg from '../../assets/images/senthachbich.png';
+
+
 import { API_BASE } from '../../utils/apiConfig.jsx';
+
 function HomePage() {
   const { addToCart } = useContext(CartContext);
-  
+  const navigate = useNavigate(); // Hook để chuyển trang
+
   // --- STATE DỮ LIỆU ---
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [bestSellerProducts, setBestSellerProducts] = useState([]);
   const [banners, setBanners] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
   const [blogPosts, setBlogPosts] = useState([]);
+  
+  // STATE MỚI CHO DANH MỤC NỔI BẬT
+  const [topCategories, setTopCategories] = useState([]);
+
   const [currentBanner, setCurrentBanner] = useState(0);
 
-  // --- STATE CHO SLIDER & MOBILE ---
+  // --- STATE CHO SLIDER & MOBILE (Giữ nguyên) ---
   const [testimonialStartIndex, setTestimonialStartIndex] = useState(0);
   const [blogStartIndex, setBlogStartIndex] = useState(0);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  // Biến hỗ trợ vuốt (Swipe)
+  // Biến hỗ trợ vuốt (Giữ nguyên)
   const touchStart = useRef(0);
   const touchEnd = useRef(0);
   const minSwipeDistance = 50;
 
-  //const BASE_URL = 'https://localhost:7298';
-//const BASE_URL = 'http://vinhthuan3108-001-site1.anytempurl.com/api';
-//const BASE_URL = '';  
-  // --- 1. THEO DÕI RESIZE MÀN HÌNH ---
+  // --- 1. THEO DÕI RESIZE MÀN HÌNH (Giữ nguyên) ---
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
@@ -46,7 +46,9 @@ function HomePage() {
   const testimonialCount = isMobile ? 1 : 2;
   const blogCount = isMobile ? 1 : 3;
 
-  // --- 2. CÁC API CALL (Giữ nguyên) ---
+  // --- 2. CÁC API CALL ---
+  
+  // (Giữ nguyên các API banner, products, testimonials, blog...)
   useEffect(() => {
     fetch(`${API_BASE}/api/TblBanners/public`)
       .then(res => res.json())
@@ -60,13 +62,26 @@ function HomePage() {
       }).catch(err => console.error(err));
   }, []);
 
+  // API MỚI: LẤY TOP DANH MỤC
+  useEffect(() => {
+    fetch(`${API_BASE}/api/TblProducts/top-categories?top=3`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+            setTopCategories(data);
+        }
+      })
+      .catch(err => console.error("Lỗi lấy danh mục:", err));
+  }, []);
+
+  // ... (Các useEffect khác giữ nguyên: best-sellers, slider, shop, testimonials, blog) ...
   useEffect(() => {
     fetch(`${API_BASE}/api/TblProducts/best-sellers?top=8`)
       .then(res => res.json())
       .then(data => { if (Array.isArray(data)) setBestSellerProducts(data); })
       .catch(err => console.error(err));
   }, []);
-
+  
   useEffect(() => {
     if (banners.length === 0) return;
     const slideInterval = setInterval(() => nextSlide(), 5000);
@@ -104,7 +119,8 @@ function HomePage() {
       }).catch(err => console.error(err));
   }, []);
 
-  // --- LOGIC SLIDER ---
+
+  // --- LOGIC SLIDER, HELPER FUNC, SWIPE HANDLERS (Giữ nguyên) ---
   const nextTestimonialSlide = () => { setTestimonialStartIndex(prev => (prev + testimonialCount) % testimonials.length); };
   const prevTestimonialSlide = () => { setTestimonialStartIndex(prev => (prev - testimonialCount + testimonials.length) % testimonials.length); };
   
@@ -118,10 +134,10 @@ function HomePage() {
       }
       return visible;
   };
-
+  
   const nextBlogSlide = () => { setBlogStartIndex(prev => (prev + blogCount) % blogPosts.length); };
   const prevBlogSlide = () => { setBlogStartIndex(prev => (prev - blogCount + blogPosts.length) % blogPosts.length); };
-
+  
   const getVisibleBlogs = () => {
       if (blogPosts.length === 0) return [];
       if (blogPosts.length <= blogCount) return blogPosts;
@@ -139,16 +155,18 @@ function HomePage() {
       return `${API_BASE}${url}`;
   };
 
-  // --- SWIPE HANDLERS ---
+  // Helper xử lý url ảnh danh mục
+  const getCategoryImageUrl = (url) => {
+    if (!url) return 'https://via.placeholder.com/400x300?text=No+Image'; // Ảnh fallback
+    if (url.startsWith('http')) return url;
+    return `${API_BASE}${url}`;
+  };
+
   const onTouchStart = (e) => {
     touchEnd.current = 0;
     touchStart.current = e.targetTouches[0].clientX;
   };
-
-  const onTouchMove = (e) => {
-    touchEnd.current = e.targetTouches[0].clientX;
-  };
-
+  const onTouchMove = (e) => { touchEnd.current = e.targetTouches[0].clientX; };
   const onTouchEnd = (type) => {
     if (!touchStart.current || !touchEnd.current) return;
     const distance = touchStart.current - touchEnd.current;
@@ -162,10 +180,19 @@ function HomePage() {
     }
   };
 
+  // Hàm chuyển hướng khi click vào danh mục
+  const handleCategoryClick = (catId) => {
+      navigate(`/shop?categoryId=${catId}`);
+  };
+
   return (
     <div className="homepage-wrapper">
-      {/* 1. BANNER HERO */}
-      <section className="hero-banner" style={{ backgroundImage: banners.length > 0 ? `url('${banners[currentBanner]?.image}')` : "url('https://placehold.co/1200x500?text=Loading...')" }}>
+      {/* 1. BANNER HERO (Giữ nguyên) */}
+      <section className="hero-banner" style={{ 
+          // Đã sửa: Bỏ ảnh loading, thay bằng màu nền khi chưa có ảnh
+          backgroundImage: banners.length > 0 ? `url('${banners[currentBanner]?.image}')` : 'none',
+          backgroundColor: '#e9ecef' 
+        }}>
         <div className="hero-overlay"></div>
         {banners.length > 0 && (
             <>
@@ -174,10 +201,8 @@ function HomePage() {
                     <p className="hero-subtitle">{banners[currentBanner].subtitle}</p>
                     <Link to={banners[currentBanner].link} className="hero-btn">KHÁM PHÁ NGAY</Link>
                 </div>
-                {/* Ẩn nút banner trên mobile nếu muốn, hoặc giữ nguyên */}
                 {!isMobile && <button className="slider-btn prev-btn" onClick={prevSlide}><FaChevronLeft /></button>}
                 {!isMobile && <button className="slider-btn next-btn" onClick={nextSlide}><FaChevronRight /></button>}
-                
                 <div className="slider-dots">
                     {banners.map((_, index) => (
                         <span key={index} className={`dot ${index === currentBanner ? 'active' : ''}`} onClick={() => setCurrentBanner(index)}></span>
@@ -187,7 +212,7 @@ function HomePage() {
         )}
       </section>
 
-      {/* 2. LÝ DO CHỌN */}
+      {/* 2. LÝ DO CHỌN (Giữ nguyên) */}
       <section className="section-container">
         <h2 className="section-title">LÝ DO CHỌN CÂY CẢNH NHA TRANG</h2>
         <div className="features-grid">
@@ -209,26 +234,36 @@ function HomePage() {
         </div>
       </section>
 
-      {/* 3. DANH MỤC */}
+      {/* 3. DANH MỤC CÂY TIÊU BIỂU (Đã cập nhật dynamic) */}
       <section className="section-container" style={{backgroundColor: '#f8f9fa'}}>
-        <h2 className="section-title">DANH MỤC CÂY TIÊU BIỂU</h2>
-        <div className="category-grid">
-          <div className="cat-item">
-            <img src={phuQuyImg} alt="Cây Để Vườn" className="cat-img" />
-            <span className="cat-label">Cây Để Vườn</span>
-          </div>
-          <div className="cat-item">
-            <img src={senDaImg} alt="Cây Văn Phòng" className="cat-img" />
-            <span className="cat-label">Cây Văn Phòng</span>
-          </div>
-          <div className="cat-item">
-            <img src={thachBichImg} alt="Cây Phong Thuỷ" className="cat-img" />
-            <span className="cat-label">Cây Phong Thuỷ</span>
-          </div>
-        </div>
+        <h2 className="section-title">DANH MỤC NỔI BẬT</h2>
+        
+        {topCategories.length > 0 ? (
+            <div className="category-grid">
+              {topCategories.map((cat) => (
+                <div 
+                    key={cat.categoryId} 
+                    className="cat-item" 
+                    onClick={() => handleCategoryClick(cat.categoryId)}
+                >
+                    <img 
+                        src={getCategoryImageUrl(cat.imageUrl)} 
+                        alt={cat.categoryName} 
+                        className="cat-img" 
+                    />
+                    <span className="cat-label">{cat.categoryName}</span>
+                </div>
+              ))}
+            </div>
+        ) : (
+            <div style={{textAlign: 'center', color: '#666', fontStyle: 'italic'}}>
+                Đang cập nhật danh mục nổi bật...
+            </div>
+        )}
       </section>
 
-      {/* TOP BÁN CHẠY */}
+      {/* CÁC PHẦN CÒN LẠI (TOP BÁN CHẠY, SẢN PHẨM MỚI, KHÁCH HÀNG, TIN TỨC...) GIỮ NGUYÊN KHÔNG ĐỔI */}
+      {/* ... Giữ nguyên code cũ từ đoạn TOP BÁN CHẠY trở xuống ... */}
       <section className="section-container" style={{ backgroundColor: '#fff' }}>
         <div style={{textAlign: 'center', marginBottom: '30px'}}>
              <h2 className="section-title" style={{display: 'inline-block', borderBottom: '3px solid #2e7d32', paddingBottom: '5px'}}>
@@ -261,47 +296,43 @@ function HomePage() {
         </div>
       </section>
 
-      {/* 5. KHÁCH HÀNG (Đã ẩn nút trên Mobile) */}
+      {/* 5. KHÁCH HÀNG */}
       <section className="section-container" style={{ backgroundColor: '#fff' }}>
-    <h2 className="section-title">KHÁCH HÀNG NÓI VỀ PLANT SHOP</h2>
-    <div 
-        style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto' }}
-        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={() => onTouchEnd('testimonial')}
-    >
-        {/* Nút Prev: Ẩn trên Mobile, Hiện trên PC/iPad */}
-        {!isMobile && testimonials.length > testimonialCount && (
-            <button onClick={prevTestimonialSlide} className="slider-nav-btn nav-prev">
-                <FaChevronLeft />
-            </button>
-        )}
-        
-        <div className="testimonial-grid" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '30px' }}>
-            {/* ... (Giữ nguyên phần map nội dung bên trong) ... */}
-            {getVisibleTestimonials().length > 0 ? (
-                getVisibleTestimonials().map((item, index) => (
-                    <div key={`${item.testimonialId}-${index}`} className="testimonial-card">
-                        <div className="t-avatar-frame">
-                            <img src={getAvatarUrl(item.avatarUrl)} alt={item.name} className="t-avatar" />
+        <h2 className="section-title">KHÁCH HÀNG NÓI VỀ PLANT SHOP</h2>
+        <div 
+            style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto' }}
+            onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={() => onTouchEnd('testimonial')}
+        >
+            {!isMobile && testimonials.length > testimonialCount && (
+                <button onClick={prevTestimonialSlide} className="slider-nav-btn nav-prev">
+                    <FaChevronLeft />
+                </button>
+            )}
+            
+            <div className="testimonial-grid" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '30px' }}>
+                {getVisibleTestimonials().length > 0 ? (
+                    getVisibleTestimonials().map((item, index) => (
+                        <div key={`${item.testimonialId}-${index}`} className="testimonial-card">
+                            <div className="t-avatar-frame">
+                                <img src={getAvatarUrl(item.avatarUrl)} alt={item.name} className="t-avatar" />
+                            </div>
+                            <div className="t-content">
+                                <div className="t-stars">{[...Array(item.rating || 5)].map((_, i) => <FaStar key={i} />)}</div>
+                                <p className="t-text">"{item.content}"</p>
+                                <h4 className="t-name">{item.name}</h4>
+                                <span className="t-role">{item.role}</span>
+                            </div>
                         </div>
-                        <div className="t-content">
-                            <div className="t-stars">{[...Array(item.rating || 5)].map((_, i) => <FaStar key={i} />)}</div>
-                            <p className="t-text">"{item.content}"</p>
-                            <h4 className="t-name">{item.name}</h4>
-                            <span className="t-role">{item.role}</span>
-                        </div>
-                    </div>
-                ))
-            ) : (<p style={{textAlign: 'center', width: '100%'}}>Chưa có đánh giá nào.</p>)}
-        </div>
+                    ))
+                ) : (<p style={{textAlign: 'center', width: '100%'}}>Chưa có đánh giá nào.</p>)}
+            </div>
 
-        {/* Nút Next: Ẩn trên Mobile, Hiện trên PC/iPad */}
-        {!isMobile && testimonials.length > testimonialCount && (
-            <button onClick={nextTestimonialSlide} className="slider-nav-btn nav-next">
-                <FaChevronRight />
-            </button>
-        )}
-    </div>
-        {/* Hướng dẫn vuốt cho Mobile */}
+            {!isMobile && testimonials.length > testimonialCount && (
+                <button onClick={nextTestimonialSlide} className="slider-nav-btn nav-next">
+                    <FaChevronRight />
+                </button>
+            )}
+        </div>
         {isMobile && testimonials.length > 1 && (
              <div style={{textAlign: 'center', fontSize: '13px', color: '#999', marginTop: '15px', fontStyle: 'italic'}}>
                 <FaHandshake style={{marginRight:'5px'}}/>Lướt trái/phải để xem thêm
@@ -309,49 +340,46 @@ function HomePage() {
         )}
       </section>
 
-      {/* 6. TIN TỨC (Cũng ẩn nút trên Mobile cho đẹp) */}
+      {/* 6. TIN TỨC */}
       <section className="section-container" style={{ backgroundColor: '#f9f9f9' }}>
-    <h2 className="section-title">KIẾN THỨC CÂY CẢNH</h2>
-    <div 
-        style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto' }}
-        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={() => onTouchEnd('blog')}
-    >
-        {/* Nút Prev */}
-        {!isMobile && blogPosts.length > blogCount && (
-            <button onClick={prevBlogSlide} className="slider-nav-btn nav-prev">
-                <FaChevronLeft />
-            </button>
-        )}
-    
-        <div className="blog-grid" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '30px' }}>
-             {/* ... (Giữ nguyên phần map nội dung bên trong) ... */}
-             {getVisibleBlogs().map((post, index) => {
-                 const imgUrl = post.thumbnailUrl && post.thumbnailUrl.startsWith('http') ? post.thumbnailUrl : `${API_BASE}${post.thumbnailUrl}`;
-                 return (
-                    <div key={`${post.postId}-${index}`} className="blog-card">
-                        <div className="blog-img-wrap">
-                            <Link to={`/blog/${post.postId}`}><img src={imgUrl || 'https://via.placeholder.com/300'} alt={post.title} className="blog-img" /></Link>
-                        </div>
-                        <div className="blog-info">
-                            <div style={{fontSize: '12px', color: '#888', marginBottom: '5px', display:'flex', alignItems:'center', gap: '5px'}}>
-                                <FaCalendarAlt /> {new Date(post.publishedAt || post.createdAt).toLocaleDateString('vi-VN')}
+        <h2 className="section-title">KIẾN THỨC CÂY CẢNH</h2>
+        <div 
+            style={{ position: 'relative', maxWidth: '1200px', margin: '0 auto' }}
+            onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={() => onTouchEnd('blog')}
+        >
+            {!isMobile && blogPosts.length > blogCount && (
+                <button onClick={prevBlogSlide} className="slider-nav-btn nav-prev">
+                    <FaChevronLeft />
+                </button>
+            )}
+        
+            <div className="blog-grid" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '30px' }}>
+                 {getVisibleBlogs().map((post, index) => {
+                     const imgUrl = post.thumbnailUrl && post.thumbnailUrl.startsWith('http') ? post.thumbnailUrl : `${API_BASE}${post.thumbnailUrl}`;
+                     return (
+                        <div key={`${post.postId}-${index}`} className="blog-card">
+                            <div className="blog-img-wrap">
+                                <Link to={`/blog/${post.postId}`}><img src={imgUrl || 'https://via.placeholder.com/300'} alt={post.title} className="blog-img" /></Link>
                             </div>
-                            <h3 className="blog-title"><Link to={`/blog/${post.postId}`} style={{textDecoration:'none', color:'inherit'}}>{post.title}</Link></h3>
-                            <p className="blog-desc">{post.shortDescription}</p>
-                            <Link to={`/blog/${post.postId}`} className="blog-btn">Đọc ngay</Link>
+                            <div className="blog-info">
+                                <div style={{fontSize: '12px', color: '#888', marginBottom: '5px', display:'flex', alignItems:'center', gap: '5px'}}>
+                                    <FaCalendarAlt /> {new Date(post.publishedAt || post.createdAt).toLocaleDateString('vi-VN')}
+                                </div>
+                                <h3 className="blog-title"><Link to={`/blog/${post.postId}`} style={{textDecoration:'none', color:'inherit'}}>{post.title}</Link></h3>
+                                <p className="blog-desc">{post.shortDescription}</p>
+                                <Link to={`/blog/${post.postId}`} className="blog-btn">Đọc ngay</Link>
+                            </div>
                         </div>
-                    </div>
-                );
-            })}
-        </div>
+                    );
+                })}
+            </div>
 
-        {/* Nút Next */}
-        {!isMobile && blogPosts.length > blogCount && (
-            <button onClick={nextBlogSlide} className="slider-nav-btn nav-next">
-                <FaChevronRight />
-            </button>
-        )}
-    </div>
+            {!isMobile && blogPosts.length > blogCount && (
+                <button onClick={nextBlogSlide} className="slider-nav-btn nav-next">
+                    <FaChevronRight />
+                </button>
+            )}
+        </div>
         {isMobile && blogPosts.length > 1 && (
              <div style={{textAlign: 'center', fontSize: '13px', color: '#999', marginTop: '15px', fontStyle: 'italic'}}>
                 <FaHandshake style={{marginRight:'5px'}}/>Lướt trái/phải để xem thêm

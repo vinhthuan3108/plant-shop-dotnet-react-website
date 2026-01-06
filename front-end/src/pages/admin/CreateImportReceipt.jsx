@@ -181,7 +181,7 @@ const CreateImportReceipt = () => {
 
     return (
         <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
-            <h2 style={{ color: '#2c3e50', borderBottom: '2px solid #3498db', paddingBottom: '10px' }}>Tạo Phiếu Nhập Kho</h2>
+            <h2 style={{color: '#4e73df', marginBottom: '20px'}}>Tạo phiếu nhập kho</h2>
 
             {/* HEADER PHIẾU */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: '20px', background: '#ecf0f1', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>

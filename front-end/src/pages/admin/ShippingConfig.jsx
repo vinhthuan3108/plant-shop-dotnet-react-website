@@ -90,9 +90,7 @@ const ShippingConfig = () => {
 
     return (
         <div style={{ padding: '30px', maxWidth: '900px', margin: '0 auto' }}>
-            <h2 style={{ marginBottom: '30px', color: '#2c3e50', borderBottom: '2px solid #ddd', paddingBottom: '10px' }}>
-                Cấu hình Phí Vận Chuyển (Theo Kg)
-            </h2>
+            <h2 style={{color: '#4e73df', marginBottom: '20px'}}>Cấu Hình Phí Vận Chuyển (Theo Kg)</h2>
 
             {/* PHẦN 1: VỊ TRÍ KHO */}
             <div style={cardStyle}>

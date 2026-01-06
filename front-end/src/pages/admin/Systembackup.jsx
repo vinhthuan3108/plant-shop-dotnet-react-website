@@ -59,7 +59,7 @@ if (!token) {
             <button 
                 onClick={handleBackup}
                 disabled={loading}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400"
+                className="bg-green-600 px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400"
             >
                 {loading ? "Đang xử lý..." : "⬇ Tải xuống bản sao lưu (.json)"}
             </button>

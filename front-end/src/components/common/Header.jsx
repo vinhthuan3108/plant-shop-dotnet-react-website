@@ -303,7 +303,7 @@ const Header = () => {
                         <li><Link to="/intro">GIỚI THIỆU</Link></li>
                         <li className="has-dropdown">
                             <Link to="/shop" className="dropdown-toggle" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                CÂY CẢNH <FaChevronDown style={{ fontSize: '10px' }}/>
+                                CÂY CẢNH 
                             </Link>
                              <ul className="dropdown-menu">
                                 <li><Link to="/shop">Xem tất cả</Link></li>
